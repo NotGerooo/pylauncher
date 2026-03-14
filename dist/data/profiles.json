@@ -1,0 +1,16 @@
+{
+    "version": "1.0",
+    "profiles": [
+        {
+            "id": "194fdd6c-65ef-463f-b4dd-d821c20823b4",
+            "name": "Gero Pro",
+            "version_id": "1.21.11",
+            "game_dir": "C:\\Users\\geron\\.minecraft\\profiles\\Gero_Pro",
+            "ram_mb": 8192,
+            "java_path": "",
+            "icon": "grass",
+            "created_at": "2026-03-14T13:24:21.050111",
+            "last_used": "2026-03-14T13:24:21.050111"
+        }
+    ]
+}
