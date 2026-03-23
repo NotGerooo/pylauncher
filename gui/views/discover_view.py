@@ -25,18 +25,32 @@ from tkinter import messagebox
 from services.modrinth_service import ModrinthService, ModrinthError
 
 # ── Paleta (igual que el resto del launcher) ────────────────────────────────
-BG          = "#1a1b1e"
-BG_CARD     = "#25262b"
-BG_SIDEBAR  = "#101113"
-BG_INPUT    = "#2c2d31"
-BG_HOVER    = "#2f3035"
-ACCENT      = "#1bd96a"
-ACCENT_DIM  = "#15a050"
-TEXT        = "#c1c2c5"
-TEXT_BRIGHT = "#ffffff"
-TEXT_DIM    = "#6c6f75"
-BORDER      = "#373a40"
-RED         = "#fa5252"
+BG        = "#16171a"
+BG_EL     = "#1c1d21"
+CARD_BG   = "#222327"
+CARD2_BG  = "#28292e"
+INPUT_BG  = "#1a1b1f"
+BORDER    = "#2e2f35"
+BORDER_BRIGHT = "#3d3e45"
+GREEN     = "#1bd96a"
+GREEN_DIM = "#13a050"
+GREEN_SUB = "#0f2318"
+TEXT_PRI  = "#f0f1f3"
+TEXT_SEC  = "#8b8e96"
+TEXT_DIM  = "#4a4d55"
+TEXT_INV  = "#0a0b0d"
+NAV_ACT   = "#0f2318"
+RED       = "#ff4757"
+ACCENT    = "#1bd96a"
+ACCENT_DIM= "#13a050"
+TEXT      = "#f0f1f3"
+TEXT_BRIGHT="#ffffff"
+BG_CARD   = "#222327"
+BG_SIDEBAR= "#0e0f11"
+BG_INPUT  = "#1a1b1f"
+BG_HOVER  = "#28292e"
+SEL_BG    = "#0f2318"
+DIALOG_BG = "#1c1d21"
 
 # ── Categorías por tipo de proyecto ─────────────────────────────────────────
 CATEGORIES = {
@@ -112,14 +126,14 @@ class DiscoverView(tk.Frame):
         tk.Label(
             header, text="Discover content",
             bg=BG, fg=TEXT_BRIGHT,
-            font=("Segoe UI", 18, "bold"),
+            font=("Segoe UI Variable Display", 18, "bold"),
         ).pack(side="left")
 
         # Badge perfil activo
         self._profile_badge = tk.Label(
             header, text="",
             bg=BG_CARD, fg=ACCENT,
-            font=("Segoe UI", 9, "bold"),
+            font=("Segoe UI Variable Text", 9, "bold"),
             padx=10, pady=4,
             relief="flat",
         )
@@ -141,7 +155,7 @@ class DiscoverView(tk.Frame):
             btn = tk.Label(
                 tabs_frame, text=label,
                 bg=BG, fg=TEXT_DIM,
-                font=("Segoe UI", 10, "bold"),
+                font=("Segoe UI Variable Text", 10, "bold"),
                 cursor="hand2",
                 padx=14, pady=6,
             )
@@ -161,7 +175,7 @@ class DiscoverView(tk.Frame):
         search_frame.pack(side="left", fill="y")
 
         tk.Label(search_frame, text="🔍", bg=BG_INPUT, fg=TEXT_DIM,
-                 font=("Segoe UI", 11)).pack(side="left")
+                 font=("Segoe UI Variable Text", 11)).pack(side="left")
         self._search_var = tk.StringVar()
         self._search_var.trace_add("write", self._on_search_changed)
         search_entry = tk.Entry(
@@ -170,7 +184,7 @@ class DiscoverView(tk.Frame):
             bg=BG_INPUT, fg=TEXT_BRIGHT,
             insertbackground=TEXT_BRIGHT,
             relief="flat",
-            font=("Segoe UI", 10),
+            font=("Segoe UI Variable Text", 10),
             width=28,
         )
         search_entry.pack(side="left", ipady=6)
@@ -202,7 +216,7 @@ class DiscoverView(tk.Frame):
         search_btn = tk.Label(
             filters_frame, text="Buscar",
             bg=ACCENT, fg=BG,
-            font=("Segoe UI", 9, "bold"),
+            font=("Segoe UI Variable Text", 9, "bold"),
             cursor="hand2",
             padx=14, pady=7,
         )
@@ -233,13 +247,13 @@ class DiscoverView(tk.Frame):
         tk.Label(
             status_frame, textvariable=self._status_var,
             bg=BG, fg=TEXT_DIM,
-            font=("Segoe UI", 9),
+            font=("Segoe UI Variable Text", 9),
         ).pack(side="left")
 
         self._page_label = tk.Label(
             status_frame, text="",
             bg=BG, fg=TEXT_DIM,
-            font=("Segoe UI", 9),
+            font=("Segoe UI Variable Text", 9),
         )
         self._page_label.pack(side="right")
 
@@ -275,7 +289,7 @@ class DiscoverView(tk.Frame):
         tk.Label(
             page_frame, textvariable=self._page_info_var,
             bg=BG, fg=TEXT_DIM,
-            font=("Segoe UI", 9),
+            font=("Segoe UI Variable Text", 9),
         ).pack(side="left", padx=16)
 
         self._next_btn = self._page_btn(page_frame, "Siguiente →",
@@ -291,21 +305,21 @@ class DiscoverView(tk.Frame):
         frame = tk.Frame(parent, bg=BG)
         frame.pack(side="left", padx=(0, 8))
         lbl = tk.Label(frame, text=label_text, bg=BG, fg=TEXT_DIM,
-                       font=("Segoe UI", 9))
+                       font=("Segoe UI Variable Text", 9))
         lbl.pack(side="left", padx=(0, 4))
         menu_btn = tk.Menubutton(
             frame, textvariable=var,
             bg=BG_INPUT, fg=TEXT_BRIGHT,
             activebackground=BG_HOVER, activeforeground=TEXT_BRIGHT,
             relief="flat",
-            font=("Segoe UI", 9),
+            font=("Segoe UI Variable Text", 9),
             width=width,
             indicatoron=True,
             padx=8, pady=5,
         )
         menu = tk.Menu(menu_btn, tearoff=0, bg=BG_CARD, fg=TEXT,
                        activebackground=BG_HOVER, activeforeground=TEXT_BRIGHT,
-                       font=("Segoe UI", 9))
+                       font=("Segoe UI Variable Text", 9))
         for opt in options:
             menu.add_command(
                 label=opt,
@@ -321,7 +335,7 @@ class DiscoverView(tk.Frame):
         btn = tk.Label(
             parent, text=text,
             bg=BG_CARD, fg=TEXT,
-            font=("Segoe UI", 9),
+            font=("Segoe UI Variable Text", 9),
             cursor="hand2",
             padx=12, pady=5,
         )
@@ -402,7 +416,7 @@ class DiscoverView(tk.Frame):
             chip = tk.Label(
                 self._chips_frame, text=f"  {chip_text}  ",
                 bg=BG_CARD, fg=TEXT,
-                font=("Segoe UI", 8, "bold"),
+                font=("Segoe UI Variable Text", 8, "bold"),
                 padx=2, pady=3,
                 relief="flat",
             )
@@ -434,7 +448,7 @@ class DiscoverView(tk.Frame):
             self._cat_menu_widget, tearoff=0,
             bg=BG_CARD, fg=TEXT,
             activebackground=BG_HOVER, activeforeground=TEXT_BRIGHT,
-            font=("Segoe UI", 9),
+            font=("Segoe UI Variable Text", 9),
         )
         for opt in cats:
             menu.add_command(
@@ -450,13 +464,13 @@ class DiscoverView(tk.Frame):
                     fg=ACCENT,
                     bg=BG,
                     relief="flat",
-                    font=("Segoe UI", 10, "bold"),
+                    font=("Segoe UI Variable Text", 10, "bold"),
                 )
                 # Subrayado verde simulado
                 btn.config(pady=6)
             else:
                 btn.config(fg=TEXT_DIM, bg=BG, relief="flat",
-                           font=("Segoe UI", 10, "bold"), pady=6)
+                           font=("Segoe UI Variable Text", 10, "bold"), pady=6)
 
     # ────────────────────────────────────────────────────────────────────────
     #  BÚSQUEDA / CARGA
@@ -594,7 +608,7 @@ class DiscoverView(tk.Frame):
                 self._list_frame,
                 text="No se encontraron resultados.",
                 bg=BG, fg=TEXT_DIM,
-                font=("Segoe UI", 11),
+                font=("Segoe UI Variable Text", 11),
             ).pack(pady=40)
             return
 
@@ -639,7 +653,7 @@ class DiscoverView(tk.Frame):
         icon_frame.pack(side="left", padx=(0, 14))
         icon_frame.pack_propagate(False)
         icon_lbl = tk.Label(icon_frame, text="📦", bg=BG_INPUT,
-                            font=("Segoe UI", 22))
+                            font=("Segoe UI Variable Text", 22))
         icon_lbl.pack(expand=True)
 
         # Carga icono en hilo si hay URL
@@ -660,7 +674,7 @@ class DiscoverView(tk.Frame):
         tk.Label(
             title_row, text=title,
             bg=BG_CARD, fg=TEXT_BRIGHT,
-            font=("Segoe UI", 11, "bold"),
+            font=("Segoe UI Variable Text", 11, "bold"),
             anchor="w",
         ).pack(side="left")
 
@@ -669,7 +683,7 @@ class DiscoverView(tk.Frame):
         tk.Label(
             info, text=desc_text,
             bg=BG_CARD, fg=TEXT_DIM,
-            font=("Segoe UI", 9),
+            font=("Segoe UI Variable Text", 9),
             anchor="w", justify="left",
             wraplength=560,
         ).pack(fill="x", pady=(2, 4))
@@ -693,7 +707,7 @@ class DiscoverView(tk.Frame):
             stats,
             text=f"⬇ {downloads:,}   ♥ {follows:,}   🕒 {date_mod}",
             bg=BG_CARD, fg=TEXT_DIM,
-            font=("Segoe UI", 8),
+            font=("Segoe UI Variable Text", 8),
         ).pack(side="left")
 
         # ── Botón instalar / instalado ───────────────────────────────────────
@@ -704,14 +718,14 @@ class DiscoverView(tk.Frame):
             tk.Label(
                 right, text="✓ Instalado",
                 bg=BG_CARD, fg=ACCENT,
-                font=("Segoe UI", 9, "bold"),
+                font=("Segoe UI Variable Text", 9, "bold"),
                 padx=14, pady=7,
             ).pack()
         else:
             install_btn = tk.Label(
                 right, text="Instalar",
                 bg=ACCENT, fg=BG,
-                font=("Segoe UI", 9, "bold"),
+                font=("Segoe UI Variable Text", 9, "bold"),
                 cursor="hand2",
                 padx=14, pady=7,
             )
@@ -740,7 +754,7 @@ class DiscoverView(tk.Frame):
         tk.Label(
             parent, text=f" {text} ",
             bg=bg_color, fg=TEXT_DIM,
-            font=("Segoe UI", 7, "bold"),
+            font=("Segoe UI Variable Text", 7, "bold"),
             padx=4, pady=2,
         ).pack(side="left", padx=(0, 3))
 
@@ -922,7 +936,7 @@ class ModDetailPanel(tk.Toplevel):
         icon_frame.pack(side="left")
         icon_frame.pack_propagate(False)
         self._icon_lbl = tk.Label(icon_frame, text="📦", bg=BG_INPUT,
-                                   font=("Segoe UI", 24))
+                                   font=("Segoe UI Variable Text", 24))
         self._icon_lbl.pack(expand=True)
         icon_url = hit.get("icon_url", "")
         if icon_url:
@@ -935,12 +949,12 @@ class ModDetailPanel(tk.Toplevel):
 
         tk.Label(hinfo, text=hit.get("title", ""),
                  bg=BG_SIDEBAR, fg=TEXT_BRIGHT,
-                 font=("Segoe UI", 14, "bold"), anchor="w").pack(fill="x")
+                 font=("Segoe UI Variable Display", 14, "bold"), anchor="w").pack(fill="x")
 
         desc = hit.get("description", "")
         tk.Label(hinfo, text=desc,
                  bg=BG_SIDEBAR, fg=TEXT_DIM,
-                 font=("Segoe UI", 9), anchor="w",
+                 font=("Segoe UI Variable Text", 9), anchor="w",
                  wraplength=460, justify="left").pack(fill="x")
 
         # Stats
@@ -948,14 +962,14 @@ class ModDetailPanel(tk.Toplevel):
         flw = hit.get("follows", 0)
         tk.Label(hinfo, text=f"⬇ {dl:,}   ♥ {flw:,}",
                  bg=BG_SIDEBAR, fg=ACCENT,
-                 font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(4, 0))
+                 font=("Segoe UI Variable Text", 9, "bold")).pack(anchor="w", pady=(4, 0))
 
         # Perfil activo badge
         loader = getattr(self.profile, "loader_type", "vanilla") or "vanilla"
         tk.Label(header,
                  text=f"  {self.profile.name} · {self.profile.version_id} · {loader}  ",
                  bg=BG_CARD, fg=ACCENT,
-                 font=("Segoe UI", 8, "bold"),
+                 font=("Segoe UI Variable Text", 8, "bold"),
                  padx=6, pady=4).pack(side="right", anchor="ne")
 
         # ── Tabs ─────────────────────────────────────────────────────────
@@ -967,7 +981,7 @@ class ModDetailPanel(tk.Toplevel):
         for key, label in [("versions", "Versiones"), ("changelog", "Changelog")]:
             b = tk.Label(tab_bar, text=f"  {label}  ",
                          bg=BG_SIDEBAR, fg=TEXT_DIM,
-                         font=("Segoe UI", 10, "bold"),
+                         font=("Segoe UI Variable Text", 10, "bold"),
                          cursor="hand2", pady=8)
             b.pack(side="left")
             b.bind("<Button-1>", lambda e, k=key: self._switch_tab(k))
@@ -983,12 +997,12 @@ class ModDetailPanel(tk.Toplevel):
         self._status_var = tk.StringVar(value="Cargando versiones…")
         tk.Label(bottom, textvariable=self._status_var,
                  bg=BG_SIDEBAR, fg=TEXT_DIM,
-                 font=("Segoe UI", 9)).pack(side="left")
+                 font=("Segoe UI Variable Text", 9)).pack(side="left")
 
         self._install_btn = tk.Label(
             bottom, text="⬇  Instalar versión seleccionada",
             bg=ACCENT, fg=BG,
-            font=("Segoe UI", 10, "bold"),
+            font=("Segoe UI Variable Text", 10, "bold"),
             cursor="hand2", padx=14, pady=7,
         )
         self._install_btn.pack(side="right")
@@ -1044,9 +1058,9 @@ class ModDetailPanel(tk.Toplevel):
         self._active_tab = key
         for k, b in self._tab_btns.items():
             if k == key:
-                b.config(fg=ACCENT, font=("Segoe UI", 10, "bold"))
+                b.config(fg=ACCENT, font=("Segoe UI Variable Text", 10, "bold"))
             else:
-                b.config(fg=TEXT_DIM, font=("Segoe UI", 10))
+                b.config(fg=TEXT_DIM, font=("Segoe UI Variable Text", 10))
 
         self._versions_panel.pack_forget()
         self._changelog_panel.pack_forget()

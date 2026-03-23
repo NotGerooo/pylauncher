@@ -1,9 +1,10 @@
 {
-    "minecraft_dir": "C:\\Users\\geron\\.pylauncher",
+    "minecraft_dir": "C:\\Users\\geron\\.minecraft",
     "java_path": "",
-    "default_ram_mb": 8192,
-    "last_profile": "Gero",
+    "default_ram_mb": 1024,
+    "last_profile": "",
     "theme": "dark",
     "close_on_launch": false,
-    "keep_launcher_open": true
+    "keep_launcher_open": true,
+    "language": "es"
 }

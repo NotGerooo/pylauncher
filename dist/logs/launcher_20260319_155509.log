@@ -1,0 +1,47 @@
+[2026-03-19 15:55:09] [INFO    ] [logger] Logger iniciado. Archivo de log: logs\launcher_20260319_155509.log
+[2026-03-19 15:55:09] [DEBUG   ] [settings] Configuración cargada desde data\launcher_settings.json
+[2026-03-19 15:55:09] [DEBUG   ] [settings] Configuración cargada desde data\launcher_settings.json
+[2026-03-19 15:55:09] [INFO    ] [profile_manager] Perfiles cargados: 1
+[2026-03-19 15:55:09] [DEBUG   ] [account_manager] accounts.json no encontrado, iniciando lista vacía.
+[2026-03-19 15:55:10] [INFO    ] [version_manager] Actualizando caché de versiones disponibles...
+[2026-03-19 15:55:10] [INFO    ] [installer] Descargando manifest de versiones de Mojang...
+[2026-03-19 15:55:10] [INFO    ] [app] Interfaz iniciada
+[2026-03-19 15:55:10] [INFO    ] [installer] Manifest cargado: 873 versiones disponibles
+[2026-03-19 15:55:10] [INFO    ] [version_manager] Caché actualizado: 873 versiones disponibles
+[2026-03-19 15:55:25] [INFO    ] [loader_manager] Fabric: 1 versiones disponibles para MC 1.21.11
+[2026-03-19 15:55:33] [INFO    ] [profile_manager] Perfil creado: 'Creativo' — MC 1.21.11
+[2026-03-19 15:55:33] [INFO    ] [loader_manager] === Instalando fabric 0.18.4 para MC 1.21.11 ===
+[2026-03-19 15:55:33] [INFO    ] [loader_manager] Descargando 8 librerías del loader...
+[2026-03-19 15:55:33] [INFO    ] [loader_manager] Fabric 0.18.4 instalado para MC 1.21.11
+[2026-03-19 15:55:33] [DEBUG   ] [loader_manager] Metadata de loaders actualizada en C:\Users\geron\.minecraft\profiles\Creativo\loader_meta.json
+[2026-03-19 15:55:33] [INFO    ] [loader_manager] === Fabric instalado como '1.21.11-fabric-0.18.4' ===
+[2026-03-19 15:55:33] [INFO    ] [profile_manager] Loader '1.21.11-fabric-0.18.4' instalado en 'Creativo'
+[2026-03-19 15:55:43] [INFO    ] [modrinth_service] Mod descargado: fabric-api-0.141.3+1.21.11.jar -> C:\Users\geron\.minecraft\profiles\Creativo\mods
+[2026-03-19 15:55:46] [INFO    ] [modrinth_service] Mod descargado: sodium-fabric-0.8.6+mc1.21.11.jar -> C:\Users\geron\.minecraft\profiles\Creativo\mods
+[2026-03-19 15:55:47] [INFO    ] [modrinth_service] Mod descargado: cloth-config-21.11.153-fabric.jar -> C:\Users\geron\.minecraft\profiles\Creativo\mods
+[2026-03-19 15:55:54] [INFO    ] [modrinth_service] Mod descargado: iris-fabric-1.10.6+mc1.21.11.jar -> C:\Users\geron\.minecraft\profiles\Creativo\mods
+[2026-03-19 15:55:54] [INFO    ] [modrinth_service] Mod descargado: ferritecore-8.2.0-fabric.jar -> C:\Users\geron\.minecraft\profiles\Creativo\mods
+[2026-03-19 15:55:56] [INFO    ] [modrinth_service] Mod descargado: entityculling-fabric-1.9.5-mc1.21.11.jar -> C:\Users\geron\.minecraft\profiles\Creativo\mods
+[2026-03-19 15:55:59] [INFO    ] [modrinth_service] Mod descargado: modmenu-17.0.0-beta.2.jar -> C:\Users\geron\.minecraft\profiles\Creativo\mods
+[2026-03-19 15:56:00] [INFO    ] [modrinth_service] Mod descargado: lithium-fabric-0.21.4+mc1.21.11.jar -> C:\Users\geron\.minecraft\profiles\Creativo\mods
+[2026-03-19 15:56:00] [INFO    ] [modrinth_service] Mod descargado: ImmediatelyFast-Fabric-1.14.2+1.21.11.jar -> C:\Users\geron\.minecraft\profiles\Creativo\mods
+[2026-03-19 15:56:15] [INFO    ] [modrinth_service] Mod descargado: continuity-3.0.1-beta.1+1.21.11.jar -> C:\Users\geron\.minecraft\profiles\Creativo\mods
+[2026-03-19 15:56:19] [INFO    ] [modrinth_service] Mod descargado: skinlayers3d-fabric-1.10.2-mc1.21.11.jar -> C:\Users\geron\.minecraft\profiles\Creativo\mods
+[2026-03-19 15:56:25] [INFO    ] [modrinth_service] Mod descargado: moreculling-fabric-1.21.11-1.6.2.jar -> C:\Users\geron\.minecraft\profiles\Creativo\mods
+[2026-03-19 15:56:26] [INFO    ] [modrinth_service] Mod descargado: zoomify-2.15.2+1.21.11.jar -> C:\Users\geron\.minecraft\profiles\Creativo\mods
+[2026-03-19 15:56:32] [INFO    ] [modrinth_service] Mod descargado: lambdynamiclights-4.9.1+1.21.11.jar -> C:\Users\geron\.minecraft\profiles\Creativo\mods
+[2026-03-19 15:56:33] [INFO    ] [modrinth_service] Mod descargado: MouseTweaks-fabric-mc1.21.11-2.30.jar -> C:\Users\geron\.minecraft\profiles\Creativo\mods
+[2026-03-19 15:56:52] [INFO    ] [modrinth_service] Mod descargado: BetterF3-17.0.0-Fabric-1.21.11.jar -> C:\Users\geron\.minecraft\profiles\Creativo\mods
+[2026-03-19 15:56:57] [INFO    ] [modrinth_service] Mod descargado: shulkerboxtooltip-fabric-5.2.16+1.21.11.jar -> C:\Users\geron\.minecraft\profiles\Creativo\mods
+[2026-03-19 15:57:01] [INFO    ] [modrinth_service] Mod descargado: c2me-fabric-mc1.21.11-0.3.7+alpha.0.9.jar -> C:\Users\geron\.minecraft\profiles\Creativo\mods
+[2026-03-19 15:57:04] [INFO    ] [modrinth_service] Mod descargado: visuality-0.7.13+1.21.11.jar -> C:\Users\geron\.minecraft\profiles\Creativo\mods
+[2026-03-19 15:57:05] [INFO    ] [modrinth_service] Mod descargado: fallingleaves-2.0.3+1.21.11.jar -> C:\Users\geron\.minecraft\profiles\Creativo\mods
+[2026-03-19 15:57:30] [INFO    ] [modrinth_service] Mod descargado: LowOnFire v1.21.11§8.zip -> C:\Users\geron\.minecraft\profiles\Creativo\resourcepacks
+[2026-03-19 15:57:41] [INFO    ] [modrinth_service] Mod descargado: NewGlowingOres-§6[Border]§r.zip -> C:\Users\geron\.minecraft\profiles\Creativo\resourcepacks
+[2026-03-19 15:57:46] [INFO    ] [modrinth_service] Mod descargado: Default-Dark-Mode-1.21.11-2026.2.0.zip -> C:\Users\geron\.minecraft\profiles\Creativo\resourcepacks
+[2026-03-19 15:58:11] [INFO    ] [modrinth_service] Mod descargado: Recolourful Containers 3.1 (1.19.4+).zip -> C:\Users\geron\.minecraft\profiles\Creativo\resourcepacks
+[2026-03-19 15:58:22] [INFO    ] [modrinth_service] Mod descargado: ComplementaryReimagined_r5.7.1.zip -> C:\Users\geron\.minecraft\profiles\Creativo\shaderpacks
+[2026-03-19 15:58:24] [INFO    ] [modrinth_service] Mod descargado: ComplementaryUnbound_r5.7.1.zip -> C:\Users\geron\.minecraft\profiles\Creativo\shaderpacks
+[2026-03-19 15:58:25] [INFO    ] [modrinth_service] Mod descargado: BSL_v10.1.1.zip -> C:\Users\geron\.minecraft\profiles\Creativo\shaderpacks
+[2026-03-19 15:58:28] [INFO    ] [modrinth_service] Mod descargado: Bliss_v2.1.2_(Chocapic13_Shaders_edit).zip -> C:\Users\geron\.minecraft\profiles\Creativo\shaderpacks
+[2026-03-19 15:58:28] [INFO    ] [modrinth_service] Mod descargado: Solas Shader V3.4.zip -> C:\Users\geron\.minecraft\profiles\Creativo\shaderpacks

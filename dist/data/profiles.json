@@ -11,6 +11,17 @@
             "icon": "grass",
             "created_at": "2026-03-14T13:24:21.050111",
             "last_used": "2026-03-14T13:24:21.050111"
+        },
+        {
+            "id": "dabba5d1-2f1d-4d69-9196-2e1b1b5c169b",
+            "name": "Creativo",
+            "version_id": "1.21.11",
+            "game_dir": "C:\\Users\\geron\\.minecraft\\profiles\\Creativo",
+            "ram_mb": 8192,
+            "java_path": "",
+            "icon": "grass",
+            "created_at": "2026-03-19T15:55:33.301308",
+            "last_used": "2026-03-19T15:55:33.301308"
         }
     ]
 }

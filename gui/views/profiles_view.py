@@ -4,17 +4,32 @@ from tkinter import ttk, messagebox
 from utils.logger import get_logger
 log = get_logger()
 
-BG        = "#1a1b1e"
-CARD_BG   = "#25262b"
-CARD2_BG  = "#2c2d32"
-INPUT_BG  = "#2c2d32"
-BORDER    = "#373a40"
+BG        = "#16171a"
+BG_EL     = "#1c1d21"
+CARD_BG   = "#222327"
+CARD2_BG  = "#28292e"
+INPUT_BG  = "#1a1b1f"
+BORDER    = "#2e2f35"
+BORDER_BRIGHT = "#3d3e45"
 GREEN     = "#1bd96a"
-GREEN_DIM = "#0d7a3a"
-TEXT_PRI  = "#e8e9ea"
-TEXT_SEC  = "#909296"
-TEXT_DIM  = "#5c5f66"
-DIALOG_BG = "#1e1f24"
+GREEN_DIM = "#13a050"
+GREEN_SUB = "#0f2318"
+TEXT_PRI  = "#f0f1f3"
+TEXT_SEC  = "#8b8e96"
+TEXT_DIM  = "#4a4d55"
+TEXT_INV  = "#0a0b0d"
+NAV_ACT   = "#0f2318"
+RED       = "#ff4757"
+ACCENT    = "#1bd96a"
+ACCENT_DIM= "#13a050"
+TEXT      = "#f0f1f3"
+TEXT_BRIGHT="#ffffff"
+BG_CARD   = "#222327"
+BG_SIDEBAR= "#0e0f11"
+BG_INPUT  = "#1a1b1f"
+BG_HOVER  = "#28292e"
+SEL_BG    = "#0f2318"
+DIALOG_BG = "#1c1d21"
 
 LOADERS = ["Vanilla", "Fabric", "Forge", "NeoForge", "Quilt", "OptiFine"]
 
@@ -107,7 +122,7 @@ class ProfileDialog(tk.Toplevel):
         tk.Label(title_frame,
                  text="Crear perfil" if not self.profile else "Editar perfil",
                  bg=DIALOG_BG, fg=TEXT_PRI,
-                 font=("Segoe UI", 15, "bold")).grid(row=0, column=0, sticky="w")
+                 font=("Segoe UI Variable Display", 15, "bold")).grid(row=0, column=0, sticky="w")
 
         # ── Separador ─────────────────────────────────────────────────────────
         tk.Frame(root, bg=BORDER, height=1).grid(
@@ -119,7 +134,7 @@ class ProfileDialog(tk.Toplevel):
         entry = tk.Entry(root, textvariable=self._name_var,
                          bg=INPUT_BG, fg=TEXT_PRI,
                          insertbackground=TEXT_PRI, relief="flat",
-                         font=("Segoe UI", 10),
+                         font=("Segoe UI Variable Text", 10),
                          highlightthickness=1,
                          highlightbackground=BORDER,
                          highlightcolor=GREEN)
@@ -140,7 +155,7 @@ class ProfileDialog(tk.Toplevel):
                 loader_frame, text=loader,
                 bg=CARD2_BG, fg=TEXT_SEC,
                 activebackground=BORDER, activeforeground=TEXT_PRI,
-                relief="flat", font=("Segoe UI", 9),
+                relief="flat", font=("Segoe UI Variable Text", 9),
                 padx=12, pady=7, cursor="hand2",
                 command=lambda l=loader: self._select_loader(l)
             )
@@ -154,12 +169,12 @@ class ProfileDialog(tk.Toplevel):
         self._lver_frame.grid_columnconfigure(0, weight=1)
         tk.Label(self._lver_frame, text="Versión del loader",
                  bg=DIALOG_BG, fg=TEXT_SEC,
-                 font=("Segoe UI", 9)).grid(row=0, column=0, sticky="w")
+                 font=("Segoe UI Variable Text", 9)).grid(row=0, column=0, sticky="w")
         self._lver_var = tk.StringVar()
         self._lver_combo = ttk.Combobox(self._lver_frame,
                                         textvariable=self._lver_var,
                                         state="readonly",
-                                        font=("Segoe UI", 10))
+                                        font=("Segoe UI Variable Text", 10))
         self._lver_combo.grid(row=1, column=0, sticky="ew",
                               ipady=6, pady=(6, 0))
         self._lver_frame.grid_remove()  # Oculto hasta elegir loader
@@ -168,7 +183,7 @@ class ProfileDialog(tk.Toplevel):
         self._section_label(root, 7, "Versión de Minecraft")
         self._version_var = tk.StringVar()
         self._vcombo = ttk.Combobox(root, textvariable=self._version_var,
-                                    state="readonly", font=("Segoe UI", 10))
+                                    state="readonly", font=("Segoe UI Variable Text", 10))
         self._vcombo.grid(row=8, column=0, sticky="ew",
                           ipady=6, padx=32, pady=(6, 20))
         self._vcombo.bind("<<ComboboxSelected>>", self._on_version_change)
@@ -183,7 +198,7 @@ class ProfileDialog(tk.Toplevel):
         self._ram_var = tk.StringVar(value="2048")
         ttk.Combobox(root, textvariable=self._ram_var,
                      values=["1024", "2048", "3072", "4096", "6144", "8192"],
-                     state="readonly", font=("Segoe UI", 10)).grid(
+                     state="readonly", font=("Segoe UI Variable Text", 10)).grid(
                          row=10, column=0, sticky="ew",
                          ipady=6, padx=32, pady=(6, 24))
 
@@ -200,7 +215,7 @@ class ProfileDialog(tk.Toplevel):
         tk.Button(btn_frame, text="✕  Cancelar",
                   bg=CARD2_BG, fg=TEXT_PRI,
                   activebackground=BORDER, activeforeground=TEXT_PRI,
-                  relief="flat", font=("Segoe UI", 10),
+                  relief="flat", font=("Segoe UI Variable Text", 10),
                   padx=16, pady=10, cursor="hand2",
                   command=self.destroy).grid(
                       row=0, column=0, sticky="ew", padx=(0, 8))
@@ -209,7 +224,7 @@ class ProfileDialog(tk.Toplevel):
                   text="+ Crear" if not self.profile else "✓  Guardar",
                   bg=GREEN, fg="#0a0a0a",
                   activebackground=GREEN_DIM, activeforeground="#0a0a0a",
-                  relief="flat", font=("Segoe UI", 10, "bold"),
+                  relief="flat", font=("Segoe UI Variable Text", 10, "bold"),
                   padx=16, pady=10, cursor="hand2",
                   command=self._on_save).grid(
                       row=0, column=1, sticky="ew")
@@ -221,7 +236,7 @@ class ProfileDialog(tk.Toplevel):
 
     def _section_label(self, parent, row, text):
         tk.Label(parent, text=text, bg=DIALOG_BG, fg=TEXT_PRI,
-                 font=("Segoe UI", 10, "bold")).grid(
+                 font=("Segoe UI Variable Text", 10, "bold")).grid(
                      row=row, column=0, sticky="w", padx=32, pady=(0, 0))
 
     def _add_placeholder(self, entry, var, placeholder):
@@ -247,10 +262,10 @@ class ProfileDialog(tk.Toplevel):
         for name, btn in self._loader_btns.items():
             if name == loader:
                 btn.configure(bg=GREEN, fg="#0a0a0a",
-                               font=("Segoe UI", 9, "bold"))
+                               font=("Segoe UI Variable Text", 9, "bold"))
             else:
                 btn.configure(bg=CARD2_BG, fg=TEXT_SEC,
-                               font=("Segoe UI", 9, "normal"))
+                               font=("Segoe UI Variable Text", 9))
 
         if loader == "Vanilla":
             self._lver_frame.grid_remove()
@@ -393,11 +408,11 @@ class ProfilesView(tk.Frame):
         hdr.grid(row=0, column=0, sticky="ew", pady=(0, 24))
         hdr.grid_columnconfigure(0, weight=1)
         tk.Label(hdr, text="Perfiles", bg=BG, fg=TEXT_PRI,
-                 font=("Segoe UI", 24, "bold")).grid(
+                 font=("Segoe UI Variable Display", 24, "bold")).grid(
                      row=0, column=0, sticky="w")
         tk.Label(hdr, text="Crea y administra tus instancias de Minecraft",
                  bg=BG, fg=TEXT_SEC,
-                 font=("Segoe UI", 11)).grid(
+                 font=("Segoe UI Variable Text", 11)).grid(
                      row=1, column=0, sticky="w", pady=(4, 0))
         _btn(hdr, "+ Nuevo perfil", self._open_create,
              small=True).grid(row=0, column=1, rowspan=2, sticky="e")
@@ -409,7 +424,7 @@ class ProfilesView(tk.Frame):
         card.grid_rowconfigure(1, weight=1)
 
         tk.Label(card, text="Mis perfiles", bg=CARD_BG, fg=TEXT_PRI,
-                 font=("Segoe UI", 13, "bold")).grid(
+                 font=("Segoe UI Variable Display", 13, "bold")).grid(
                      row=0, column=0, sticky="w", pady=(0, 16))
 
         cols = ("Nombre", "Versión", "Loader", "RAM")
@@ -436,7 +451,7 @@ class ProfilesView(tk.Frame):
         tk.Button(bf, text="✕  Eliminar",
                   bg="#3d1f1f", fg="#fa5252",
                   activebackground="#4a2424", relief="flat",
-                  font=("Segoe UI", 9), padx=12, pady=5,
+                  font=("Segoe UI Variable Text", 9), padx=12, pady=5,
                   cursor="hand2",
                   command=self._on_delete).pack(side="left")
 

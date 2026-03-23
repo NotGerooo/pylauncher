@@ -1,0 +1,9 @@
+[2026-03-23 12:27:41] [INFO    ] [logger] Logger iniciado. Archivo de log: logs\launcher_20260323_122741.log
+[2026-03-23 12:27:41] [DEBUG   ] [settings] Configuración cargada desde data\launcher_settings.json
+[2026-03-23 12:27:41] [INFO    ] [profile_manager] Perfiles cargados: 1
+[2026-03-23 12:27:41] [INFO    ] [account_manager] Cuentas cargadas: 1
+[2026-03-23 12:27:42] [INFO    ] [version_manager] Actualizando caché de versiones disponibles...
+[2026-03-23 12:27:42] [INFO    ] [installer] Descargando manifest de versiones de Mojang...
+[2026-03-23 12:27:42] [INFO    ] [app] Interfaz iniciada
+[2026-03-23 12:27:43] [INFO    ] [installer] Manifest cargado: 875 versiones disponibles
+[2026-03-23 12:27:43] [INFO    ] [version_manager] Caché actualizado: 875 versiones disponibles

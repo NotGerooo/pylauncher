@@ -27,17 +27,32 @@ from utils.logger import get_logger
 log = get_logger()
 
 # ── colours ───────────────────────────────────────────────────────────────────
-BG          = "#1a1b1e"
-BG_CARD     = "#25262b"
-BG_ROW      = "#2c2d32"
-BG_ROW_ALT  = "#26272c"
-BG_HOVER    = "#35363d"
-GREEN       = "#1bd96a"
-GREEN_DIM   = "#159a4c"
-RED         = "#f03e3e"
-MUTED       = "#868e96"
-WHITE       = "#ffffff"
-BORDER      = "#373a40"
+BG        = "#16171a"
+BG_EL     = "#1c1d21"
+CARD_BG   = "#222327"
+CARD2_BG  = "#28292e"
+INPUT_BG  = "#1a1b1f"
+BORDER    = "#2e2f35"
+BORDER_BRIGHT = "#3d3e45"
+GREEN     = "#1bd96a"
+GREEN_DIM = "#13a050"
+GREEN_SUB = "#0f2318"
+TEXT_PRI  = "#f0f1f3"
+TEXT_SEC  = "#8b8e96"
+TEXT_DIM  = "#4a4d55"
+TEXT_INV  = "#0a0b0d"
+NAV_ACT   = "#0f2318"
+RED       = "#ff4757"
+ACCENT    = "#1bd96a"
+ACCENT_DIM= "#13a050"
+TEXT      = "#f0f1f3"
+TEXT_BRIGHT="#ffffff"
+BG_CARD   = "#222327"
+BG_SIDEBAR= "#0e0f11"
+BG_INPUT  = "#1a1b1f"
+BG_HOVER  = "#28292e"
+SEL_BG    = "#0f2318"
+DIALOG_BG = "#1c1d21"
 
 ICON_SIZE   = 44          # px – square icon inside each row
 ROW_H       = 64          # row height in pixels
@@ -167,28 +182,28 @@ class _ModRow(tk.Frame):
         icon_frame.grid(row=0, column=0, rowspan=2, padx=(12, 10), pady=10, sticky="w")
         icon_frame.pack_propagate(False)
         self._icon_lbl = tk.Label(icon_frame, text="📦", bg=BG_INPUT,
-                                font=("Segoe UI", 18))
+                                font=("Segoe UI Variable Text", 18))
         self._icon_lbl.pack(expand=True, fill="both")
 
         # name label
         display = getattr(mod, "title", None) or getattr(mod, "display_name", mod.filename)
         author  = getattr(mod, "author", None) or ""
         tk.Label(self, text=display, bg=self._bg, fg=WHITE,
-                 font=("Segoe UI", 10, "bold"),
+                 font=("Segoe UI Variable Text", 10, "bold"),
                  anchor="w").grid(row=0, column=1, sticky="sw", padx=(0, 8))
         sub = author if author else mod.filename
         tk.Label(self, text=sub, bg=self._bg, fg=MUTED,
-                 font=("Segoe UI", 8),
+                 font=("Segoe UI Variable Text", 8),
                  anchor="w").grid(row=1, column=1, sticky="nw", padx=(0, 8))
 
         # version / size
         ver_text = getattr(mod, "version_number", None) or f"{mod.size_mb} MB"
         tk.Label(self, text=ver_text, bg=self._bg, fg=MUTED,
-                 font=("Segoe UI", 9),
+                 font=("Segoe UI Variable Text", 9),
                  anchor="e").grid(row=0, column=2, sticky="se", padx=(0, 12))
         fname = getattr(mod, "filename", "")
         tk.Label(self, text=fname, bg=self._bg, fg="#555a62",
-                 font=("Segoe UI", 7),
+                 font=("Segoe UI Variable Text", 7),
                  anchor="e").grid(row=1, column=2, sticky="ne", padx=(0, 12))
 
         # toggle
@@ -198,7 +213,7 @@ class _ModRow(tk.Frame):
 
         # delete
         del_btn = tk.Label(self, text="🗑", bg=self._bg, fg=MUTED,
-                           font=("Segoe UI", 13), cursor="hand2")
+                           font=("Segoe UI Variable Text", 13), cursor="hand2")
         del_btn.grid(row=0, column=4, rowspan=2, padx=(0, 4))
         del_btn.bind("<Button-1>", lambda _: on_delete(mod))
         del_btn.bind("<Enter>", lambda _: del_btn.config(fg=RED))
@@ -206,7 +221,7 @@ class _ModRow(tk.Frame):
 
         # options ⋮
         opt_btn = tk.Label(self, text="⋮", bg=self._bg, fg=MUTED,
-                           font=("Segoe UI", 14), cursor="hand2")
+                           font=("Segoe UI Variable Text", 14), cursor="hand2")
         opt_btn.grid(row=0, column=5, rowspan=2, padx=(0, 14))
         opt_btn.bind("<Button-1>", lambda e: on_options(e, mod))
         opt_btn.bind("<Enter>", lambda _: opt_btn.config(fg=WHITE))
@@ -280,25 +295,25 @@ class _SearchRow(tk.Frame):
 
         # name + description
         tk.Label(self, text=project.title, bg=self._bg, fg=WHITE,
-                 font=("Segoe UI", 10, "bold"), anchor="w").grid(
+                 font=("Segoe UI Variable Text", 10, "bold"), anchor="w").grid(
             row=0, column=1, sticky="sw", padx=(0, 8))
         desc = (project.description[:72] + "…") if len(project.description) > 72 else project.description
         tk.Label(self, text=desc, bg=self._bg, fg=MUTED,
-                 font=("Segoe UI", 8), anchor="w").grid(
+                 font=("Segoe UI Variable Text", 8), anchor="w").grid(
             row=1, column=1, sticky="nw", padx=(0, 8))
 
         # downloads + versions
         mc_v = ", ".join(project.game_versions[-3:]) if project.game_versions else "—"
         tk.Label(self, text=f"⬇ {project.downloads:,}", bg=self._bg, fg=MUTED,
-                 font=("Segoe UI", 9), anchor="e").grid(
+                 font=("Segoe UI Variable Text", 9), anchor="e").grid(
             row=0, column=2, sticky="se", padx=(0, 12))
         tk.Label(self, text=mc_v, bg=self._bg, fg="#555a62",
-                 font=("Segoe UI", 7), anchor="e").grid(
+                 font=("Segoe UI Variable Text", 7), anchor="e").grid(
             row=1, column=2, sticky="ne", padx=(0, 12))
 
         # install button
         inst_btn = tk.Label(self, text="⬇ Instalar", bg=GREEN_DIM, fg=WHITE,
-                            font=("Segoe UI", 8, "bold"), cursor="hand2",
+                            font=("Segoe UI Variable Text", 8, "bold"), cursor="hand2",
                             padx=10, pady=4)
         inst_btn.grid(row=0, column=3, rowspan=2, padx=(0, 6))
         inst_btn.bind("<Button-1>", lambda _: on_install(project))
@@ -307,7 +322,7 @@ class _SearchRow(tk.Frame):
 
         # options
         opt_btn = tk.Label(self, text="⋮", bg=self._bg, fg=MUTED,
-                           font=("Segoe UI", 14), cursor="hand2")
+                           font=("Segoe UI Variable Text", 14), cursor="hand2")
         opt_btn.grid(row=0, column=4, rowspan=2, padx=(0, 14))
         opt_btn.bind("<Button-1>", lambda e: on_options(e, project))
         opt_btn.bind("<Enter>", lambda _: opt_btn.config(fg=WHITE))
@@ -410,9 +425,9 @@ class ModsView(tk.Frame):
 
         # title
         tk.Label(main, text="Mods", bg=BG, fg=WHITE,
-                 font=("Segoe UI", 18, "bold")).grid(row=0, column=0, sticky="w")
+                 font=("Segoe UI Variable Display", 18, "bold")).grid(row=0, column=0, sticky="w")
         tk.Label(main, text="Administra los mods de cada perfil",
-                 bg=BG, fg=MUTED, font=("Segoe UI", 10)).grid(
+                 bg=BG, fg=MUTED, font=("Segoe UI Variable Text", 10)).grid(
             row=1, column=0, sticky="w", pady=(2, 16))
 
         # toolbar
@@ -421,11 +436,11 @@ class ModsView(tk.Frame):
         toolbar.grid_columnconfigure(1, weight=1)
 
         tk.Label(toolbar, text="Perfil:", bg=BG_CARD, fg=MUTED,
-                 font=("Segoe UI", 9)).grid(row=0, column=0, padx=(0, 8))
+                 font=("Segoe UI Variable Text", 9)).grid(row=0, column=0, padx=(0, 8))
         self._profile_var = tk.StringVar()
         self._profile_combo = ttk.Combobox(
             toolbar, textvariable=self._profile_var, state="readonly",
-            font=("Segoe UI", 10), width=22)
+            font=("Segoe UI Variable Text", 10), width=22)
         self._profile_combo.grid(row=0, column=1, sticky="w", padx=(0, 16))
         self._profile_combo.bind("<<ComboboxSelected>>", self._on_profile_change)
 
@@ -463,7 +478,7 @@ class ModsView(tk.Frame):
 
     def _mk_tab(self, parent, text, value):
         lbl = tk.Label(parent, text=text, bg=BG, fg=MUTED,
-                       font=("Segoe UI", 10), cursor="hand2",
+                       font=("Segoe UI Variable Text", 10), cursor="hand2",
                        padx=12, pady=6)
         lbl.bind("<Button-1>", lambda _: self._show_tab(value))
         return lbl
@@ -492,7 +507,7 @@ class ModsView(tk.Frame):
 
     def _mk_btn(self, parent, text, cmd):
         btn = tk.Label(parent, text=text, bg="#2f3136", fg=WHITE,
-                       font=("Segoe UI", 9), cursor="hand2",
+                       font=("Segoe UI Variable Text", 9), cursor="hand2",
                        padx=10, pady=5, relief="flat")
         btn.bind("<Button-1>", lambda _: cmd())
         btn.bind("<Enter>", lambda _: btn.config(bg="#3a3d44"))
@@ -545,7 +560,7 @@ class ModsView(tk.Frame):
         if not mods:
             tk.Label(self._installed_scroll.inner,
                      text="No hay mods instalados en este perfil.",
-                     bg=BG, fg=MUTED, font=("Segoe UI", 10)).pack(pady=40)
+                     bg=BG, fg=MUTED, font=("Segoe UI Variable Text", 10)).pack(pady=40)
             return
 
         for i, mod in enumerate(mods):
@@ -585,7 +600,7 @@ class ModsView(tk.Frame):
     def _on_options_mod(self, event, mod):
         menu = tk.Menu(self, tearoff=0, bg=BG_CARD, fg=WHITE,
                        activebackground=BG_HOVER, activeforeground=WHITE,
-                       font=("Segoe UI", 9))
+                       font=("Segoe UI Variable Text", 9))
         enabled = mod.is_enabled
         menu.add_command(
             label="Deshabilitar mod" if enabled else "Habilitar mod",
@@ -675,7 +690,7 @@ class ModsView(tk.Frame):
     def _on_options_search(self, event, project):
         menu = tk.Menu(self, tearoff=0, bg=BG_CARD, fg=WHITE,
                        activebackground=BG_HOVER, activeforeground=WHITE,
-                       font=("Segoe UI", 9))
+                       font=("Segoe UI Variable Text", 9))
         menu.add_command(label=f"Instalar {project.title}",
                          command=lambda: self._on_install_from_search(project))
         menu.add_separator()
@@ -729,7 +744,7 @@ class ModrinthSearchWindow(tk.Toplevel):
         main.grid_rowconfigure(2, weight=1)
 
         tk.Label(main, text="Buscar mods en Modrinth", bg=BG, fg=WHITE,
-                 font=("Segoe UI", 14, "bold")).grid(
+                 font=("Segoe UI Variable Display", 14, "bold")).grid(
             row=0, column=0, sticky="w", pady=(0, 12))
 
         # ── search bar + filters ──────────────────────────────────────────
@@ -746,7 +761,7 @@ class ModrinthSearchWindow(tk.Toplevel):
 
         entry = tk.Entry(search_row, textvariable=self._search_var,
                          bg=BG_CARD, fg=WHITE, insertbackground=WHITE,
-                         relief="flat", font=("Segoe UI", 11))
+                         relief="flat", font=("Segoe UI Variable Text", 11))
         entry.grid(row=0, column=0, sticky="ew", ipady=9, padx=(0, 10))
         entry.bind("<KeyRelease>", self._on_text_change)
         entry.bind("<Return>", lambda _: self._trigger_search())
@@ -754,7 +769,7 @@ class ModrinthSearchWindow(tk.Toplevel):
         # loading spinner label (dots animation)
         self._spinner_var = tk.StringVar(value="")
         tk.Label(search_row, textvariable=self._spinner_var,
-                 bg=BG, fg=GREEN, font=("Segoe UI", 11, "bold"),
+                 bg=BG, fg=GREEN, font=("Segoe UI Variable Text", 11, "bold"),
                  width=2).grid(row=0, column=1)
 
         # row 1: filter chips
@@ -763,17 +778,17 @@ class ModrinthSearchWindow(tk.Toplevel):
 
         # Loader filter
         tk.Label(filter_row, text="Loader:", bg=BG, fg=MUTED,
-                 font=("Segoe UI", 9)).pack(side="left", padx=(0, 6))
+                 font=("Segoe UI Variable Text", 9)).pack(side="left", padx=(0, 6))
         self._loader_var = tk.StringVar(value="Todos")
         loader_combo = ttk.Combobox(filter_row, textvariable=self._loader_var,
                                     values=self.LOADERS, state="readonly",
-                                    width=10, font=("Segoe UI", 9))
+                                    width=10, font=("Segoe UI Variable Text", 9))
         loader_combo.pack(side="left", padx=(0, 16))
         loader_combo.bind("<<ComboboxSelected>>", self._on_filter_change)
 
         # MC version filter
         tk.Label(filter_row, text="Versión MC:", bg=BG, fg=MUTED,
-                 font=("Segoe UI", 9)).pack(side="left", padx=(0, 6))
+                 font=("Segoe UI Variable Text", 9)).pack(side="left", padx=(0, 6))
         installed = self.app.version_manager.get_installed_version_ids() \
             if hasattr(self.app, "version_manager") else []
         mc_options = ["Todas"] + installed
@@ -782,18 +797,18 @@ class ModrinthSearchWindow(tk.Toplevel):
                                     else "Todas")
         mc_combo = ttk.Combobox(filter_row, textvariable=self._mc_var,
                                 values=mc_options, state="readonly",
-                                width=10, font=("Segoe UI", 9))
+                                width=10, font=("Segoe UI Variable Text", 9))
         mc_combo.pack(side="left", padx=(0, 16))
         mc_combo.bind("<<ComboboxSelected>>", self._on_filter_change)
 
         # Sort filter
         tk.Label(filter_row, text="Ordenar:", bg=BG, fg=MUTED,
-                 font=("Segoe UI", 9)).pack(side="left", padx=(0, 6))
+                 font=("Segoe UI Variable Text", 9)).pack(side="left", padx=(0, 6))
         self._sort_var = tk.StringVar(value="Relevancia")
         sort_combo = ttk.Combobox(filter_row, textvariable=self._sort_var,
                                   values=list(self.SORT_OPTIONS.keys()),
                                   state="readonly", width=14,
-                                  font=("Segoe UI", 9))
+                                  font=("Segoe UI Variable Text", 9))
         sort_combo.pack(side="left")
         sort_combo.bind("<<ComboboxSelected>>", self._on_filter_change)
 
@@ -808,7 +823,7 @@ class ModrinthSearchWindow(tk.Toplevel):
 
         self._status_var = tk.StringVar(value="Escribe algo para buscar mods…")
         tk.Label(status_bar, textvariable=self._status_var, bg=BG, fg=MUTED,
-                 font=("Segoe UI", 9)).grid(row=0, column=0, sticky="w")
+                 font=("Segoe UI Variable Text", 9)).grid(row=0, column=0, sticky="w")
 
         self._results = []
         entry.focus()
@@ -883,7 +898,7 @@ class ModrinthSearchWindow(tk.Toplevel):
         if not results:
             tk.Label(self._results_scroll.inner,
                      text="No se encontraron mods con esos filtros.",
-                     bg=BG, fg=MUTED, font=("Segoe UI", 10)).pack(pady=40)
+                     bg=BG, fg=MUTED, font=("Segoe UI Variable Text", 10)).pack(pady=40)
             self._status_var.set("Sin resultados.")
             return
 
@@ -940,7 +955,7 @@ class ModrinthSearchWindow(tk.Toplevel):
     def _on_options(self, event, project):
         menu = tk.Menu(self, tearoff=0, bg=BG_CARD, fg=WHITE,
                        activebackground=BG_HOVER, activeforeground=WHITE,
-                       font=("Segoe UI", 9))
+                       font=("Segoe UI Variable Text", 9))
         menu.add_command(label=f"Instalar {project.title}",
                          command=lambda: self._install_and_notify(project))
         menu.add_separator()

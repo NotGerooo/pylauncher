@@ -1,0 +1,16 @@
+[2026-03-22 18:16:24] [INFO    ] [logger] Logger iniciado. Archivo de log: logs\launcher_20260322_181624.log
+[2026-03-22 18:16:25] [DEBUG   ] [settings] Configuración cargada desde data\launcher_settings.json
+[2026-03-22 18:16:25] [INFO    ] [profile_manager] Perfiles cargados: 1
+[2026-03-22 18:16:25] [INFO    ] [account_manager] Cuentas cargadas: 1
+[2026-03-22 18:16:26] [INFO    ] [version_manager] Actualizando caché de versiones disponibles...
+[2026-03-22 18:16:26] [INFO    ] [installer] Descargando manifest de versiones de Mojang...
+[2026-03-22 18:16:26] [INFO    ] [app] Interfaz iniciada
+[2026-03-22 18:16:26] [INFO    ] [installer] Manifest cargado: 874 versiones disponibles
+[2026-03-22 18:16:26] [INFO    ] [version_manager] Caché actualizado: 874 versiones disponibles
+[2026-03-22 18:16:52] [DEBUG   ] [account_manager] Cuentas guardadas: 1 cuenta(s)
+[2026-03-22 18:16:52] [INFO    ] [account_manager] Cuenta activa: Geronimin
+[2026-03-22 18:16:57] [INFO    ] [skin_service] Skin offline guardada: data/skins\offline_8e488457-6b02-40ea-b94a-dab13b030308.png
+[2026-03-22 18:16:57] [DEBUG   ] [account_manager] Cuentas guardadas: 1 cuenta(s)
+[2026-03-22 18:16:57] [INFO    ] [account_manager] Skin actualizada para Geronimin: data/skins\offline_8e488457-6b02-40ea-b94a-dab13b030308.png
+[2026-03-22 18:17:00] [DEBUG   ] [microsoft_auth] Device flow iniciado. Código: A6BY9G7A
+[2026-03-22 18:17:58] [DEBUG   ] [microsoft_auth] Device flow iniciado. Código: LTERMHC7

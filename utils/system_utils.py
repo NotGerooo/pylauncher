@@ -110,13 +110,19 @@ def find_java_executables() -> list:
     return found
 
 
-def _get_java_version(java_path: str):
+def _get_java_version(java_path: str) -> str | None:
     try:
+        si = None
+        flags = 0
+        if os.name == "nt":
+            import subprocess as _sp
+            flags = _sp.CREATE_NO_WINDOW
         result = subprocess.run(
             [java_path, "-version"],
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=5,
+            creationflags=flags,
         )
         output = result.stderr or result.stdout
         for line in output.splitlines():
@@ -125,7 +131,7 @@ def _get_java_version(java_path: str):
                 if len(parts) >= 2:
                     return parts[1]
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
-        log.debug(f"Error obteniendo version de Java en {java_path}: {e}")
+        log.debug(f"Error obteniendo versión de Java en {java_path}: {e}")
     return None
 
 

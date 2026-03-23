@@ -412,48 +412,34 @@ class LauncherEngine:
 
     # ── Ejecución del proceso ─────────────────────────────────────────────────
 
-    def _start_process(
-        self,
-        command: list[str],
-        working_dir: str,
-        on_output=None,
-    ) -> subprocess.Popen:
-        """
-        Inicia el proceso de Minecraft con el comando construido.
-
-        Si se provee on_output, lanza un hilo en background que lee
-        el output del juego línea por línea y llama al callback.
-        Esto NO bloquea el launcher.
-
-        Args:
-            command     : Lista de partes del comando final
-            working_dir : Carpeta de trabajo del juego (game_dir del perfil)
-            on_output   : callback(line: str) opcional para recibir output
-
-        Returns:
-            Proceso activo (subprocess.Popen)
-        """
+    def _start_process(self, command, working_dir, on_output=None):
+        import subprocess
         os.makedirs(working_dir, exist_ok=True)
 
-        try:
-            process = subprocess.Popen(
-                command,
-                cwd=working_dir,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-            )
-            log.info(f"Minecraft iniciado — PID: {process.pid}")
+        kwargs = dict(
+            cwd=working_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
 
+        if os.name == "nt":
+            import ctypes
+            kwargs["creationflags"] = (
+                subprocess.CREATE_NO_WINDOW |
+                subprocess.DETACHED_PROCESS
+            )
+
+        try:
+            process = subprocess.Popen(command, **kwargs)
+            log.info(f"Minecraft iniciado con PID: {process.pid}")
             if on_output:
                 self._start_output_reader(process, on_output)
-
             return process
-
         except FileNotFoundError as e:
-            raise LaunchError(f"Ejecutable no encontrado: {e}")
+            raise LaunchError(f"No se encontro el ejecutable: {e}")
         except OSError as e:
             raise LaunchError(f"Error al iniciar el proceso: {e}")
 

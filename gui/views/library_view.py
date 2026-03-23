@@ -3,16 +3,32 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
 
-BG        = "#1a1b1e"
-CARD_BG   = "#25262b"
-CARD2_BG  = "#2c2d32"
-INPUT_BG  = "#1e1f24"
-BORDER    = "#373a40"
+BG        = "#16171a"
+BG_EL     = "#1c1d21"
+CARD_BG   = "#222327"
+CARD2_BG  = "#28292e"
+INPUT_BG  = "#1a1b1f"
+BORDER    = "#2e2f35"
+BORDER_BRIGHT = "#3d3e45"
 GREEN     = "#1bd96a"
-GREEN_DIM = "#0d7a3a"
-TEXT_PRI  = "#e8e9ea"
-TEXT_SEC  = "#909296"
-TEXT_DIM  = "#5c5f66"
+GREEN_DIM = "#13a050"
+GREEN_SUB = "#0f2318"
+TEXT_PRI  = "#f0f1f3"
+TEXT_SEC  = "#8b8e96"
+TEXT_DIM  = "#4a4d55"
+TEXT_INV  = "#0a0b0d"
+NAV_ACT   = "#0f2318"
+RED       = "#ff4757"
+ACCENT    = "#1bd96a"
+ACCENT_DIM= "#13a050"
+TEXT      = "#f0f1f3"
+TEXT_BRIGHT="#ffffff"
+BG_CARD   = "#222327"
+BG_SIDEBAR= "#0e0f11"
+BG_INPUT  = "#1a1b1f"
+BG_HOVER  = "#28292e"
+SEL_BG    = "#0f2318"
+DIALOG_BG = "#1c1d21"
 
 
 def _btn(parent, text, command, primary=True, small=False):
@@ -56,9 +72,9 @@ class LibraryView(tk.Frame):
         hdr.grid(row=0, column=0, sticky="ew")
         hdr.grid_columnconfigure(0, weight=1)
         tk.Label(hdr, text="Biblioteca", bg=BG, fg=TEXT_PRI,
-                 font=("Segoe UI", 24, "bold")).grid(row=0, column=0, sticky="w")
+                 font=("Segoe UI Variable Display", 24, "bold")).grid(row=0, column=0, sticky="w")
         tk.Label(hdr, text="Tus instancias y versiones instaladas",
-                 bg=BG, fg=TEXT_SEC, font=("Segoe UI", 11)).grid(
+                 bg=BG, fg=TEXT_SEC, font=("Segoe UI Variable Text", 11)).grid(
                      row=1, column=0, sticky="w", pady=(4, 0))
         _btn(hdr, "+ Nueva instancia",
              lambda: self.app._show_view("profiles")).grid(
@@ -75,7 +91,7 @@ class LibraryView(tk.Frame):
         if not profiles:
             tk.Label(self._cards_frame,
                      text="No tienes instancias aún.\nCrea una en la sección Perfiles.",
-                     bg=BG, fg=TEXT_DIM, font=("Segoe UI", 12),
+                     bg=BG, fg=TEXT_DIM, font=("Segoe UI Variable Text", 12),
                      justify="center").pack(pady=60)
             return
         for p in profiles:
@@ -91,16 +107,16 @@ class LibraryView(tk.Frame):
         ico.grid(row=0, column=0, rowspan=3, sticky="nw", padx=(0, 22))
         ico.grid_propagate(False)
         tk.Label(ico, text="🎮", bg=INPUT_BG,
-                 font=("Segoe UI", 24)).place(relx=0.5, rely=0.5, anchor="center")
+                 font=("Segoe UI Variable Text", 24)).place(relx=0.5, rely=0.5, anchor="center")
 
         # Info
         tk.Label(card, text=profile.name, bg=CARD_BG, fg=TEXT_PRI,
-                 font=("Segoe UI", 13, "bold")).grid(row=0, column=1, sticky="w")
+                 font=("Segoe UI Variable Display", 13, "bold")).grid(row=0, column=1, sticky="w")
         tk.Label(card, text=f"Minecraft {profile.version_id}  ·  {profile.ram_mb} MB RAM",
-                 bg=CARD_BG, fg=TEXT_SEC, font=("Segoe UI", 10)).grid(
+                 bg=CARD_BG, fg=TEXT_SEC, font=("Segoe UI Variable Text", 10)).grid(
                      row=1, column=1, sticky="w", pady=(2, 0))
         tk.Label(card, text=f"Carpeta: {profile.game_dir}",
-                 bg=CARD_BG, fg=TEXT_DIM, font=("Segoe UI", 8)).grid(
+                 bg=CARD_BG, fg=TEXT_DIM, font=("Segoe UI Variable Text", 8)).grid(
                      row=2, column=1, sticky="w", pady=(2, 0))
 
         # Botones

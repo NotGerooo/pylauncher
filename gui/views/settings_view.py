@@ -3,17 +3,32 @@ import tkinter as tk
 from tkinter import ttk, filedialog
 import os
 
-BG        = "#1a1b1e"
-CARD_BG   = "#25262b"
-CARD2_BG  = "#2c2d32"
-INPUT_BG  = "#1e1f24"
-BORDER    = "#373a40"
+BG        = "#16171a"
+BG_EL     = "#1c1d21"
+CARD_BG   = "#222327"
+CARD2_BG  = "#28292e"
+INPUT_BG  = "#1a1b1f"
+BORDER    = "#2e2f35"
+BORDER_BRIGHT = "#3d3e45"
 GREEN     = "#1bd96a"
-GREEN_DIM = "#0d7a3a"
-TEXT_PRI  = "#e8e9ea"
-TEXT_SEC  = "#909296"
-TEXT_DIM  = "#5c5f66"
-SEL_BG    = "#1f3329"
+GREEN_DIM = "#13a050"
+GREEN_SUB = "#0f2318"
+TEXT_PRI  = "#f0f1f3"
+TEXT_SEC  = "#8b8e96"
+TEXT_DIM  = "#4a4d55"
+TEXT_INV  = "#0a0b0d"
+NAV_ACT   = "#0f2318"
+RED       = "#ff4757"
+ACCENT    = "#1bd96a"
+ACCENT_DIM= "#13a050"
+TEXT      = "#f0f1f3"
+TEXT_BRIGHT="#ffffff"
+BG_CARD   = "#222327"
+BG_SIDEBAR= "#0e0f11"
+BG_INPUT  = "#1a1b1f"
+BG_HOVER  = "#28292e"
+SEL_BG    = "#0f2318"
+DIALOG_BG = "#1c1d21"
 
 
 def _btn(parent, text, cmd, primary=True, small=False):
@@ -50,20 +65,20 @@ class SettingsView(tk.Frame):
         hdr = tk.Frame(self, bg=BG, padx=40, pady=32)
         hdr.grid(row=0, column=0, columnspan=2, sticky="ew")
         tk.Label(hdr, text="Ajustes", bg=BG, fg=TEXT_PRI,
-                 font=("Segoe UI", 24, "bold")).pack(anchor="w")
+                 font=("Segoe UI Variable Display", 24, "bold")).pack(anchor="w")
         tk.Label(hdr, text="Configura tu experiencia en Gero's Launcher",
-                 bg=BG, fg=TEXT_SEC, font=("Segoe UI", 11)).pack(anchor="w", pady=(4, 0))
+                 bg=BG, fg=TEXT_SEC, font=("Segoe UI Variable Text", 11)).pack(anchor="w", pady=(4, 0))
 
         # Sub-sidebar
         sub = tk.Frame(self, bg=CARD_BG, width=220, padx=12, pady=16)
-        sub.grid(row=1, column=0, sticky="nsew", padx=(40, 0), pady=(0, 40))
+        sub.grid(row=1, column=0, sticky="nsew", padx=(44, 0), pady=(0, 44))
         sub.grid_propagate(False)
         self._sec_btns = {}
         for key, label in SECTIONS:
             b = tk.Button(sub, text=label, bg=CARD_BG, fg=TEXT_SEC,
                           activebackground=SEL_BG, activeforeground=GREEN,
                           relief="flat", anchor="w",
-                          font=("Segoe UI", 10), padx=16, pady=10,
+                          font=("Segoe UI Variable Text", 10), padx=16, pady=10,
                           cursor="hand2",
                           command=lambda k=key: self._show_section(k))
             b.pack(fill="x", pady=1)
@@ -71,12 +86,12 @@ class SettingsView(tk.Frame):
 
         # Versión abajo del sub-sidebar
         tk.Label(sub, text="Gero's Launcher v1.0.0\nWindows",
-                 bg=CARD_BG, fg=TEXT_DIM, font=("Segoe UI", 8),
+                 bg=CARD_BG, fg=TEXT_DIM, font=("Segoe UI Variable Text", 8),
                  justify="left").pack(side="bottom", anchor="w", padx=4, pady=8)
 
         # Contenido
         self._content = tk.Frame(self, bg=BG, padx=40, pady=8)
-        self._content.grid(row=1, column=1, sticky="nsew", pady=(0, 40))
+        self._content.grid(row=1, column=1, sticky="nsew", padx=(0, 44), pady=(0, 44))
         self._content.grid_columnconfigure(0, weight=1)
 
         self._show_section("general")
@@ -84,9 +99,9 @@ class SettingsView(tk.Frame):
     def _show_section(self, key):
         if self._active:
             self._sec_btns[self._active].configure(
-                bg=CARD_BG, fg=TEXT_SEC, font=("Segoe UI", 10))
+                bg=CARD_BG, fg=TEXT_SEC, font=("Segoe UI Variable Text", 10))
         self._sec_btns[key].configure(
-            bg=SEL_BG, fg=GREEN, font=("Segoe UI", 10, "bold"))
+            bg=SEL_BG, fg=GREEN, font=("Segoe UI Variable Text", 10, "bold"))
         self._active = key
         for w in self._content.winfo_children():
             w.destroy()
@@ -94,7 +109,7 @@ class SettingsView(tk.Frame):
 
     def _title(self, text):
         tk.Label(self._content, text=text, bg=BG, fg=TEXT_PRI,
-                 font=("Segoe UI", 16, "bold")).pack(
+                 font=("Segoe UI Variable Display", 16, "bold")).pack(
                      anchor="w", pady=(8, 24))
 
     def _card(self):
@@ -104,10 +119,10 @@ class SettingsView(tk.Frame):
 
     def _field(self, card, label, sub=None):
         tk.Label(card, text=label, bg=CARD_BG, fg=TEXT_PRI,
-                 font=("Segoe UI", 11, "bold")).pack(anchor="w")
+                 font=("Segoe UI Variable Text", 11, "bold")).pack(anchor="w")
         if sub:
             tk.Label(card, text=sub, bg=CARD_BG, fg=TEXT_SEC,
-                     font=("Segoe UI", 9)).pack(anchor="w", pady=(2, 8))
+                     font=("Segoe UI Variable Text", 9)).pack(anchor="w", pady=(2, 8))
         else:
             tk.Frame(card, bg=CARD_BG, height=8).pack()
 
@@ -118,7 +133,7 @@ class SettingsView(tk.Frame):
         self._field(c, "Idioma", "Idioma de la interfaz")
         lang = tk.StringVar(value="Español")
         ttk.Combobox(c, textvariable=lang, values=["Español", "English"],
-                     state="readonly", font=("Segoe UI", 10),
+                     state="readonly", font=("Segoe UI Variable Text", 10),
                      width=20).pack(anchor="w", ipady=6)
 
         c2 = self._card()
@@ -128,7 +143,7 @@ class SettingsView(tk.Frame):
         tk.Checkbutton(c2, text="Activar actualizaciones automáticas",
                        variable=var, bg=CARD_BG, fg=TEXT_PRI,
                        selectcolor=INPUT_BG, activebackground=CARD_BG,
-                       font=("Segoe UI", 10)).pack(anchor="w")
+                       font=("Segoe UI Variable Text", 10)).pack(anchor="w")
 
     def _section_minecraft(self):
         self._title("Minecraft")
@@ -138,14 +153,14 @@ class SettingsView(tk.Frame):
         var = tk.StringVar(value=str(self.app.settings.default_ram_mb))
         combo = ttk.Combobox(c, textvariable=var,
                               values=["1024","2048","3072","4096","6144","8192"],
-                              state="readonly", font=("Segoe UI", 10), width=16)
+                              state="readonly", font=("Segoe UI Variable Text", 10), width=16)
         combo.pack(anchor="w", ipady=6)
         def save(*_):
             try: self.app.settings.default_ram_mb = int(var.get())
             except: pass
         combo.bind("<<ComboboxSelected>>", save)
         tk.Label(c, text="MB de RAM", bg=CARD_BG, fg=TEXT_DIM,
-                 font=("Segoe UI", 9)).pack(anchor="w", pady=(4, 0))
+                 font=("Segoe UI Variable Text", 9)).pack(anchor="w", pady=(4, 0))
 
         c2 = self._card()
         self._field(c2, "Cerrar launcher al jugar",
@@ -155,7 +170,7 @@ class SettingsView(tk.Frame):
             self.app.settings.close_on_launch = var2.get()
         tk.Checkbutton(c2, text="Cerrar al lanzar", variable=var2,
                        bg=CARD_BG, fg=TEXT_PRI, selectcolor=INPUT_BG,
-                       activebackground=CARD_BG, font=("Segoe UI", 10),
+                       activebackground=CARD_BG, font=("Segoe UI Variable Text", 10),
                        command=toggle).pack(anchor="w")
 
     def _section_java(self):
@@ -165,7 +180,7 @@ class SettingsView(tk.Frame):
                     "El launcher detectará las instalaciones de Java en tu sistema")
         java_path = self.app.settings.java_path or "Auto-detectado"
         tk.Label(c, text=f"Java activo: {java_path}",
-                 bg=CARD_BG, fg=GREEN, font=("Segoe UI", 9)).pack(anchor="w")
+                 bg=CARD_BG, fg=GREEN, font=("Segoe UI Variable Text", 9)).pack(anchor="w")
 
         c2 = self._card()
         self._field(c2, "Java personalizado",
@@ -175,7 +190,7 @@ class SettingsView(tk.Frame):
         pf.grid_columnconfigure(0, weight=1)
         var = tk.StringVar(value=self.app.settings.java_path or "")
         e = tk.Entry(pf, textvariable=var, bg=INPUT_BG, fg=TEXT_PRI,
-                     insertbackground=TEXT_PRI, relief="flat", font=("Segoe UI", 10))
+                     insertbackground=TEXT_PRI, relief="flat", font=("Segoe UI Variable Text", 10))
         e.grid(row=0, column=0, sticky="ew", ipady=8, padx=(0, 10))
         def browse():
             path = filedialog.askopenfilename(
@@ -194,10 +209,10 @@ class SettingsView(tk.Frame):
             for j in javas[:5]:
                 tk.Label(c3, text=f"☕  Java {j.get('version_string','?')}  —  {j.get('path','')}",
                          bg=CARD_BG, fg=TEXT_SEC,
-                         font=("Segoe UI", 9)).pack(anchor="w", pady=2)
+                         font=("Segoe UI Variable Text", 9)).pack(anchor="w", pady=2)
         except Exception:
             tk.Label(c3, text="No se pudo listar Java.",
-                     bg=CARD_BG, fg=TEXT_DIM, font=("Segoe UI", 9)).pack(anchor="w")
+                     bg=CARD_BG, fg=TEXT_DIM, font=("Segoe UI Variable Text", 9)).pack(anchor="w")
 
     def _section_carpetas(self):
         self._title("Carpetas")
@@ -212,9 +227,9 @@ class SettingsView(tk.Frame):
             c = self._card()
             c.grid_columnconfigure(0, weight=1) if hasattr(c, "grid_columnconfigure") else None
             tk.Label(c, text=label, bg=CARD_BG, fg=TEXT_PRI,
-                     font=("Segoe UI", 11, "bold")).pack(anchor="w")
+                     font=("Segoe UI Variable Text", 11, "bold")).pack(anchor="w")
             tk.Label(c, text=path, bg=CARD_BG, fg=TEXT_SEC,
-                     font=("Segoe UI", 9)).pack(anchor="w", pady=(4, 0))
+                     font=("Segoe UI Variable Text", 9)).pack(anchor="w", pady=(4, 0))
 
     def _section_apariencia(self):
         self._title("Apariencia")
@@ -226,7 +241,7 @@ class SettingsView(tk.Frame):
             tk.Radiobutton(c, text=t, variable=var, value=t,
                            bg=CARD_BG, fg=TEXT_PRI,
                            selectcolor=INPUT_BG, activebackground=CARD_BG,
-                           font=("Segoe UI", 10)).pack(anchor="w", pady=4)
+                           font=("Segoe UI Variable Text", 10)).pack(anchor="w", pady=4)
 
     def on_show(self):
         pass

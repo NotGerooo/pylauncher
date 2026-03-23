@@ -1,26 +1,64 @@
+"""
+progress_bar.py — Widget de barra de progreso premium para Gero's Launcher
+"""
 import tkinter as tk
+from tkinter import ttk
+
+BG      = "#16171a"
+CARD_BG = "#222327"
+GREEN   = "#1bd96a"
+TEXT_PRI= "#f0f1f3"
+TEXT_SEC= "#8b8e96"
+INPUT_BG= "#1a1b1f"
 
 
 class ProgressBar(tk.Frame):
-    def __init__(self, parent, **kwargs):
-        super().__init__(parent, bg=kwargs.pop("bg", "#1a1a2e"), **kwargs)
+    """
+    Barra de progreso con label de estado y porcentaje.
+    """
+
+    def __init__(self, parent, bg_color=None, **kwargs):
+        bg_color = bg_color or CARD_BG
+        super().__init__(parent, bg=bg_color, **kwargs)
+
         self._label_text = tk.StringVar(value="")
+        self._pct_text   = tk.StringVar(value="")
+
+        header = tk.Frame(self, bg=bg_color)
+        header.pack(fill="x", pady=(0, 8))
+
         self._label = tk.Label(
-            self, textvariable=self._label_text,
-            bg="#1a1a2e", fg="#a0a0b0", font=("Segoe UI", 9), anchor="w",
+            header,
+            textvariable=self._label_text,
+            bg=bg_color, fg=TEXT_PRI,
+            font=("Segoe UI Variable Text", 9, "bold"),
+            anchor="w"
         )
-        self._label.pack(fill="x", pady=(0, 4))
-        bar_bg = tk.Frame(self, bg="#0f3460", height=6)
-        bar_bg.pack(fill="x")
-        bar_bg.pack_propagate(False)
-        self._bar_fill = tk.Frame(bar_bg, bg="#e94560", height=6)
-        self._bar_fill.place(x=0, y=0, relheight=1.0, relwidth=0.0)
-        self._bar_bg = bar_bg
+        self._label.pack(side="left")
+
+        self._pct_label = tk.Label(
+            header,
+            textvariable=self._pct_text,
+            bg=bg_color, fg=GREEN,
+            font=("Segoe UI Variable Text", 9, "bold"),
+            anchor="e"
+        )
+        self._pct_label.pack(side="right")
+
+        # Track background
+        track = tk.Frame(self, bg=INPUT_BG, height=5)
+        track.pack(fill="x")
+        track.pack_propagate(False)
+
+        self._fill = tk.Frame(track, bg=GREEN, height=5)
+        self._fill.place(x=0, y=0, relheight=1.0, relwidth=0.0)
+        self._track = track
 
     def set_progress(self, percent: float, label: str = ""):
         percent = max(0.0, min(100.0, percent))
         self._label_text.set(label)
-        self._bar_fill.place(relwidth=percent / 100.0)
+        self._pct_text.set(f"{percent:.0f}%" if percent > 0 else "")
+        self._fill.place(relwidth=percent / 100.0)
         self.update_idletasks()
 
     def reset(self):
