@@ -1,3 +1,7 @@
 {
-    "gitdoc.enabled": true
+    "git.autofetch": true,
+    "git.enableSmartCommit": true,
+    "git.postCommitCommand": "push",
+    "gitdoc.enabled": true,
+    "gitdoc.autoCommitDelay": 3000
 }
