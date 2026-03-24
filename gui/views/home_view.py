@@ -70,6 +70,16 @@ class HomeView(tk.Frame):
             lambda e: canvas.yview_scroll(-1*(e.delta//120), "units"))
         self._canvas = canvas
 
+        def _bind_scroll(widget):
+            widget.bind("<MouseWheel>",
+                lambda e: canvas.yview_scroll(-1*(e.delta//120), "units"))
+            for child in widget.winfo_children():
+                _bind_scroll(child)
+
+        self._sf.bind("<Configure>", lambda e: (
+            canvas.configure(scrollregion=canvas.bbox("all")),
+            _bind_scroll(self._sf)
+        ))
         m = self._sf
         m.grid_columnconfigure(0, weight=3)
         m.grid_columnconfigure(1, weight=1, minsize=280)
