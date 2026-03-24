@@ -1,9 +1,13 @@
 """
 app.py — Gero's Launcher
-Diseño premium con sidebar expandida, tipografía mejorada y titlebar elegante.
+Diseño premium con sidebar expandida, panel derecho con cuenta y noticias.
 """
 import tkinter as tk
 from tkinter import ttk
+import threading
+import urllib.request
+import json
+
 from config.settings import Settings
 from managers.version_manager import VersionManager
 from managers.profile_manager import ProfileManager
@@ -21,13 +25,15 @@ from gui.theme import (
 
 log = get_logger()
 
+RIGHT_W = 250  # ancho fijo del panel derecho
+
 
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Gero's Launcher")
-        self.geometry("1280x780")
-        self.minsize(1000, 640)
+        self.geometry("1380x780")
+        self.minsize(1100, 640)
         self.configure(bg=SIDEBAR_BG)
         self.resizable(True, True)
         self.overrideredirect(True)
@@ -65,7 +71,7 @@ class App(tk.Tk):
     # ── Titlebar ─────────────────────────────────────────────────────────────
     def _build_titlebar(self):
         bar = tk.Frame(self, bg=SIDEBAR_BG, height=48)
-        bar.grid(row=0, column=0, columnspan=2, sticky="ew")
+        bar.grid(row=0, column=0, columnspan=3, sticky="ew")
         bar.grid_propagate(False)
         bar.grid_columnconfigure(2, weight=1)
 
@@ -265,18 +271,24 @@ class App(tk.Tk):
 
     # ── Layout ───────────────────────────────────────────────────────────────
     def _build_layout(self):
+        # col 0 = sidebar | col 1 = contenido | col 2 = panel derecho
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(1, weight=1)
         self._build_titlebar()
         self._build_sidebar()
+
         self.content_frame = tk.Frame(self, bg=BG)
         self.content_frame.grid(row=1, column=1, sticky="nsew")
         self.content_frame.grid_columnconfigure(0, weight=1)
         self.content_frame.grid_rowconfigure(0, weight=1)
+
         self._current_view = None
         self._views        = {}
         self._active_nav   = None
 
+        self._build_right_panel()
+
+    # ── Sidebar izquierda ────────────────────────────────────────────────────
     def _build_sidebar(self):
         sb = tk.Frame(self, bg=SIDEBAR_BG, width=220)
         sb.grid(row=1, column=0, sticky="nsew")
@@ -385,6 +397,305 @@ class App(tk.Tk):
                 btn._text.configure(bg=SIDEBAR_BG, fg=TEXT_SEC,
                                     font=("Segoe UI Variable Text", 11))
 
+    # ── Panel derecho ────────────────────────────────────────────────────────
+    def _build_right_panel(self):
+        rp = tk.Frame(self, bg=SIDEBAR_BG, width=RIGHT_W)
+        rp.grid(row=1, column=2, sticky="nsew")
+        rp.grid_propagate(False)
+        rp.grid_columnconfigure(0, weight=1)
+        rp.grid_rowconfigure(2, weight=1)
+        self._right_panel = rp
+
+        # Línea divisoria izquierda
+        tk.Frame(rp, bg=BORDER, width=1).place(x=0, y=0, relheight=1)
+
+        self._build_account_section(rp)
+
+        tk.Frame(rp, bg=BORDER, height=1).grid(
+            row=1, column=0, sticky="ew", padx=14, pady=0)
+
+        self._build_news_section(rp)
+
+        threading.Thread(target=self._fetch_news, daemon=True).start()
+
+    # ── Sección cuenta ───────────────────────────────────────────────────────
+    def _build_account_section(self, parent):
+        frame = tk.Frame(parent, bg=SIDEBAR_BG, padx=18, pady=16)
+        frame.grid(row=0, column=0, sticky="ew")
+        frame.grid_columnconfigure(0, weight=1)
+
+        tk.Label(frame, text="JUGANDO COMO", bg=SIDEBAR_BG, fg=TEXT_DIM,
+                 font=("Segoe UI Variable Text", 8, "bold")).grid(
+                 row=0, column=0, sticky="w", pady=(0, 10))
+
+        acc_row = tk.Frame(frame, bg=SIDEBAR_BG)
+        acc_row.grid(row=1, column=0, sticky="ew")
+        acc_row.grid_columnconfigure(1, weight=1)
+
+        self._avatar_canvas = tk.Canvas(acc_row, width=38, height=38,
+                                         bg=SIDEBAR_BG, highlightthickness=0)
+        self._avatar_canvas.grid(row=0, column=0, rowspan=2, padx=(0, 12))
+
+        self._username_lbl = tk.Label(acc_row, text="—",
+                                       bg=SIDEBAR_BG, fg=TEXT_PRI,
+                                       font=("Segoe UI Variable Text", 10, "bold"),
+                                       anchor="w")
+        self._username_lbl.grid(row=0, column=1, sticky="ew")
+
+        dot_row = tk.Frame(acc_row, bg=SIDEBAR_BG)
+        dot_row.grid(row=1, column=1, sticky="w")
+
+        self._dot_canvas = tk.Canvas(dot_row, width=8, height=8,
+                                      bg=SIDEBAR_BG, highlightthickness=0)
+        self._dot_canvas.pack(side="left")
+        self._dot_oval = self._dot_canvas.create_oval(
+            1, 1, 7, 7, fill=TEXT_DIM, outline="")
+
+        self._mode_lbl = tk.Label(dot_row, text="Sin cuenta",
+                                   bg=SIDEBAR_BG, fg=TEXT_DIM,
+                                   font=("Segoe UI Variable Text", 8))
+        self._mode_lbl.pack(side="left", padx=(4, 0))
+
+        tk.Button(frame, text="Gestionar cuentas →",
+                  bg=SIDEBAR_BG, fg=TEXT_SEC,
+                  activebackground=CARD_BG, activeforeground=GREEN,
+                  relief="flat", font=("Segoe UI Variable Text", 8),
+                  cursor="hand2", pady=6,
+                  command=lambda: self._show_view("accounts")).grid(
+                  row=2, column=0, sticky="w", pady=(12, 0))
+
+        self.after(500, self.refresh_account_panel)
+
+    def refresh_account_panel(self):
+        """Actualiza la cuenta mostrada. Llamar desde AccountsView tras cambios."""
+        try:
+            account = self.account_manager.get_active_account()
+            if not account:
+                all_acc = self.account_manager.get_all_accounts()
+                account = all_acc[0] if all_acc else None
+        except Exception:
+            account = None
+
+        if account:
+            name     = account.username
+            is_ms    = getattr(account, "is_microsoft", False)
+            mode_txt = "Microsoft" if is_ms else "Offline"
+            dot_col  = GREEN if is_ms else TEXT_DIM
+        else:
+            name     = "Sin cuenta"
+            mode_txt = "Offline"
+            dot_col  = TEXT_DIM
+
+        self._username_lbl.configure(text=name)
+        self._mode_lbl.configure(text=mode_txt)
+        self._dot_canvas.itemconfig(self._dot_oval, fill=dot_col)
+        self._draw_avatar(name)
+
+    def _draw_avatar(self, username: str):
+        self._avatar_canvas.delete("all")
+        palette = ["#1bd96a", "#4dabf7", "#f783ac", "#ffa94d",
+                   "#a9e34b", "#74c0fc", "#ff8787", "#63e6be",
+                   "#cc5de8", "#ff922b"]
+        color    = palette[abs(hash(username)) % len(palette)]
+        initials = (username[:2] if len(username) >= 2 else username).upper()
+        self._avatar_canvas.create_oval(0, 0, 38, 38, fill=color, outline="")
+        self._avatar_canvas.create_text(19, 19, text=initials,
+                                         fill="#0a0a0a",
+                                         font=("Segoe UI", 12, "bold"))
+
+    # ── Sección noticias ─────────────────────────────────────────────────────
+    def _build_news_section(self, parent):
+        hdr = tk.Frame(parent, bg=SIDEBAR_BG, padx=18)
+        hdr.grid(row=1, column=0, sticky="ew", pady=(14, 8))
+        hdr.grid_columnconfigure(0, weight=1)
+
+        tk.Label(hdr, text="NOTICIAS", bg=SIDEBAR_BG, fg=TEXT_DIM,
+                 font=("Segoe UI Variable Text", 8, "bold")).grid(
+                 row=0, column=0, sticky="w")
+        self._news_count_lbl = tk.Label(hdr, text="cargando…",
+                                         bg=SIDEBAR_BG, fg=TEXT_DIM,
+                                         font=("Segoe UI Variable Text", 7))
+        self._news_count_lbl.grid(row=0, column=1, sticky="e")
+
+        wrapper = tk.Frame(parent, bg=SIDEBAR_BG)
+        wrapper.grid(row=2, column=0, sticky="nsew", padx=(1, 0))
+        wrapper.grid_columnconfigure(0, weight=1)
+        wrapper.grid_rowconfigure(0, weight=1)
+
+        self._news_canvas = tk.Canvas(wrapper, bg=SIDEBAR_BG,
+                                       highlightthickness=0)
+        self._news_canvas.grid(row=0, column=0, sticky="nsew")
+
+        news_vsb = ttk.Scrollbar(wrapper, orient="vertical",
+                                  command=self._news_canvas.yview)
+        news_vsb.grid(row=0, column=1, sticky="ns")
+        self._news_canvas.configure(yscrollcommand=news_vsb.set)
+
+        self._news_inner = tk.Frame(self._news_canvas, bg=SIDEBAR_BG)
+        self._news_win = self._news_canvas.create_window(
+            (0, 0), window=self._news_inner, anchor="nw")
+
+        self._news_inner.bind("<Configure>", lambda e:
+            self._news_canvas.configure(
+                scrollregion=self._news_canvas.bbox("all")))
+        self._news_canvas.bind("<Configure>", lambda e:
+            self._news_canvas.itemconfig(self._news_win, width=e.width))
+
+        # Scroll solo cuando el cursor está encima
+        def _enter(e):
+            self._news_canvas.bind_all("<MouseWheel>", _scroll)
+
+        def _leave(e):
+            self._news_canvas.unbind_all("<MouseWheel>")
+
+        def _scroll(e):
+            self._news_canvas.yview_scroll(-1 * (e.delta // 120), "units")
+
+        self._news_canvas.bind("<Enter>", _enter)
+        self._news_canvas.bind("<Leave>", _leave)
+        self._news_inner.bind("<Enter>", _enter)
+        self._news_inner.bind("<Leave>", _leave)
+
+        tk.Label(self._news_inner, text="Conectando…",
+                 bg=SIDEBAR_BG, fg=TEXT_DIM,
+                 font=("Segoe UI Variable Text", 9), pady=16).pack(fill="x", padx=14)
+
+    def _fetch_news(self):
+        items = []
+
+        # Mojang — versiones recientes
+        try:
+            req = urllib.request.Request(
+                "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json",
+                headers={"User-Agent": "GerosLauncher/0.2.0"})
+            with urllib.request.urlopen(req, timeout=8) as r:
+                data = json.loads(r.read().decode())
+
+            latest_r = data["latest"]["release"]
+            latest_s = data["latest"]["snapshot"]
+            items.append({
+                "tag": "⭐ Destacado", "tag_color": GREEN,
+                "title": f"Última release: {latest_r}",
+                "body": f"Snapshot: {latest_s}",
+                "source": "Mojang", "url": None,
+            })
+            type_map = {
+                "release":   ("🟢 Release",  GREEN),
+                "snapshot":  ("🔵 Snapshot", "#4dabf7"),
+                "old_beta":  ("🟡 Beta",     "#ffa94d"),
+                "old_alpha": ("🔴 Alpha",    "#ff6b6b"),
+            }
+            for v in data["versions"][:5]:
+                tag, tc = type_map.get(v["type"], (v["type"], TEXT_SEC))
+                fecha = v.get("releaseTime", "")[:10]
+                items.append({
+                    "tag": tag, "tag_color": tc,
+                    "title": f"Minecraft {v['id']}",
+                    "body": fecha,
+                    "source": "Mojang", "url": None,
+                })
+        except Exception as ex:
+            log.warning(f"Noticias Mojang: {ex}")
+
+        # Modrinth — mods actualizados recientemente
+        try:
+            req2 = urllib.request.Request(
+                "https://api.modrinth.com/v2/search"
+                "?limit=4&index=updated&facets=[[%22project_type:mod%22]]",
+                headers={"User-Agent": "GerosLauncher/0.2.0"})
+            with urllib.request.urlopen(req2, timeout=8) as r:
+                mdata = json.loads(r.read().decode())
+
+            for hit in mdata.get("hits", []):
+                desc = hit.get("description", "")
+                items.append({
+                    "tag": "🧩 Mod", "tag_color": "#a9e34b",
+                    "title": hit.get("title", "Mod"),
+                    "body": (desc[:60] + "…") if len(desc) > 60 else desc,
+                    "source": "Modrinth",
+                    "url": f"https://modrinth.com/mod/{hit.get('slug', '')}",
+                })
+        except Exception as ex:
+            log.warning(f"Noticias Modrinth: {ex}")
+
+        self.after(0, lambda: self._render_news(items))
+
+    def _render_news(self, items: list):
+        for w in self._news_inner.winfo_children():
+            w.destroy()
+
+        if not items:
+            tk.Label(self._news_inner, text="Sin conexión.",
+                     bg=SIDEBAR_BG, fg=TEXT_DIM,
+                     font=("Segoe UI Variable Text", 9), pady=12).pack(
+                     fill="x", padx=14)
+            self._news_count_lbl.configure(text="sin conexión")
+            return
+
+        self._news_count_lbl.configure(text=f"{len(items)} entradas")
+
+        for i, item in enumerate(items):
+            if i > 0:
+                tk.Frame(self._news_inner, bg=BORDER, height=1).pack(
+                    fill="x", padx=12)
+            self._make_news_card(item)
+
+    def _make_news_card(self, item: dict):
+        has_url = bool(item.get("url"))
+        card = tk.Frame(self._news_inner, bg=SIDEBAR_BG,
+                        padx=14, pady=8,
+                        cursor="hand2" if has_url else "")
+        card.pack(fill="x")
+        card.grid_columnconfigure(0, weight=1)
+
+        hdr = tk.Frame(card, bg=SIDEBAR_BG)
+        hdr.grid(row=0, column=0, sticky="ew")
+        hdr.grid_columnconfigure(0, weight=1)
+
+        tk.Label(hdr, text=item["tag"],
+                 bg=SIDEBAR_BG, fg=item.get("tag_color", GREEN),
+                 font=("Segoe UI Variable Text", 8, "bold")).grid(
+                 row=0, column=0, sticky="w")
+        tk.Label(hdr, text=item["source"],
+                 bg=SIDEBAR_BG, fg=TEXT_DIM,
+                 font=("Segoe UI Variable Text", 7)).grid(row=0, column=1, sticky="e")
+
+        tk.Label(card, text=item["title"],
+                 bg=SIDEBAR_BG, fg=TEXT_PRI,
+                 font=("Segoe UI Variable Text", 9, "bold"),
+                 anchor="w", wraplength=RIGHT_W - 36,
+                 justify="left").grid(row=1, column=0, sticky="ew", pady=(2, 0))
+
+        if item.get("body"):
+            tk.Label(card, text=item["body"],
+                     bg=SIDEBAR_BG, fg=TEXT_SEC,
+                     font=("Segoe UI Variable Text", 8),
+                     anchor="w", wraplength=RIGHT_W - 36,
+                     justify="left").grid(row=2, column=0, sticky="ew")
+
+        all_w = [card, hdr] + list(card.winfo_children()) + list(hdr.winfo_children())
+
+        def on_enter(e):
+            for w in all_w:
+                try: w.configure(bg=CARD_BG)
+                except Exception: pass
+
+        def on_leave(e):
+            for w in all_w:
+                try: w.configure(bg=SIDEBAR_BG)
+                except Exception: pass
+
+        for w in all_w:
+            w.bind("<Enter>", on_enter)
+            w.bind("<Leave>", on_leave)
+
+        if has_url:
+            def open_url(e, u=item["url"]):
+                import webbrowser
+                webbrowser.open(u)
+            for w in all_w:
+                w.bind("<Button-1>", open_url)
+
     # ── Navegación ───────────────────────────────────────────────────────────
     def _show_view(self, vid: str):
         self._set_nav_active(vid)
@@ -397,6 +708,8 @@ class App(tk.Tk):
         self._current_view.grid(row=0, column=0, sticky="nsew")
         if hasattr(self._current_view, "on_show"):
             self._current_view.on_show()
+        # Refrescar cuenta en el panel derecho
+        self.after(100, self.refresh_account_panel)
 
     def _create_view(self, vid: str):
         from gui.views.home_view     import HomeView
