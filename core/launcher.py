@@ -139,7 +139,7 @@ class LauncherEngine:
         client_jar = self._resolve_client_jar(launch_version_id)
         classpath  = self._build_classpath(launch_version_id, launch_version_data)
         main_class = launch_version_data.get("mainClass", "")
-        jvm_args   = self._build_jvm_args(profile, client_jar)
+        jvm_args   = self._build_jvm_args(profile, client_jar, launch_version_data)
         game_args  = self._build_game_args(profile, session, launch_version_data)
 
         parts = (
