@@ -436,3 +436,7 @@
 [2026-03-25 17:53:51] [INFO    ] [home_view] [MC] [17:53:51] [main/WARN]: This is not necessarily an issue, but it may result in certain features or optimizations being disabled. You can sometimes fix these issues by upgrading your graphics driver.
 [2026-03-25 17:53:52] [DEBUG   ] [launcher] [MC] [17:53:52] [main/INFO]: Initializing MixinExtras via com.llamalad7.mixinextras.service.MixinExtrasServiceImpl(version=0.5.0).
 [2026-03-25 17:53:52] [INFO    ] [home_view] [MC] [17:53:52] [main/INFO]: Initializing MixinExtras via com.llamalad7.mixinextras.service.MixinExtrasServiceImpl(version=0.5.0).
+[2026-03-25 17:53:54] [DEBUG   ] [launcher] [MC] [17:53:54] [Datafixer Bootstrap/INFO]: 287 Datafixer optimizations took 1147 milliseconds
+[2026-03-25 17:53:54] [INFO    ] [home_view] [MC] [17:53:54] [Datafixer Bootstrap/INFO]: 287 Datafixer optimizations took 1147 milliseconds
+[2026-03-25 17:53:55] [DEBUG   ] [launcher] [MC] [17:53:55] [main/INFO]: trender.mixins.json:client.ScreenAccessor from mod trender->@Invoker[METHOD_PROXY]::libgui$defaultHandleGameClickEvent(Lnet/minecraft/class_2558;Lnet/minecraft/class_310;Lnet/minecraft/class_437;)V should be static as its target is
+[2026-03-25 17:53:55] [INFO    ] [home_view] [MC] [17:53:55] [main/INFO]: trender.mixins.json:client.ScreenAccessor from mod trender->@Invoker[METHOD_PROXY]::libgui$defaultHandleGameClickEvent(Lnet/minecraft/class_2558;Lnet/minecraft/class_310;Lnet/minecraft/class_437;)V should be static as its target is

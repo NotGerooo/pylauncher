@@ -2,6 +2,6 @@
     "git.autofetch": true,
     "git.enableSmartCommit": true,
     "git.postCommitCommand": "push",
-    "gitdoc.enabled": true,
+    "gitdoc.enabled": false,
     "gitdoc.autoCommitDelay": 3000
 }
