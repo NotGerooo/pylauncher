@@ -529,10 +529,87 @@ class LauncherEngine:
 
         return jar_path
 
-    def _get_natives_dir(self, version_id: str) -> str:
-        """Retorna la carpeta de librerías nativas de la versión."""
-        return os.path.join(
+    def _get_natives_dir(self, version_id: str, version_data: dict) -> str:
+        """
+        Retorna la carpeta de librerías nativas de la versión.
+        Extrae los archivos .dll/.so/.dylib de los JARs de natives si es necesario.
+        """
+        natives_dir = os.path.join(
             self._settings.versions_dir,
             version_id,
             "natives",
         )
+        
+        # Crear directorio de natives si no existe
+        os.makedirs(natives_dir, exist_ok=True)
+        
+        # Extraer natives solo si no están ya extraídos o si hay nuevos JARs
+        self._extract_natives(version_data, natives_dir)
+        
+        return natives_dir
+
+    def _extract_natives(self, version_data: dict, natives_dir: str):
+        """
+        Extrae los archivos nativos de los JARs de librerías.
+        Busca en las librerías del JSON de versión las que tienen natives para Windows.
+        """
+        import zipfile
+        
+        # Determinar el sistema operativo para buscar los natives correctos
+        os_name = "windows" if os.name == "nt" else "linux" if os.name == "posix" else "osx"
+        
+        extracted_count = 0
+        
+        for lib in version_data.get("libraries", []):
+            # Buscar si esta librería tiene natives para el sistema actual
+            natives_info = lib.get("natives", {})
+            if os_name not in natives_info:
+                continue
+                
+            # Obtener el nombre del JAR de natives
+            natives_classifier = natives_info[os_name]
+            lib_name = lib.get("name", "")
+            
+            if not lib_name:
+                continue
+                
+            # Construir la ruta del JAR de natives
+            # Formato: group/artifact/version/artifact-version-natives-os.jar
+            parts = lib_name.split(":")
+            if len(parts) < 3:
+                continue
+                
+            group, artifact_id, version = parts[0], parts[1], parts[2]
+            natives_jar_name = f"{artifact_id}-{version}-{natives_classifier}.jar"
+            natives_jar_path = os.path.join(
+                self._settings.libraries_dir,
+                group.replace(".", "/"),
+                artifact_id,
+                version,
+                natives_jar_name
+            )
+            
+            if not os.path.isfile(natives_jar_path):
+                log.debug(f"JAR de natives no encontrado: {natives_jar_name}")
+                continue
+                
+            # Extraer el contenido del JAR de natives
+            try:
+                with zipfile.ZipFile(natives_jar_path, 'r') as jar:
+                    for file_info in jar.infolist():
+                        # Solo extraer archivos nativos (dll, so, dylib)
+                        if file_info.filename.endswith(('.dll', '.so', '.dylib', '.jnilib')):
+                            # Extraer el archivo
+                            jar.extract(file_info, natives_dir)
+                            extracted_count += 1
+                            log.debug(f"Extraído: {file_info.filename}")
+                            
+            except zipfile.BadZipFile:
+                log.warning(f"Archivo JAR corrupto: {natives_jar_name}")
+            except Exception as e:
+                log.warning(f"Error extrayendo natives de {natives_jar_name}: {e}")
+                
+        if extracted_count > 0:
+            log.info(f"Se extrajeron {extracted_count} archivos nativos para {os_name}")
+        else:
+            log.debug(f"No se encontraron archivos nativos para extraer en {os_name}")
