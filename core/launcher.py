@@ -263,7 +263,7 @@ class LauncherEngine:
 
     # ── Construcción del comando ──────────────────────────────────────────────
 
-    def _build_jvm_args(self, profile: Profile, client_jar: str) -> list[str]:
+    def _build_jvm_args(self, profile: Profile, client_jar: str, version_data: dict) -> list[str]:
         """
         Construye los argumentos de la JVM.
 
@@ -274,6 +274,7 @@ class LauncherEngine:
         - Ruta del JAR del cliente (requerida por algunos loaders)
         """
         ram = profile.ram_mb
+        natives_dir = self._get_natives_dir(profile.version_id, version_data)
         return [
             "-Xms512m",
             f"-Xmx{ram}m",
@@ -283,7 +284,7 @@ class LauncherEngine:
             "-XX:G1ReservePercent=20",
             "-XX:MaxGCPauseMillis=50",
             "-XX:G1HeapRegionSize=32M",
-            f"-Djava.library.path={self._get_natives_dir(profile.version_id)}",
+            f"-Djava.library.path={natives_dir}",
             f"-Dminecraft.client.jar={client_jar}",
         ]
 
