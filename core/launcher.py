@@ -106,7 +106,7 @@ class LauncherEngine:
                 f"No se encontró mainClass en los datos de '{launch_version_id}'"
             )
 
-        jvm_args  = self._build_jvm_args(profile, client_jar)
+        jvm_args  = self._build_jvm_args(profile, client_jar, launch_version_data)
         game_args = self._build_game_args(profile, session, launch_version_data)
 
         command = (
