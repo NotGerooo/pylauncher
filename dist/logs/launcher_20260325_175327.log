@@ -7,3 +7,50 @@
 [2026-03-25 17:53:27] [INFO    ] [app] Interfaz iniciada
 [2026-03-25 17:53:28] [INFO    ] [installer] Manifest cargado: 876 versiones disponibles
 [2026-03-25 17:53:28] [INFO    ] [version_manager] Caché actualizado: 876 versiones disponibles
+[2026-03-25 17:53:36] [INFO    ] [auth_service] Sesion offline creada para: Geronimin (UUID: 53f57021-5ef5-30dd-88a8-b0839da0642a)
+[2026-03-25 17:53:36] [DEBUG   ] [account_manager] Cuentas guardadas: 1 cuenta(s)
+[2026-03-25 17:53:36] [INFO    ] [account_manager] Cuenta activa: Geronimin
+[2026-03-25 17:53:36] [INFO    ] [launcher] === Lanzando Minecraft 1.21.11 para 'Geronimin' ===
+[2026-03-25 17:53:36] [INFO    ] [launcher] Loader detectado: fabric (0.18.4) → versión '1.21.11-fabric-0.18.4'
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librerías fusionadas: 107 base + 8 loader = 115 total
+[2026-03-25 17:53:36] [INFO    ] [launcher] Versión efectiva de lanzamiento: 1.21.11-fabric-0.18.4
+[2026-03-25 17:53:36] [INFO    ] [java_manager] Usando Java embebido: C:\Users\geron\.minecraft\runtime\java-runtime-delta\bin\java.exe
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] JAR del loader no existe — usando JAR base: C:\Users\geron\.minecraft\versions\1.21.11\1.21.11.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\ca\weblite\java-objc-bridge\1.1\java-objc-bridge-1.1.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\com\mojang\jtracy\1.0.37\jtracy-1.0.37-natives-linux.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\com\mojang\jtracy\1.0.37\jtracy-1.0.37-natives-macos.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\com\mojang\jtracy\1.0.37\jtracy-1.0.37-natives-macos-arm64.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\io\netty\netty-transport-native-epoll\4.2.7.Final\netty-transport-native-epoll-4.2.7.Final-linux-aarch_64.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\io\netty\netty-transport-native-epoll\4.2.7.Final\netty-transport-native-epoll-4.2.7.Final-linux-x86_64.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\io\netty\netty-transport-native-kqueue\4.2.7.Final\netty-transport-native-kqueue-4.2.7.Final-osx-aarch_64.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\io\netty\netty-transport-native-kqueue\4.2.7.Final\netty-transport-native-kqueue-4.2.7.Final-osx-x86_64.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-freetype\3.3.3\lwjgl-freetype-3.3.3-natives-linux.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-freetype\3.3.3\lwjgl-freetype-3.3.3-natives-macos-arm64.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-freetype\3.3.3\lwjgl-freetype-3.3.3-natives-macos-patch.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-glfw\3.3.3\lwjgl-glfw-3.3.3-natives-linux.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-glfw\3.3.3\lwjgl-glfw-3.3.3-natives-macos.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-glfw\3.3.3\lwjgl-glfw-3.3.3-natives-macos-arm64.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-jemalloc\3.3.3\lwjgl-jemalloc-3.3.3-natives-linux.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-jemalloc\3.3.3\lwjgl-jemalloc-3.3.3-natives-macos.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-jemalloc\3.3.3\lwjgl-jemalloc-3.3.3-natives-macos-arm64.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-openal\3.3.3\lwjgl-openal-3.3.3-natives-linux.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-openal\3.3.3\lwjgl-openal-3.3.3-natives-macos.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-openal\3.3.3\lwjgl-openal-3.3.3-natives-macos-arm64.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-opengl\3.3.3\lwjgl-opengl-3.3.3-natives-linux.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-opengl\3.3.3\lwjgl-opengl-3.3.3-natives-macos.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-opengl\3.3.3\lwjgl-opengl-3.3.3-natives-macos-arm64.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-stb\3.3.3\lwjgl-stb-3.3.3-natives-linux.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-stb\3.3.3\lwjgl-stb-3.3.3-natives-macos.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-stb\3.3.3\lwjgl-stb-3.3.3-natives-macos-arm64.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-tinyfd\3.3.3\lwjgl-tinyfd-3.3.3-natives-linux.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-tinyfd\3.3.3\lwjgl-tinyfd-3.3.3-natives-macos.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl-tinyfd\3.3.3\lwjgl-tinyfd-3.3.3-natives-macos-arm64.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl\3.3.3\lwjgl-3.3.3-natives-linux.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl\3.3.3\lwjgl-3.3.3-natives-macos.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl\3.3.3\lwjgl-3.3.3-natives-macos-arm64.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] JAR del loader no existe — usando JAR base: C:\Users\geron\.minecraft\versions\1.21.11\1.21.11.jar
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Classpath con 84 entradas
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] No se encontraron archivos nativos para extraer en windows
+[2026-03-25 17:53:36] [INFO    ] [launcher] Assets index usado: 29
+[2026-03-25 17:53:36] [DEBUG   ] [launcher] Comando construido con 34 partes
+[2026-03-25 17:53:36] [INFO    ] [launcher] Minecraft iniciado con PID: 17188
