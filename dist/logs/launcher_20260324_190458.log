@@ -1,0 +1,63 @@
+[2026-03-24 19:04:58] [INFO    ] [logger] Logger iniciado. Archivo de log: logs\launcher_20260324_190458.log
+[2026-03-24 19:04:58] [DEBUG   ] [settings] Configuración cargada desde data\launcher_settings.json
+[2026-03-24 19:04:58] [INFO    ] [profile_manager] Perfiles cargados: 2
+[2026-03-24 19:04:58] [INFO    ] [account_manager] Cuentas cargadas: 1
+[2026-03-24 19:04:59] [INFO    ] [version_manager] Actualizando caché de versiones disponibles...
+[2026-03-24 19:04:59] [INFO    ] [installer] Descargando manifest de versiones de Mojang...
+[2026-03-24 19:04:59] [INFO    ] [app] Interfaz iniciada
+[2026-03-24 19:05:00] [INFO    ] [installer] Manifest cargado: 876 versiones disponibles
+[2026-03-24 19:05:00] [INFO    ] [version_manager] Caché actualizado: 876 versiones disponibles
+[2026-03-24 19:05:22] [INFO    ] [installer] === Iniciando instalación de Minecraft 1.9.4 ===
+[2026-03-24 19:05:22] [INFO    ] [installer] Descargando JSON de versión 1.9.4...
+[2026-03-24 19:05:23] [INFO    ] [installer] Descargando cliente JAR de Minecraft 1.9.4...
+[2026-03-24 19:05:24] [INFO    ] [installer] Descargando 32 librerías en paralelo...
+[2026-03-24 19:05:25] [DEBUG   ] [installer] Native JAR descargado: jinput-platform-2.0.5-natives-windows.jar
+[2026-03-24 19:05:25] [DEBUG   ] [installer] Native JAR descargado: lwjgl-platform-2.9.4-nightly-20150209-natives-windows.jar
+[2026-03-24 19:05:25] [INFO    ] [installer] ✓ 32 librerías descargadas
+[2026-03-24 19:05:26] [INFO    ] [installer] Descargando 1049 assets en paralelo...
+[2026-03-24 19:05:51] [INFO    ] [installer] ✓ 1049 assets descargados
+[2026-03-24 19:05:51] [INFO    ] [installer] === Minecraft 1.9.4 instalado correctamente ===
+[2026-03-24 19:06:08] [ERROR   ] [profiles_view] Error cargando versiones de Fabric: Fabric no soporta MC 1.9.4: HTTP 400 al consultar https://meta.fabricmc.net/v2/versions/loader/1.9.4
+[2026-03-24 19:06:09] [INFO    ] [loader_manager] Forge: 1 versiones disponibles para MC 1.9.4
+[2026-03-24 19:06:11] [ERROR   ] [profiles_view] Error cargando versiones de NeoForge: No se pudo cargar el manifest de NeoForge: HTTP 404 al consultar https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.json
+[2026-03-24 19:06:12] [ERROR   ] [profiles_view] Error cargando versiones de Quilt: Quilt no soporta MC 1.9.4: HTTP 404 al consultar https://meta.quiltmc.org/v3/versions/loader/1.9.4
+[2026-03-24 19:06:12] [INFO    ] [loader_manager] Optifine: 0 versiones disponibles para MC 1.9.4
+[2026-03-24 19:06:35] [INFO    ] [profile_manager] Perfil creado: '!.9.4 Survival' — MC 1.9.4
+[2026-03-24 19:06:47] [INFO    ] [auth_service] Sesion offline creada para: Geronimin (UUID: 53f57021-5ef5-30dd-88a8-b0839da0642a)
+[2026-03-24 19:06:47] [DEBUG   ] [account_manager] Cuentas guardadas: 1 cuenta(s)
+[2026-03-24 19:06:47] [INFO    ] [account_manager] Cuenta activa: Geronimin
+[2026-03-24 19:06:47] [INFO    ] [launcher] === Lanzando Minecraft 1.9.4 para 'Geronimin' ===
+[2026-03-24 19:06:47] [INFO    ] [launcher] Sin loader activo — lanzando Minecraft vanilla
+[2026-03-24 19:06:47] [INFO    ] [launcher] Versión efectiva de lanzamiento: 1.9.4
+[2026-03-24 19:06:48] [INFO    ] [java_manager] Usando Java embebido: C:\Users\geron\.minecraft\runtime\java-runtime-delta\bin\java.exe
+[2026-03-24 19:06:48] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl\lwjgl\2.9.2-nightly-20140822\lwjgl-2.9.2-nightly-20140822.jar
+[2026-03-24 19:06:48] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl\lwjgl_util\2.9.2-nightly-20140822\lwjgl_util-2.9.2-nightly-20140822.jar
+[2026-03-24 19:06:48] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl\lwjgl-platform\2.9.2-nightly-20140822\lwjgl-platform-2.9.2-nightly-20140822.jar
+[2026-03-24 19:06:48] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\net\java\jinput\jinput-platform\2.0.5\jinput-platform-2.0.5.jar
+[2026-03-24 19:06:48] [DEBUG   ] [launcher] Classpath con 32 entradas
+[2026-03-24 19:06:48] [INFO    ] [launcher] Assets index usado: 1.9
+[2026-03-24 19:06:48] [DEBUG   ] [launcher] Comando construido con 32 partes
+[2026-03-24 19:06:48] [INFO    ] [launcher] Minecraft iniciado con PID: 13848
+[2026-03-24 19:06:49] [DEBUG   ] [launcher] [MC] Exception in thread "main" java.lang.UnsatisfiedLinkError: no lwjgl64 in java.library.path: C:\Users\geron\.minecraft\versions\1.9.4\natives
+[2026-03-24 19:06:49] [INFO    ] [home_view] [MC] Exception in thread "main" java.lang.UnsatisfiedLinkError: no lwjgl64 in java.library.path: C:\Users\geron\.minecraft\versions\1.9.4\natives
+[2026-03-24 19:06:49] [DEBUG   ] [launcher] [MC] 	at java.base/java.lang.ClassLoader.loadLibrary(ClassLoader.java:2458)
+[2026-03-24 19:06:49] [INFO    ] [home_view] [MC] 	at java.base/java.lang.ClassLoader.loadLibrary(ClassLoader.java:2458)
+[2026-03-24 19:06:49] [DEBUG   ] [launcher] [MC] 	at java.base/java.lang.Runtime.loadLibrary0(Runtime.java:916)
+[2026-03-24 19:06:49] [INFO    ] [home_view] [MC] 	at java.base/java.lang.Runtime.loadLibrary0(Runtime.java:916)
+[2026-03-24 19:06:49] [DEBUG   ] [launcher] [MC] 	at java.base/java.lang.System.loadLibrary(System.java:2063)
+[2026-03-24 19:06:49] [INFO    ] [home_view] [MC] 	at java.base/java.lang.System.loadLibrary(System.java:2063)
+[2026-03-24 19:06:49] [DEBUG   ] [launcher] [MC] 	at org.lwjgl.Sys$1.run(Sys.java:72)
+[2026-03-24 19:06:49] [INFO    ] [home_view] [MC] 	at org.lwjgl.Sys$1.run(Sys.java:72)
+[2026-03-24 19:06:49] [DEBUG   ] [launcher] [MC] 	at java.base/java.security.AccessController.doPrivileged(AccessController.java:319)
+[2026-03-24 19:06:49] [INFO    ] [home_view] [MC] 	at java.base/java.security.AccessController.doPrivileged(AccessController.java:319)
+[2026-03-24 19:06:49] [DEBUG   ] [launcher] [MC] 	at org.lwjgl.Sys.doLoadLibrary(Sys.java:66)
+[2026-03-24 19:06:49] [INFO    ] [home_view] [MC] 	at org.lwjgl.Sys.doLoadLibrary(Sys.java:66)
+[2026-03-24 19:06:49] [DEBUG   ] [launcher] [MC] 	at org.lwjgl.Sys.loadLibrary(Sys.java:87)
+[2026-03-24 19:06:49] [INFO    ] [home_view] [MC] 	at org.lwjgl.Sys.loadLibrary(Sys.java:87)
+[2026-03-24 19:06:49] [DEBUG   ] [launcher] [MC] 	at org.lwjgl.Sys.<clinit>(Sys.java:117)
+[2026-03-24 19:06:49] [INFO    ] [home_view] [MC] 	at org.lwjgl.Sys.<clinit>(Sys.java:117)
+[2026-03-24 19:06:49] [DEBUG   ] [launcher] [MC] 	at bcd.I(SourceFile:2751)
+[2026-03-24 19:06:49] [INFO    ] [home_view] [MC] 	at bcd.I(SourceFile:2751)
+[2026-03-24 19:06:49] [DEBUG   ] [launcher] [MC] 	at net.minecraft.client.main.Main.main(SourceFile:39)
+[2026-03-24 19:06:49] [INFO    ] [home_view] [MC] 	at net.minecraft.client.main.Main.main(SourceFile:39)
+[2026-03-24 19:06:49] [INFO    ] [home_view] Minecraft cerrado con código: 1
