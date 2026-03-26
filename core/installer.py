@@ -8,6 +8,7 @@ FIX APLICADO: _download_single_library descarga natives JARs para 1.16.5.
 import json
 import os
 import time
+import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from config.constants import (
     MOJANG_VERSION_MANIFEST_URL,
@@ -60,16 +61,51 @@ class MinecraftInstaller:
         try:
             version_info = self._get_version_info_from_manifest(version_id)
             if not version_info:
-                raise InstallationError(f"Versión '{version_id}' no encontrada en el manifest")
+                raise InstallationError(f"Versión \'{version_id}\' no encontrada en el manifest")
             version_url = version_info["url"]
             version_data = self._download_version_json(version_id, version_url)
-            self._download_client_jar(version_id, version_data, progress_callback)
+            
+            total_steps = 4 # JAR, Libraries, Assets, Natives
+            current_step = 0
+
+            # Step 1: Download client JAR
+            current_step += 1
+            if progress_callback:
+                progress_callback(current_step, total_steps, "Descargando cliente JAR...")
+            self._download_client_jar(version_id, version_data)
+
+            # Step 2: Download libraries
+            current_step += 1
+            if progress_callback:
+                progress_callback(current_step, total_steps, "Descargando librerías...")
             self._download_libraries(version_data, progress_callback)
+
+            # Step 3: Download assets
+            current_step += 1
+            if progress_callback:
+                progress_callback(current_step, total_steps, "Descargando assets...")
             self._download_assets(version_data, progress_callback)
+
+            # Step 4: Extract natives
+            current_step += 1
+            if progress_callback:
+                progress_callback(current_step, total_steps, "Extrayendo archivos nativos...")
+            self._extract_natives_for_version(version_id, version_data)
+
             log.info(f"=== Minecraft {version_id} instalado correctamente ===")
+            if progress_callback:
+                progress_callback(total_steps, total_steps, "Instalación completada.")
             return True
         except DownloadError as e:
+            log.error(f"Error de descarga durante instalación: {e}")
+            if progress_callback:
+                progress_callback(current_step, total_steps, f"Error de descarga: {e}", error=True)
             raise InstallationError(f"Error de descarga durante instalación: {e}")
+        except Exception as e:
+            log.error(f"Error durante la instalación de {version_id}: {e}")
+            if progress_callback:
+                progress_callback(current_step, total_steps, f"Fallo la instalacion: {e}", error=True)
+            raise InstallationError(f"Fallo la instalacion de {version_id}: {e}")
 
     def get_version_data(self, version_id: str) -> dict:
         json_path = os.path.join(
@@ -142,8 +178,9 @@ class MinecraftInstaller:
             futures = {executor.submit(download_lib, lib): lib for lib in compatible}
             for future in as_completed(futures):
                 completed += 1
-                if progress_callback:
-                    progress_callback(f"Librerías {completed}/{total}", completed, total)
+                # The progress for libraries should be handled by the main install_version callback
+                # if progress_callback:
+                #    progress_callback(f"Librerías {completed}/{total}", completed, total)
         log.info(f"✓ {total} librerías descargadas")
 
     def _download_single_library(self, lib: dict):
@@ -228,8 +265,9 @@ class MinecraftInstaller:
                 result = future.result()
                 if result:
                     failed.append(result)
-                if progress_callback and completed % 50 == 0:
-                    progress_callback(f"Assets {completed}/{total}", completed, total)
+                # The progress for assets should be handled by the main install_version callback
+                # if progress_callback and completed % 50 == 0:
+                #    progress_callback(f"Assets {completed}/{total}", completed, total)
 
         # Reintentar fallidos secuencialmente
         if failed:
@@ -278,6 +316,58 @@ class MinecraftInstaller:
                 log.warning(f"Asset fallido intento {attempt+1}/3: {asset_hash[:8]}... — {e}")
                 import time
                 time.sleep(1)
+
+    def _extract_natives_for_version(self, version_id: str, version_data: dict):
+        """
+        Extrae los archivos nativos de los JARs de librerías para una versión específica.
+        Crea el directorio de natives si no existe y maneja errores de extracción.
+        """
+        natives_dir = os.path.join(
+            self._settings.versions_dir,
+            version_id,
+            "natives"
+        )
+        ensure_dir(natives_dir)
+
+        os_name = get_os()
+        extracted_count = 0
+
+        for lib in version_data.get("libraries", []):
+            natives_info = lib.get("natives", {})
+            if os_name not in natives_info:
+                continue
+
+            classifier = natives_info[os_name].replace("${arch}", "64") # Asume 64-bit
+            downloads = lib.get("downloads", {})
+            native_info = downloads.get("classifiers", {}).get(classifier, {})
+
+            if not native_info or not native_info.get("path"):
+                continue
+
+            native_path_parts = native_info["path"].split("/")
+            native_jar_path = os.path.join(self._settings.libraries_dir, *native_path_parts)
+
+            if not os.path.isfile(native_jar_path):
+                log.debug(f"JAR de natives no encontrado: {os.path.basename(native_jar_path)}")
+                continue
+
+            try:
+                with zipfile.ZipFile(native_jar_path, 'r') as jar:
+                    for file_info in jar.infolist():
+                        if file_info.filename.endswith((".dll", ".so", ".dylib", ".jnilib")):
+                            jar.extract(file_info, natives_dir)
+                            extracted_count += 1
+                            log.debug(f"Extraído: {file_info.filename}")
+
+            except zipfile.BadZipFile:
+                log.warning(f"Archivo JAR corrupto: {os.path.basename(native_jar_path)}")
+            except Exception as e:
+                log.warning(f"Error extrayendo natives de {os.path.basename(native_jar_path)}: {e}")
+        
+        if extracted_count > 0:
+            log.info(f"Se extrajeron {extracted_count} archivos nativos para {os_name} en {version_id}")
+        else:
+            log.debug(f"No se encontraron archivos nativos para extraer en {os_name} para {version_id}")
 
     def _is_library_compatible(self, lib: dict, current_os: str) -> bool:
         rules = lib.get("rules", [])

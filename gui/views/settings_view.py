@@ -1,247 +1,218 @@
-"""settings_view.py — Panel de ajustes con sub-navegación lateral"""
-import tkinter as tk
-from tkinter import ttk, filedialog
-import os
+"""
+gui/views/settings_view.py — Ajustes del launcher
+"""
+import flet as ft
 
-BG        = "#16171a"
-BG_EL     = "#1c1d21"
-CARD_BG   = "#222327"
-CARD2_BG  = "#28292e"
-INPUT_BG  = "#1a1b1f"
-BORDER    = "#2e2f35"
-BORDER_BRIGHT = "#3d3e45"
-GREEN     = "#1bd96a"
-GREEN_DIM = "#13a050"
-GREEN_SUB = "#0f2318"
-TEXT_PRI  = "#f0f1f3"
-TEXT_SEC  = "#8b8e96"
-TEXT_DIM  = "#4a4d55"
-TEXT_INV  = "#0a0b0d"
-NAV_ACT   = "#0f2318"
-RED       = "#ff4757"
-ACCENT    = "#1bd96a"
-ACCENT_DIM= "#13a050"
-TEXT      = "#f0f1f3"
-TEXT_BRIGHT="#ffffff"
-BG_CARD   = "#222327"
-BG_SIDEBAR= "#0e0f11"
-BG_INPUT  = "#1a1b1f"
-BG_HOVER  = "#28292e"
-SEL_BG    = "#0f2318"
-DIALOG_BG = "#1c1d21"
+from gui.theme import (
+    BG, CARD_BG, CARD2_BG, INPUT_BG, BORDER,
+    GREEN, TEXT_PRI, TEXT_SEC, TEXT_DIM, TEXT_INV,
+)
+from utils.logger import get_logger
+
+log = get_logger()
 
 
-def _btn(parent, text, cmd, primary=True, small=False):
-    bg  = GREEN if primary else CARD2_BG
-    fg  = "#0a0a0a" if primary else TEXT_PRI
-    abg = GREEN_DIM if primary else BORDER
-    f   = ("Segoe UI", 9 if small else 10, "bold" if primary else "normal")
-    return tk.Button(parent, text=text, bg=bg, fg=fg,
-                     activebackground=abg, activeforeground=fg,
-                     relief="flat", font=f, padx=10 if small else 16,
-                     pady=5 if small else 8, cursor="hand2", command=cmd)
-
-
-SECTIONS = [
-    ("general",   "⚙️  General"),
-    ("minecraft", "🎮  Minecraft"),
-    ("java",      "☕  Java"),
-    ("carpetas",  "📁  Carpetas"),
-    ("apariencia","🎨  Apariencia"),
-]
-
-
-class SettingsView(tk.Frame):
-    def __init__(self, parent, app):
-        super().__init__(parent, bg=BG)
-        self.app = app
-        self._active = None
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(1, weight=1)
+class SettingsView:
+    def __init__(self, page: ft.Page, app):
+        self.page = page
+        self.app  = app
         self._build()
 
     def _build(self):
-        # Header
-        hdr = tk.Frame(self, bg=BG, padx=40, pady=32)
-        hdr.grid(row=0, column=0, columnspan=2, sticky="ew")
-        tk.Label(hdr, text="Ajustes", bg=BG, fg=TEXT_PRI,
-                 font=("Segoe UI Variable Display", 24, "bold")).pack(anchor="w")
-        tk.Label(hdr, text="Configura tu experiencia en Gero's Launcher",
-                 bg=BG, fg=TEXT_SEC, font=("Segoe UI Variable Text", 11)).pack(anchor="w", pady=(4, 0))
+        # ── RAM ──────────────────────────────────────────────────────────────
+        self._ram_lbl = ft.Text(
+            f"RAM: {self.app.settings.default_ram_mb} MB",
+            color=TEXT_PRI, size=11, weight=ft.FontWeight.BOLD)
+        self._ram_slider = ft.Slider(
+            value=self.app.settings.default_ram_mb,
+            min=512, max=16384, divisions=31,
+            label="{value} MB",
+            active_color=GREEN, inactive_color=INPUT_BG, thumb_color=GREEN,
+            on_change=self._on_ram_change,
+        )
 
-        # Sub-sidebar
-        sub = tk.Frame(self, bg=CARD_BG, width=220, padx=12, pady=16)
-        sub.grid(row=1, column=0, sticky="nsew", padx=(44, 0), pady=(0, 44))
-        sub.grid_propagate(False)
-        self._sec_btns = {}
-        for key, label in SECTIONS:
-            b = tk.Button(sub, text=label, bg=CARD_BG, fg=TEXT_SEC,
-                          activebackground=SEL_BG, activeforeground=GREEN,
-                          relief="flat", anchor="w",
-                          font=("Segoe UI Variable Text", 10), padx=16, pady=10,
-                          cursor="hand2",
-                          command=lambda k=key: self._show_section(k))
-            b.pack(fill="x", pady=1)
-            self._sec_btns[key] = b
+        ram_card = self._card("Memoria RAM", [
+            self._ram_lbl,
+            ft.Container(height=8),
+            self._ram_slider,
+            ft.Text("RAM máxima asignada a Minecraft por defecto.",
+                     color=TEXT_DIM, size=9),
+        ])
 
-        # Versión abajo del sub-sidebar
-        tk.Label(sub, text="Gero's Launcher v1.0.0\nWindows",
-                 bg=CARD_BG, fg=TEXT_DIM, font=("Segoe UI Variable Text", 8),
-                 justify="left").pack(side="bottom", anchor="w", padx=4, pady=8)
+        # ── Java ──────────────────────────────────────────────────────────────
+        self._java_field = ft.TextField(
+            value=self.app.settings.java_path,
+            hint_text="Dejar vacío para detección automática",
+            hint_style=ft.TextStyle(color=TEXT_DIM),
+            color=TEXT_PRI, bgcolor=INPUT_BG,
+            border_color=BORDER, focused_border_color=GREEN,
+            border_radius=8,
+            content_padding=ft.padding.symmetric(horizontal=12, vertical=10),
+            expand=True,
+            label="Ruta a java.exe",
+            label_style=ft.TextStyle(color=TEXT_DIM, size=10),
+        )
+        self._java_info = ft.Text("", color=TEXT_DIM, size=9)
 
-        # Contenido
-        self._content = tk.Frame(self, bg=BG, padx=40, pady=8)
-        self._content.grid(row=1, column=1, sticky="nsew", padx=(0, 44), pady=(0, 44))
-        self._content.grid_columnconfigure(0, weight=1)
+        java_card = self._card("Java", [
+            ft.Row([
+                self._java_field,
+                ft.Container(width=10),
+                ft.ElevatedButton(
+                    "Detectar",
+                    bgcolor=CARD2_BG, color=TEXT_PRI,
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                        padding=ft.padding.symmetric(horizontal=16, vertical=12),
+                    ),
+                    on_click=self._detect_java,
+                ),
+                ft.Container(width=8),
+                ft.ElevatedButton(
+                    "Guardar",
+                    bgcolor=GREEN, color=TEXT_INV,
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                        padding=ft.padding.symmetric(horizontal=16, vertical=12),
+                    ),
+                    on_click=self._save_java,
+                ),
+            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+            ft.Container(height=6),
+            self._java_info,
+        ])
 
-        self._show_section("general")
+        # ── Launcher ──────────────────────────────────────────────────────────
+        self._close_on_launch = ft.Switch(
+            label="Cerrar launcher al iniciar el juego",
+            label_style=ft.TextStyle(color=TEXT_PRI, size=10),
+            value=self.app.settings.close_on_launch,
+            active_color=GREEN,
+            on_change=self._on_close_toggle,
+        )
 
-    def _show_section(self, key):
-        if self._active:
-            self._sec_btns[self._active].configure(
-                bg=CARD_BG, fg=TEXT_SEC, font=("Segoe UI Variable Text", 10))
-        self._sec_btns[key].configure(
-            bg=SEL_BG, fg=GREEN, font=("Segoe UI Variable Text", 10, "bold"))
-        self._active = key
-        for w in self._content.winfo_children():
-            w.destroy()
-        getattr(self, f"_section_{key}")()
+        launcher_card = self._card("Comportamiento", [
+            self._close_on_launch,
+        ])
 
-    def _title(self, text):
-        tk.Label(self._content, text=text, bg=BG, fg=TEXT_PRI,
-                 font=("Segoe UI Variable Display", 16, "bold")).pack(
-                     anchor="w", pady=(8, 24))
+        # ── Diagnóstico ───────────────────────────────────────────────────────
+        self._diag_text = ft.Text("", color=TEXT_SEC, size=9,
+                                   selectable=True, no_wrap=False)
 
-    def _card(self):
-        c = tk.Frame(self._content, bg=CARD_BG, padx=24, pady=20)
-        c.pack(fill="x", pady=(0, 12))
-        return c
+        diag_card = self._card("Diagnóstico del sistema", [
+            ft.ElevatedButton(
+                "Ejecutar diagnóstico",
+                bgcolor=CARD2_BG, color=TEXT_PRI,
+                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
+                on_click=self._run_diag,
+            ),
+            ft.Container(height=10),
+            self._diag_text,
+        ])
 
-    def _field(self, card, label, sub=None):
-        tk.Label(card, text=label, bg=CARD_BG, fg=TEXT_PRI,
-                 font=("Segoe UI Variable Text", 11, "bold")).pack(anchor="w")
-        if sub:
-            tk.Label(card, text=sub, bg=CARD_BG, fg=TEXT_SEC,
-                     font=("Segoe UI Variable Text", 9)).pack(anchor="w", pady=(2, 8))
-        else:
-            tk.Frame(card, bg=CARD_BG, height=8).pack()
-
-    # ── Secciones ──────────────────────────────────────────────────────────────
-    def _section_general(self):
-        self._title("General")
-        c = self._card()
-        self._field(c, "Idioma", "Idioma de la interfaz")
-        lang = tk.StringVar(value="Español")
-        ttk.Combobox(c, textvariable=lang, values=["Español", "English"],
-                     state="readonly", font=("Segoe UI Variable Text", 10),
-                     width=20).pack(anchor="w", ipady=6)
-
-        c2 = self._card()
-        self._field(c2, "Actualizaciones automáticas",
-                    "Notificar cuando haya una nueva versión del launcher")
-        var = tk.BooleanVar(value=True)
-        tk.Checkbutton(c2, text="Activar actualizaciones automáticas",
-                       variable=var, bg=CARD_BG, fg=TEXT_PRI,
-                       selectcolor=INPUT_BG, activebackground=CARD_BG,
-                       font=("Segoe UI Variable Text", 10)).pack(anchor="w")
-
-    def _section_minecraft(self):
-        self._title("Minecraft")
-        c = self._card()
-        self._field(c, "RAM predeterminada",
-                    "Memoria asignada a nuevas instancias")
-        var = tk.StringVar(value=str(self.app.settings.default_ram_mb))
-        combo = ttk.Combobox(c, textvariable=var,
-                              values=["1024","2048","3072","4096","6144","8192"],
-                              state="readonly", font=("Segoe UI Variable Text", 10), width=16)
-        combo.pack(anchor="w", ipady=6)
-        def save(*_):
-            try: self.app.settings.default_ram_mb = int(var.get())
-            except: pass
-        combo.bind("<<ComboboxSelected>>", save)
-        tk.Label(c, text="MB de RAM", bg=CARD_BG, fg=TEXT_DIM,
-                 font=("Segoe UI Variable Text", 9)).pack(anchor="w", pady=(4, 0))
-
-        c2 = self._card()
-        self._field(c2, "Cerrar launcher al jugar",
-                    "Ocultar el launcher cuando Minecraft se inicia")
-        var2 = tk.BooleanVar(value=self.app.settings.close_on_launch)
-        def toggle():
-            self.app.settings.close_on_launch = var2.get()
-        tk.Checkbutton(c2, text="Cerrar al lanzar", variable=var2,
-                       bg=CARD_BG, fg=TEXT_PRI, selectcolor=INPUT_BG,
-                       activebackground=CARD_BG, font=("Segoe UI Variable Text", 10),
-                       command=toggle).pack(anchor="w")
-
-    def _section_java(self):
-        self._title("Instalaciones de Java")
-        c = self._card()
-        self._field(c, "Detección automática de Java",
-                    "El launcher detectará las instalaciones de Java en tu sistema")
-        java_path = self.app.settings.java_path or "Auto-detectado"
-        tk.Label(c, text=f"Java activo: {java_path}",
-                 bg=CARD_BG, fg=GREEN, font=("Segoe UI Variable Text", 9)).pack(anchor="w")
-
-        c2 = self._card()
-        self._field(c2, "Java personalizado",
-                    "Especifica una ruta manual a java.exe")
-        pf = tk.Frame(c2, bg=CARD_BG)
-        pf.pack(fill="x")
-        pf.grid_columnconfigure(0, weight=1)
-        var = tk.StringVar(value=self.app.settings.java_path or "")
-        e = tk.Entry(pf, textvariable=var, bg=INPUT_BG, fg=TEXT_PRI,
-                     insertbackground=TEXT_PRI, relief="flat", font=("Segoe UI Variable Text", 10))
-        e.grid(row=0, column=0, sticky="ew", ipady=8, padx=(0, 10))
-        def browse():
-            path = filedialog.askopenfilename(
-                title="Seleccionar java.exe",
-                filetypes=[("Java", "java.exe"), ("Todos", "*.*")])
-            if path:
-                var.set(path)
-                self.app.settings.java_path = path
-        _btn(pf, "Examinar", browse, primary=False, small=True).grid(row=0, column=1)
-
-        c3 = self._card()
-        self._field(c3, "Versiones de Java detectadas",
-                    "Java instalado en tu sistema")
-        try:
-            javas = self.app.java_manager.list_available_java()
-            for j in javas[:5]:
-                tk.Label(c3, text=f"☕  Java {j.get('version_string','?')}  —  {j.get('path','')}",
-                         bg=CARD_BG, fg=TEXT_SEC,
-                         font=("Segoe UI Variable Text", 9)).pack(anchor="w", pady=2)
-        except Exception:
-            tk.Label(c3, text="No se pudo listar Java.",
-                     bg=CARD_BG, fg=TEXT_DIM, font=("Segoe UI Variable Text", 9)).pack(anchor="w")
-
-    def _section_carpetas(self):
-        self._title("Carpetas")
-        dirs = [
-            ("Directorio principal", self.app.settings.minecraft_dir),
-            ("Versiones",            self.app.settings.versions_dir),
-            ("Librerías",            self.app.settings.libraries_dir),
-            ("Assets",               self.app.settings.assets_dir),
-            ("Perfiles",             self.app.settings.profiles_dir),
-        ]
-        for label, path in dirs:
-            c = self._card()
-            c.grid_columnconfigure(0, weight=1) if hasattr(c, "grid_columnconfigure") else None
-            tk.Label(c, text=label, bg=CARD_BG, fg=TEXT_PRI,
-                     font=("Segoe UI Variable Text", 11, "bold")).pack(anchor="w")
-            tk.Label(c, text=path, bg=CARD_BG, fg=TEXT_SEC,
-                     font=("Segoe UI Variable Text", 9)).pack(anchor="w", pady=(4, 0))
-
-    def _section_apariencia(self):
-        self._title("Apariencia")
-        c = self._card()
-        self._field(c, "Tema de color", "Apariencia visual del launcher")
-        temas = ["Oscuro (Modrinth)", "OLED", "Oscuro clásico"]
-        var = tk.StringVar(value=temas[0])
-        for t in temas:
-            tk.Radiobutton(c, text=t, variable=var, value=t,
-                           bg=CARD_BG, fg=TEXT_PRI,
-                           selectcolor=INPUT_BG, activebackground=CARD_BG,
-                           font=("Segoe UI Variable Text", 10)).pack(anchor="w", pady=4)
+        self.root = ft.Container(
+            expand=True, bgcolor=BG,
+            padding=ft.padding.all(32),
+            content=ft.Column([
+                ft.Text("Ajustes", color=TEXT_PRI, size=26,
+                        weight=ft.FontWeight.BOLD),
+                ft.Text("Configura el comportamiento del launcher",
+                        color=TEXT_SEC, size=11),
+                ft.Container(height=20),
+                ram_card,
+                ft.Container(height=16),
+                java_card,
+                ft.Container(height=16),
+                launcher_card,
+                ft.Container(height=16),
+                diag_card,
+            ], spacing=0, scroll=ft.ScrollMode.AUTO),
+        )
 
     def on_show(self):
-        pass
+        self._ram_slider.value = self.app.settings.default_ram_mb
+        self._ram_lbl.value    = f"RAM: {int(self.app.settings.default_ram_mb)} MB"
+        self._java_field.value = self.app.settings.java_path
+        try:
+            self._ram_slider.update()
+            self._ram_lbl.update()
+            self._java_field.update()
+        except Exception: pass
+
+    # ── Helpers ───────────────────────────────────────────────────────────────
+    def _card(self, title: str, controls: list) -> ft.Container:
+        return ft.Container(
+            bgcolor=CARD_BG, border_radius=12,
+            padding=ft.padding.all(24),
+            content=ft.Column([
+                ft.Text(title, color=TEXT_PRI, size=13,
+                        weight=ft.FontWeight.BOLD),
+                ft.Divider(height=1, color=BORDER),
+                ft.Container(height=4),
+                *controls,
+            ], spacing=0),
+        )
+
+    # ── Handlers ─────────────────────────────────────────────────────────────
+    def _on_ram_change(self, e):
+        val = int(self._ram_slider.value)
+        self._ram_lbl.value = f"RAM: {val} MB"
+        self.app.settings.default_ram_mb = val
+        try: self._ram_lbl.update()
+        except Exception: pass
+
+    def _detect_java(self, e):
+        try:
+            info = self.app.java_manager.get_java_info()
+            if info["error"]:
+                self._java_info.value = f"⚠ {info['error']}"
+                self._java_info.color = "#ff6b6b"
+            else:
+                self._java_info.value = (
+                    f"✓  {info['path']}  (Java {info['version']}, "
+                    f"fuente: {info['source']})")
+                self._java_info.color = GREEN
+                self._java_field.value = info["path"]
+                try: self._java_field.update()
+                except Exception: pass
+        except Exception as err:
+            self._java_info.value = f"Error: {err}"
+            self._java_info.color = "#ff6b6b"
+        try: self._java_info.update()
+        except Exception: pass
+
+    def _save_java(self, e):
+        path = self._java_field.value.strip()
+        if not path:
+            self.app.settings.java_path = ""
+            self.app.snack("Ruta de Java borrada. Se usará detección automática.")
+            return
+        ok = self.app.java_manager.set_manual_java_path(path)
+        if ok:
+            self.app.snack("Ruta de Java guardada.")
+        else:
+            self.app.snack("Ruta inválida o Java demasiado viejo.", error=True)
+
+    def _on_close_toggle(self, e):
+        self.app.settings.close_on_launch = e.control.value
+
+    def _run_diag(self, e):
+        try:
+            from utils.system_utils import get_system_info
+            info = get_system_info()
+            java_info = self.app.java_manager.get_java_info()
+            installed = self.app.version_manager.get_installed_version_ids()
+            lines = [
+                f"OS: {info.get('os')}  arch: {info.get('architecture')}",
+                f"RAM total: {info.get('ram_mb')} MB",
+                f"Python: {info.get('python_version')}",
+                f"Java: {java_info.get('path')} (v{java_info.get('version')})",
+                f"Java fuente: {java_info.get('source')}",
+                f"Versiones instaladas: {', '.join(installed) or 'ninguna'}",
+                f"Carpeta .pylauncher: {self.app.settings.minecraft_dir}",
+            ]
+            self._diag_text.value = "\n".join(lines)
+        except Exception as err:
+            self._diag_text.value = f"Error: {err}"
+        try: self._diag_text.update()
+        except Exception: pass

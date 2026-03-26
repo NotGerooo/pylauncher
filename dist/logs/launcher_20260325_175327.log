@@ -440,3 +440,186 @@
 [2026-03-25 17:53:54] [INFO    ] [home_view] [MC] [17:53:54] [Datafixer Bootstrap/INFO]: 287 Datafixer optimizations took 1147 milliseconds
 [2026-03-25 17:53:55] [DEBUG   ] [launcher] [MC] [17:53:55] [main/INFO]: trender.mixins.json:client.ScreenAccessor from mod trender->@Invoker[METHOD_PROXY]::libgui$defaultHandleGameClickEvent(Lnet/minecraft/class_2558;Lnet/minecraft/class_310;Lnet/minecraft/class_437;)V should be static as its target is
 [2026-03-25 17:53:55] [INFO    ] [home_view] [MC] [17:53:55] [main/INFO]: trender.mixins.json:client.ScreenAccessor from mod trender->@Invoker[METHOD_PROXY]::libgui$defaultHandleGameClickEvent(Lnet/minecraft/class_2558;Lnet/minecraft/class_310;Lnet/minecraft/class_437;)V should be static as its target is
+[2026-03-25 17:54:04] [DEBUG   ] [launcher] [MC] [17:54:04] [Render thread/INFO]: Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, profilesHost=https://api.mojang.com, name=PROD]
+[2026-03-25 17:54:04] [INFO    ] [home_view] [MC] [17:54:04] [Render thread/INFO]: Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, profilesHost=https://api.mojang.com, name=PROD]
+[2026-03-25 17:54:04] [DEBUG   ] [launcher] [MC] [17:54:04] [Render thread/INFO]: Setting user: Geronimin
+[2026-03-25 17:54:04] [INFO    ] [home_view] [MC] [17:54:04] [Render thread/INFO]: Setting user: Geronimin
+[2026-03-25 17:54:05] [DEBUG   ] [launcher] [MC] [17:54:05] [Render thread/INFO]: [ShulkerBoxTooltip] Could not find configuration file, creating default file
+[2026-03-25 17:54:05] [INFO    ] [home_view] [MC] [17:54:05] [Render thread/INFO]: [ShulkerBoxTooltip] Could not find configuration file, creating default file
+[2026-03-25 17:54:05] [DEBUG   ] [launcher] [MC] [17:54:05] [Render thread/INFO]: [BetterF3] Loading...
+[2026-03-25 17:54:05] [INFO    ] [home_view] [MC] [17:54:05] [Render thread/INFO]: [BetterF3] Loading...
+[2026-03-25 17:54:05] [DEBUG   ] [launcher] [MC] [17:54:05] [Render thread/INFO]: [BetterF3] All done!
+[2026-03-25 17:54:05] [INFO    ] [home_view] [MC] [17:54:05] [Render thread/INFO]: [BetterF3] All done!
+[2026-03-25 17:54:05] [DEBUG   ] [launcher] [MC] [17:54:05] [Download-2/ERROR]: Failed to fetch user properties
+[2026-03-25 17:54:05] [INFO    ] [home_view] [MC] [17:54:05] [Download-2/ERROR]: Failed to fetch user properties
+[2026-03-25 17:54:05] [DEBUG   ] [launcher] [MC] com.mojang.authlib.exceptions.InvalidCredentialsException: Status: 401
+[2026-03-25 17:54:05] [INFO    ] [home_view] [MC] com.mojang.authlib.exceptions.InvalidCredentialsException: Status: 401
+[2026-03-25 17:54:05] [DEBUG   ] [launcher] [MC] 	at knot//com.mojang.authlib.exceptions.MinecraftClientHttpException.toAuthenticationException(MinecraftClientHttpException.java:59)
+[2026-03-25 17:54:05] [INFO    ] [home_view] [MC] 	at knot//com.mojang.authlib.exceptions.MinecraftClientHttpException.toAuthenticationException(MinecraftClientHttpException.java:59)
+[2026-03-25 17:54:05] [DEBUG   ] [launcher] [MC] 	at knot//com.mojang.authlib.yggdrasil.YggdrasilUserApiService.fetchProperties(YggdrasilUserApiService.java:150)
+[2026-03-25 17:54:05] [INFO    ] [home_view] [MC] 	at knot//com.mojang.authlib.yggdrasil.YggdrasilUserApiService.fetchProperties(YggdrasilUserApiService.java:150)
+[2026-03-25 17:54:05] [DEBUG   ] [launcher] [MC] 	at knot//net.minecraft.class_310.method_55608(class_310.java:457)
+[2026-03-25 17:54:05] [INFO    ] [home_view] [MC] 	at knot//net.minecraft.class_310.method_55608(class_310.java:457)
+[2026-03-25 17:54:05] [DEBUG   ] [launcher] [MC] 	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1768)
+[2026-03-25 17:54:05] [INFO    ] [home_view] [MC] 	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1768)
+[2026-03-25 17:54:05] [DEBUG   ] [launcher] [MC] 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+[2026-03-25 17:54:05] [INFO    ] [home_view] [MC] 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+[2026-03-25 17:54:05] [DEBUG   ] [launcher] [MC] 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+[2026-03-25 17:54:05] [INFO    ] [home_view] [MC] 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+[2026-03-25 17:54:05] [DEBUG   ] [launcher] [MC] 	at java.base/java.lang.Thread.run(Thread.java:1583)
+[2026-03-25 17:54:05] [INFO    ] [home_view] [MC] 	at java.base/java.lang.Thread.run(Thread.java:1583)
+[2026-03-25 17:54:05] [DEBUG   ] [launcher] [MC] Caused by: com.mojang.authlib.exceptions.MinecraftClientHttpException: Status: 401
+[2026-03-25 17:54:05] [INFO    ] [home_view] [MC] Caused by: com.mojang.authlib.exceptions.MinecraftClientHttpException: Status: 401
+[2026-03-25 17:54:05] [DEBUG   ] [launcher] [MC] 	at knot//com.mojang.authlib.minecraft.client.MinecraftClient.readInputStream(MinecraftClient.java:103)
+[2026-03-25 17:54:05] [INFO    ] [home_view] [MC] 	at knot//com.mojang.authlib.minecraft.client.MinecraftClient.readInputStream(MinecraftClient.java:103)
+[2026-03-25 17:54:05] [DEBUG   ] [launcher] [MC] 	at knot//com.mojang.authlib.minecraft.client.MinecraftClient.get(MinecraftClient.java:56)
+[2026-03-25 17:54:05] [INFO    ] [home_view] [MC] 	at knot//com.mojang.authlib.minecraft.client.MinecraftClient.get(MinecraftClient.java:56)
+[2026-03-25 17:54:05] [DEBUG   ] [launcher] [MC] 	at knot//com.mojang.authlib.yggdrasil.YggdrasilUserApiService.fetchProperties(YggdrasilUserApiService.java:121)
+[2026-03-25 17:54:05] [INFO    ] [home_view] [MC] 	at knot//com.mojang.authlib.yggdrasil.YggdrasilUserApiService.fetchProperties(YggdrasilUserApiService.java:121)
+[2026-03-25 17:54:05] [DEBUG   ] [launcher] [MC] 	... 5 more
+[2026-03-25 17:54:05] [INFO    ] [home_view] [MC] 	... 5 more
+[2026-03-25 17:54:06] [DEBUG   ] [launcher] [MC] [17:54:06] [Render thread/INFO]: [Indigo] Different rendering plugin detected; not applying Indigo.
+[2026-03-25 17:54:06] [INFO    ] [home_view] [MC] [17:54:06] [Render thread/INFO]: [Indigo] Different rendering plugin detected; not applying Indigo.
+[2026-03-25 17:54:06] [DEBUG   ] [launcher] [MC] [17:54:06] [Render thread/INFO]: Registering leaf particles.
+[2026-03-25 17:54:06] [INFO    ] [home_view] [MC] [17:54:06] [Render thread/INFO]: Registering leaf particles.
+[2026-03-25 17:54:06] [DEBUG   ] [launcher] [MC] [17:54:06] [Render thread/INFO]: Checking mod updates...
+[2026-03-25 17:54:06] [INFO    ] [home_view] [MC] [17:54:06] [Render thread/INFO]: Checking mod updates...
+[2026-03-25 17:54:06] [DEBUG   ] [launcher] [MC] [17:54:06] [Render thread/INFO]: [STDOUT]: [Mouse Tweaks] Main.initialize()
+[2026-03-25 17:54:06] [INFO    ] [home_view] [MC] [17:54:06] [Render thread/INFO]: [STDOUT]: [Mouse Tweaks] Main.initialize()
+[2026-03-25 17:54:06] [DEBUG   ] [launcher] [MC] [17:54:06] [Render thread/INFO]: [STDOUT]: [Mouse Tweaks] Initialized.
+[2026-03-25 17:54:06] [INFO    ] [home_view] [MC] [17:54:06] [Render thread/INFO]: [STDOUT]: [Mouse Tweaks] Initialized.
+[2026-03-25 17:54:06] [DEBUG   ] [launcher] [MC] [17:54:06] [Render thread/INFO]: [STDOUT]: [LibGui] Initializing Client...
+[2026-03-25 17:54:06] [INFO    ] [home_view] [MC] [17:54:06] [Render thread/INFO]: [STDOUT]: [LibGui] Initializing Client...
+[2026-03-25 17:54:07] [DEBUG   ] [launcher] [MC] [17:54:07] [Render thread/INFO]: Deserializing YACLConfig from 'C:\Users\geron\.minecraft\profiles\Creativo\config\yacl.json5'
+[2026-03-25 17:54:07] [INFO    ] [home_view] [MC] [17:54:07] [Render thread/INFO]: Deserializing YACLConfig from 'C:\Users\geron\.minecraft\profiles\Creativo\config\yacl.json5'
+[2026-03-25 17:54:07] [DEBUG   ] [launcher] [MC] [17:54:07] [Render thread/INFO]: Initializing mods (entrypoint yumi:init)...
+[2026-03-25 17:54:07] [INFO    ] [home_view] [MC] [17:54:07] [Render thread/INFO]: Initializing mods (entrypoint yumi:init)...
+[2026-03-25 17:54:07] [DEBUG   ] [launcher] [MC] [17:54:07] [Worker-Main-1/INFO]: Update available for 'sodium@0.8.6+mc1.21.11', (-> mc1.21.11-0.8.7-fabric)
+[2026-03-25 17:54:07] [INFO    ] [home_view] [MC] [17:54:07] [Worker-Main-1/INFO]: Update available for 'sodium@0.8.6+mc1.21.11', (-> mc1.21.11-0.8.7-fabric)
+[2026-03-25 17:54:07] [DEBUG   ] [launcher] [MC] [17:54:07] [Worker-Main-1/INFO]: Update available for 'modmenu@17.0.0-beta.2', (-> 17.0.0)
+[2026-03-25 17:54:07] [INFO    ] [home_view] [MC] [17:54:07] [Worker-Main-1/INFO]: Update available for 'modmenu@17.0.0-beta.2', (-> 17.0.0)
+[2026-03-25 17:54:07] [DEBUG   ] [launcher] [MC] [17:54:07] [Worker-Main-1/INFO]: Update available for 'entityculling@1.9.5', (-> 1.10.0)
+[2026-03-25 17:54:07] [INFO    ] [home_view] [MC] [17:54:07] [Worker-Main-1/INFO]: Update available for 'entityculling@1.9.5', (-> 1.10.0)
+[2026-03-25 17:54:07] [DEBUG   ] [launcher] [MC] [17:54:07] [Worker-Main-1/INFO]: Update available for 'iris@1.10.6+mc1.21.11', (-> 1.10.7+1.21.11-fabric)
+[2026-03-25 17:54:07] [INFO    ] [home_view] [MC] [17:54:07] [Worker-Main-1/INFO]: Update available for 'iris@1.10.6+mc1.21.11', (-> 1.10.7+1.21.11-fabric)
+[2026-03-25 17:54:07] [DEBUG   ] [launcher] [MC] [17:54:07] [Render thread/INFO]: [LambDynLights] Initializing LambDynamicLights...
+[2026-03-25 17:54:07] [INFO    ] [home_view] [MC] [17:54:07] [Render thread/INFO]: [LambDynLights] Initializing LambDynamicLights...
+[2026-03-25 17:54:07] [DEBUG   ] [launcher] [MC] [17:54:07] [Render thread/INFO]: [LambDynLights] Configuration loaded.
+[2026-03-25 17:54:07] [INFO    ] [home_view] [MC] [17:54:07] [Render thread/INFO]: [LambDynLights] Configuration loaded.
+[2026-03-25 17:54:07] [DEBUG   ] [launcher] [MC] [17:54:07] [ForkJoinPool.commonPool-worker-1/WARN]: [Iris Update Check] This version doesn't have an update index, skipping.
+[2026-03-25 17:54:07] [INFO    ] [home_view] [MC] [17:54:07] [ForkJoinPool.commonPool-worker-1/WARN]: [Iris Update Check] This version doesn't have an update index, skipping.
+[2026-03-25 17:54:08] [DEBUG   ] [launcher] [MC] [17:54:08] [Render thread/INFO]: Backend library: LWJGL version 3.3.3-snapshot
+[2026-03-25 17:54:08] [INFO    ] [home_view] [MC] [17:54:08] [Render thread/INFO]: Backend library: LWJGL version 3.3.3-snapshot
+[2026-03-25 17:54:08] [DEBUG   ] [launcher] [MC] [17:54:08] [Render thread/INFO]: Modifying process environment to apply workarounds for the NVIDIA graphics driver...
+[2026-03-25 17:54:08] [INFO    ] [home_view] [MC] [17:54:08] [Render thread/INFO]: Modifying process environment to apply workarounds for the NVIDIA graphics driver...
+[2026-03-25 17:54:10] [DEBUG   ] [launcher] [MC] [17:54:10] [Render thread/INFO]: Initializing ImmediatelyFast 1.14.2+1.21.11 on NVIDIA GeForce GTX 1650 Ti/PCIe/SSE2 (NVIDIA Corporation) with OpenGL 3.3.0 NVIDIA 581.29
+[2026-03-25 17:54:10] [INFO    ] [home_view] [MC] [17:54:10] [Render thread/INFO]: Initializing ImmediatelyFast 1.14.2+1.21.11 on NVIDIA GeForce GTX 1650 Ti/PCIe/SSE2 (NVIDIA Corporation) with OpenGL 3.3.0 NVIDIA 581.29
+[2026-03-25 17:54:10] [DEBUG   ] [launcher] [MC] [17:54:10] [Render thread/INFO]: Found Iris 1.10.6+mc1.21.11. Enabling compatibility.
+[2026-03-25 17:54:10] [INFO    ] [home_view] [MC] [17:54:10] [Render thread/INFO]: Found Iris 1.10.6+mc1.21.11. Enabling compatibility.
+[2026-03-25 17:54:10] [DEBUG   ] [launcher] [MC] [17:54:10] [Render thread/INFO]: Debug functionality is disabled.
+[2026-03-25 17:54:10] [INFO    ] [home_view] [MC] [17:54:10] [Render thread/INFO]: Debug functionality is disabled.
+[2026-03-25 17:54:10] [DEBUG   ] [launcher] [MC] [17:54:10] [Render thread/INFO]: ARB_direct_state_access detected, enabling DSA.
+[2026-03-25 17:54:10] [INFO    ] [home_view] [MC] [17:54:10] [Render thread/INFO]: ARB_direct_state_access detected, enabling DSA.
+[2026-03-25 17:54:10] [DEBUG   ] [launcher] [MC] [17:54:10] [Render thread/INFO]: Shaders are disabled because no valid shaderpack is selected
+[2026-03-25 17:54:10] [INFO    ] [home_view] [MC] [17:54:10] [Render thread/INFO]: Shaders are disabled because no valid shaderpack is selected
+[2026-03-25 17:54:10] [DEBUG   ] [launcher] [MC] [17:54:10] [Render thread/INFO]: OpenGL Vendor: NVIDIA Corporation
+[2026-03-25 17:54:10] [INFO    ] [home_view] [MC] [17:54:10] [Render thread/INFO]: OpenGL Vendor: NVIDIA Corporation
+[2026-03-25 17:54:10] [DEBUG   ] [launcher] [MC] [17:54:10] [Render thread/INFO]: OpenGL Renderer: NVIDIA GeForce GTX 1650 Ti/PCIe/SSE2
+[2026-03-25 17:54:10] [INFO    ] [home_view] [MC] [17:54:10] [Render thread/INFO]: OpenGL Renderer: NVIDIA GeForce GTX 1650 Ti/PCIe/SSE2
+[2026-03-25 17:54:10] [DEBUG   ] [launcher] [MC] [17:54:10] [Render thread/INFO]: OpenGL Version: 3.3.0 NVIDIA 581.29
+[2026-03-25 17:54:10] [INFO    ] [home_view] [MC] [17:54:10] [Render thread/INFO]: OpenGL Version: 3.3.0 NVIDIA 581.29
+[2026-03-25 17:54:10] [DEBUG   ] [launcher] [MC] [17:54:10] [Render thread/INFO]: Modifying OpenGL context to apply workarounds for the NVIDIA graphics driver...
+[2026-03-25 17:54:10] [INFO    ] [home_view] [MC] [17:54:10] [Render thread/INFO]: Modifying OpenGL context to apply workarounds for the NVIDIA graphics driver...
+[2026-03-25 17:54:10] [DEBUG   ] [launcher] [MC] [17:54:10] [Render thread/INFO]: Enabling GL_DEBUG_OUTPUT_SYNCHRONOUS to force the NVIDIA driver to disable threaded command submission
+[2026-03-25 17:54:10] [INFO    ] [home_view] [MC] [17:54:10] [Render thread/INFO]: Enabling GL_DEBUG_OUTPUT_SYNCHRONOUS to force the NVIDIA driver to disable threaded command submission
+[2026-03-25 17:54:10] [DEBUG   ] [launcher] [MC] [17:54:10] [Render thread/INFO]: Using optional rendering extensions: GL_ARB_buffer_storage, GL_KHR_debug, GL_ARB_vertex_attrib_binding, GL_ARB_direct_state_access, GL_EXT_texture_filter_anisotropic
+[2026-03-25 17:54:10] [INFO    ] [home_view] [MC] [17:54:10] [Render thread/INFO]: Using optional rendering extensions: GL_ARB_buffer_storage, GL_KHR_debug, GL_ARB_vertex_attrib_binding, GL_ARB_direct_state_access, GL_EXT_texture_filter_anisotropic
+[2026-03-25 17:54:10] [DEBUG   ] [launcher] [MC] [17:54:10] [Render thread/ERROR]: Couldn't load file/NewGlowingOres-§6[Border]§r.zip pack metadata: Pack declares support for version newer than 64, but is missing mandatory fields min_format and max_format
+[2026-03-25 17:54:10] [INFO    ] [home_view] [MC] [17:54:10] [Render thread/ERROR]: Couldn't load file/NewGlowingOres-§6[Border]§r.zip pack metadata: Pack declares support for version newer than 64, but is missing mandatory fields min_format and max_format
+[2026-03-25 17:54:11] [DEBUG   ] [launcher] [MC] [17:54:11] [Render thread/INFO]: Hardware information:
+[2026-03-25 17:54:11] [INFO    ] [home_view] [MC] [17:54:11] [Render thread/INFO]: Hardware information:
+[2026-03-25 17:54:11] [DEBUG   ] [launcher] [MC] [17:54:11] [Render thread/INFO]: CPU: 8x Intel(R) Core(TM) i5-10300H CPU @ 2.50GHz
+[2026-03-25 17:54:11] [INFO    ] [home_view] [MC] [17:54:11] [Render thread/INFO]: CPU: 8x Intel(R) Core(TM) i5-10300H CPU @ 2.50GHz
+[2026-03-25 17:54:11] [DEBUG   ] [launcher] [MC] [17:54:11] [Render thread/INFO]: GPU: NVIDIA GeForce GTX 1650 Ti/PCIe/SSE2 (Supports OpenGL 3.3.0 NVIDIA 581.29)
+[2026-03-25 17:54:11] [INFO    ] [home_view] [MC] [17:54:11] [Render thread/INFO]: GPU: NVIDIA GeForce GTX 1650 Ti/PCIe/SSE2 (Supports OpenGL 3.3.0 NVIDIA 581.29)
+[2026-03-25 17:54:11] [DEBUG   ] [launcher] [MC] [17:54:11] [Render thread/INFO]: OS: Windows 11 (10.0)
+[2026-03-25 17:54:11] [INFO    ] [home_view] [MC] [17:54:11] [Render thread/INFO]: OS: Windows 11 (10.0)
+[2026-03-25 17:54:12] [DEBUG   ] [launcher] [MC] [17:54:12] [Download-3/INFO]: Could not authorize you against Realms server: java.lang.RuntimeException: Failed to parse into SignedJWT: 0
+[2026-03-25 17:54:12] [INFO    ] [home_view] [MC] [17:54:12] [Download-3/INFO]: Could not authorize you against Realms server: java.lang.RuntimeException: Failed to parse into SignedJWT: 0
+[2026-03-25 17:54:12] [DEBUG   ] [launcher] [MC] [17:54:12] [Download-3/ERROR]: Failed to fetch Realms feature flags
+[2026-03-25 17:54:12] [INFO    ] [home_view] [MC] [17:54:12] [Download-3/ERROR]: Failed to fetch Realms feature flags
+[2026-03-25 17:54:12] [DEBUG   ] [launcher] [MC] net.minecraft.class_4355: Realms authentication error with message 'java.lang.RuntimeException: Failed to parse into SignedJWT: 0'
+[2026-03-25 17:54:12] [INFO    ] [home_view] [MC] net.minecraft.class_4355: Realms authentication error with message 'java.lang.RuntimeException: Failed to parse into SignedJWT: 0'
+[2026-03-25 17:54:12] [DEBUG   ] [launcher] [MC] 	at knot//net.minecraft.class_4341.method_20998(class_4341.java:526)
+[2026-03-25 17:54:12] [INFO    ] [home_view] [MC] 	at knot//net.minecraft.class_4341.method_20998(class_4341.java:526)
+[2026-03-25 17:54:12] [DEBUG   ] [launcher] [MC] 	at knot//net.minecraft.class_4341.method_68466(class_4341.java:186)
+[2026-03-25 17:54:12] [INFO    ] [home_view] [MC] 	at knot//net.minecraft.class_4341.method_68466(class_4341.java:186)
+[2026-03-25 17:54:12] [DEBUG   ] [launcher] [MC] 	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1768)
+[2026-03-25 17:54:12] [INFO    ] [home_view] [MC] 	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1768)
+[2026-03-25 17:54:12] [DEBUG   ] [launcher] [MC] 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+[2026-03-25 17:54:12] [INFO    ] [home_view] [MC] 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+[2026-03-25 17:54:12] [DEBUG   ] [launcher] [MC] 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+[2026-03-25 17:54:12] [INFO    ] [home_view] [MC] 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+[2026-03-25 17:54:12] [DEBUG   ] [launcher] [MC] 	at java.base/java.lang.Thread.run(Thread.java:1583)
+[2026-03-25 17:54:12] [INFO    ] [home_view] [MC] 	at java.base/java.lang.Thread.run(Thread.java:1583)
+[2026-03-25 17:54:12] [DEBUG   ] [launcher] [MC] [17:54:12] [Render thread/INFO]: Reloading ResourceManager: vanilla, betterf3, c2me, cloth-config, conditional-mixin, continuity, entityculling, fabric-api, fabric-api-base, fabric-api-lookup-api-v1, fabric-biome-api-v1, fabric-block-api-v1, fabric-block-view-api-v2, fabric-command-api-v2, fabric-content-registries-v0, fabric-convention-tags-v1, fabric-convention-tags-v2, fabric-crash-report-info-v1, fabric-data-attachment-api-v1, fabric-data-generation-api-v1, fabric-dimensions-v1, fabric-entity-events-v1, fabric-events-interaction-v0, fabric-game-rule-api-v1, fabric-item-api-v1, fabric-item-group-api-v1, fabric-key-binding-api-v1, fabric-language-kotlin, fabric-lifecycle-events-v1, fabric-loot-api-v2, fabric-loot-api-v3, fabric-message-api-v1, fabric-model-loading-api-v1, fabric-networking-api-v1, fabric-object-builder-api-v1, fabric-particles-v1, fabric-recipe-api-v1, fabric-registry-sync-v0, fabric-renderer-api-v1, fabric-renderer-indigo, fabric-rendering-fluids-v1, fabric-rendering-v1, fabric-resource-conditions-api-v1, fabric-resource-loader-v0, fabric-resource-loader-v1, fabric-screen-api-v1, fabric-screen-handler-api-v1, fabric-serialization-api-v1, fabric-sound-api-v1, fabric-tag-api-v1, fabric-transfer-api-v1, fabric-transitive-access-wideners-v1, fabricloader, fallingleaves, immediatelyfast, iris, lambdynlights, lambdynlights_api, lambdynlights_runtime, lithium, modmenu, moreculling, placeholder-api, pride, shulkerboxtooltip, skinlayers3d, sodium, spruceui, trender, visuality, yet_another_config_lib_v3, zoomify, continuity:default, continuity:glass_pane_culling_fix, file/LowOnFire v1.21.11§8.zip, file/NewGlowingOres-§6[Border]§r.zip
+[2026-03-25 17:54:12] [INFO    ] [home_view] [MC] [17:54:12] [Render thread/INFO]: Reloading ResourceManager: vanilla, betterf3, c2me, cloth-config, conditional-mixin, continuity, entityculling, fabric-api, fabric-api-base, fabric-api-lookup-api-v1, fabric-biome-api-v1, fabric-block-api-v1, fabric-block-view-api-v2, fabric-command-api-v2, fabric-content-registries-v0, fabric-convention-tags-v1, fabric-convention-tags-v2, fabric-crash-report-info-v1, fabric-data-attachment-api-v1, fabric-data-generation-api-v1, fabric-dimensions-v1, fabric-entity-events-v1, fabric-events-interaction-v0, fabric-game-rule-api-v1, fabric-item-api-v1, fabric-item-group-api-v1, fabric-key-binding-api-v1, fabric-language-kotlin, fabric-lifecycle-events-v1, fabric-loot-api-v2, fabric-loot-api-v3, fabric-message-api-v1, fabric-model-loading-api-v1, fabric-networking-api-v1, fabric-object-builder-api-v1, fabric-particles-v1, fabric-recipe-api-v1, fabric-registry-sync-v0, fabric-renderer-api-v1, fabric-renderer-indigo, fabric-rendering-fluids-v1, fabric-rendering-v1, fabric-resource-conditions-api-v1, fabric-resource-loader-v0, fabric-resource-loader-v1, fabric-screen-api-v1, fabric-screen-handler-api-v1, fabric-serialization-api-v1, fabric-sound-api-v1, fabric-tag-api-v1, fabric-transfer-api-v1, fabric-transitive-access-wideners-v1, fabricloader, fallingleaves, immediatelyfast, iris, lambdynlights, lambdynlights_api, lambdynlights_runtime, lithium, modmenu, moreculling, placeholder-api, pride, shulkerboxtooltip, skinlayers3d, sodium, spruceui, trender, visuality, yet_another_config_lib_v3, zoomify, continuity:default, continuity:glass_pane_culling_fix, file/LowOnFire v1.21.11§8.zip, file/NewGlowingOres-§6[Border]§r.zip
+[2026-03-25 17:54:12] [DEBUG   ] [launcher] [MC] [17:54:12] [Render thread/INFO]: Cached all modded block culling states
+[2026-03-25 17:54:12] [INFO    ] [home_view] [MC] [17:54:12] [Render thread/INFO]: Cached all modded block culling states
+[2026-03-25 17:54:13] [DEBUG   ] [launcher] [MC] [17:54:13] [Worker-Main-16/INFO]: Found unifont_all_no_pua-17.0.01.hex, loading
+[2026-03-25 17:54:13] [INFO    ] [home_view] [MC] [17:54:13] [Worker-Main-16/INFO]: Found unifont_all_no_pua-17.0.01.hex, loading
+[2026-03-25 17:54:13] [DEBUG   ] [launcher] [MC] [17:54:13] [Worker-Main-16/INFO]: Found unifont_jp_patch-17.0.01.hex, loading
+[2026-03-25 17:54:13] [INFO    ] [home_view] [MC] [17:54:13] [Worker-Main-16/INFO]: Found unifont_jp_patch-17.0.01.hex, loading
+[2026-03-25 17:54:14] [INFO    ] [home_view] Minecraft cerrado con código: 3489660927
+[2026-03-25 17:54:17] [INFO    ] [auth_service] Sesion offline creada para: Geronimin (UUID: 53f57021-5ef5-30dd-88a8-b0839da0642a)
+[2026-03-25 17:54:17] [DEBUG   ] [account_manager] Cuentas guardadas: 1 cuenta(s)
+[2026-03-25 17:54:17] [INFO    ] [account_manager] Cuenta activa: Geronimin
+[2026-03-25 17:54:17] [INFO    ] [launcher] === Lanzando Minecraft 1.9.4 para 'Geronimin' ===
+[2026-03-25 17:54:17] [INFO    ] [launcher] Sin loader activo — lanzando Minecraft vanilla
+[2026-03-25 17:54:17] [INFO    ] [launcher] Versión efectiva de lanzamiento: 1.9.4
+[2026-03-25 17:54:17] [INFO    ] [java_manager] Usando Java embebido: C:\Users\geron\.minecraft\runtime\java-runtime-delta\bin\java.exe
+[2026-03-25 17:54:17] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl\lwjgl\2.9.2-nightly-20140822\lwjgl-2.9.2-nightly-20140822.jar
+[2026-03-25 17:54:17] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl\lwjgl_util\2.9.2-nightly-20140822\lwjgl_util-2.9.2-nightly-20140822.jar
+[2026-03-25 17:54:17] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl\lwjgl-platform\2.9.2-nightly-20140822\lwjgl-platform-2.9.2-nightly-20140822.jar
+[2026-03-25 17:54:17] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\net\java\jinput\jinput-platform\2.0.5\jinput-platform-2.0.5.jar
+[2026-03-25 17:54:17] [DEBUG   ] [launcher] Classpath con 32 entradas
+[2026-03-25 17:54:17] [DEBUG   ] [launcher] Extraído: OpenAL32.dll
+[2026-03-25 17:54:17] [DEBUG   ] [launcher] Extraído: OpenAL64.dll
+[2026-03-25 17:54:17] [DEBUG   ] [launcher] Extraído: lwjgl.dll
+[2026-03-25 17:54:17] [DEBUG   ] [launcher] Extraído: lwjgl64.dll
+[2026-03-25 17:54:17] [DEBUG   ] [launcher] JAR de natives no encontrado: lwjgl-platform-2.9.2-nightly-20140822-natives-windows.jar
+[2026-03-25 17:54:17] [DEBUG   ] [launcher] Extraído: jinput-dx8.dll
+[2026-03-25 17:54:17] [DEBUG   ] [launcher] Extraído: jinput-dx8_64.dll
+[2026-03-25 17:54:17] [DEBUG   ] [launcher] Extraído: jinput-raw.dll
+[2026-03-25 17:54:17] [DEBUG   ] [launcher] Extraído: jinput-raw_64.dll
+[2026-03-25 17:54:17] [DEBUG   ] [launcher] Extraído: jinput-wintab.dll
+[2026-03-25 17:54:17] [INFO    ] [launcher] Se extrajeron 9 archivos nativos para windows
+[2026-03-25 17:54:17] [INFO    ] [launcher] Assets index usado: 1.9
+[2026-03-25 17:54:17] [DEBUG   ] [launcher] Comando construido con 32 partes
+[2026-03-25 17:54:17] [INFO    ] [launcher] Minecraft iniciado con PID: 21852
+[2026-03-25 17:54:20] [DEBUG   ] [launcher] [MC] [17:54:20] [Client thread/INFO]: Setting user: Geronimin
+[2026-03-25 17:54:20] [INFO    ] [home_view] [MC] [17:54:20] [Client thread/INFO]: Setting user: Geronimin
+[2026-03-25 17:54:21] [DEBUG   ] [launcher] [MC] [17:54:21] [Client thread/INFO]: LWJGL Version: 2.9.4
+[2026-03-25 17:54:21] [INFO    ] [home_view] [MC] [17:54:21] [Client thread/INFO]: LWJGL Version: 2.9.4
+[2026-03-25 17:54:22] [DEBUG   ] [launcher] [MC] [17:54:22] [Client thread/INFO]: Reloading ResourceManager: Default
+[2026-03-25 17:54:22] [INFO    ] [home_view] [MC] [17:54:22] [Client thread/INFO]: Reloading ResourceManager: Default
+[2026-03-25 17:54:28] [DEBUG   ] [launcher] [MC] [17:54:28] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[2026-03-25 17:54:28] [INFO    ] [home_view] [MC] [17:54:28] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[2026-03-25 17:54:28] [DEBUG   ] [launcher] [MC] [17:54:28] [Thread-4/INFO]: Initializing LWJGL OpenAL
+[2026-03-25 17:54:28] [INFO    ] [home_view] [MC] [17:54:28] [Thread-4/INFO]: Initializing LWJGL OpenAL
+[2026-03-25 17:54:28] [DEBUG   ] [launcher] [MC] [17:54:28] [Thread-4/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[2026-03-25 17:54:28] [INFO    ] [home_view] [MC] [17:54:28] [Thread-4/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[2026-03-25 17:54:28] [DEBUG   ] [launcher] [MC] [17:54:28] [Thread-4/INFO]: OpenAL initialized.
+[2026-03-25 17:54:28] [INFO    ] [home_view] [MC] [17:54:28] [Thread-4/INFO]: OpenAL initialized.
+[2026-03-25 17:54:28] [DEBUG   ] [launcher] [MC] [17:54:28] [Sound Library Loader/INFO]: Sound engine started
+[2026-03-25 17:54:28] [INFO    ] [home_view] [MC] [17:54:28] [Sound Library Loader/INFO]: Sound engine started
+[2026-03-25 17:54:29] [DEBUG   ] [launcher] [MC] [17:54:29] [Client thread/INFO]: Created: 1024x512 textures-atlas
+[2026-03-25 17:54:29] [INFO    ] [home_view] [MC] [17:54:29] [Client thread/INFO]: Created: 1024x512 textures-atlas
+[2026-03-25 17:54:33] [INFO    ] [loader_manager] Optifine: 0 versiones disponibles para MC 1.9.4
+[2026-03-25 17:54:40] [DEBUG   ] [launcher] [MC] [17:54:40] [Client thread/INFO]: Stopping!
+[2026-03-25 17:54:40] [INFO    ] [home_view] [MC] [17:54:40] [Client thread/INFO]: Stopping!
+[2026-03-25 17:54:40] [DEBUG   ] [launcher] [MC] [17:54:40] [Client thread/INFO]: SoundSystem shutting down...
+[2026-03-25 17:54:40] [INFO    ] [home_view] [MC] [17:54:40] [Client thread/INFO]: SoundSystem shutting down...
+[2026-03-25 17:54:40] [DEBUG   ] [launcher] [MC] [17:54:40] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
+[2026-03-25 17:54:40] [INFO    ] [home_view] [MC] [17:54:40] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
+[2026-03-25 17:54:40] [INFO    ] [home_view] Minecraft cerrado con código: 0

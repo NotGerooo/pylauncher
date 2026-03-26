@@ -1,31 +1,21 @@
 import sys
 import os
+import ssl
 
-# 1. Fix directorio de trabajo para PyInstaller .exe
-if getattr(sys, 'frozen', False):
-    os.chdir(os.path.dirname(sys.executable))
+# SSL fix for PyInstaller bundled builds
+ssl._create_default_https_context = ssl._create_unverified_context
 
-# 2. Fix sys.path ANTES de cualquier import del proyecto
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# 3. Fix SSL ANTES de cualquier import de red (urllib, etc.)
-if getattr(sys, 'frozen', False):
-    import ssl
-    ssl._create_default_https_context = ssl._create_unverified_context
-else:
-    import ssl
-    ssl._create_default_https_context = ssl._create_unverified_context
-
-# 4. Ahora sí importar el proyecto
+import flet as ft
 from utils.logger import setup_logger
-from gui.app import App
 
 
-def main():
+def main(page: ft.Page):
     setup_logger()
-    app = App()
-    app.mainloop()
+    from gui.app import App
+    App(page)
 
 
 if __name__ == "__main__":
-    main()
+    ft.app(target=main)
