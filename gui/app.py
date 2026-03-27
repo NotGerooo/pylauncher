@@ -26,6 +26,12 @@ from gui.theme import (
 
 log = get_logger()
 
+views_map = {
+    "home": HomeView,
+    "profiles": ProfilesView,
+    "mods": ModsView,
+    "library": LibraryView,   # ← añade esta línea
+}
 
 class App:
     def __init__(self, page: ft.Page):
