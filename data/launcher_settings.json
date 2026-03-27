@@ -1,7 +1,7 @@
 {
     "minecraft_dir": "C:\\Users\\geron\\.minecraft",
     "java_path": "",
-    "default_ram_mb": 1024,
+    "default_ram_mb": 8192,
     "last_profile": "",
     "theme": "dark",
     "close_on_launch": false,

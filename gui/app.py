@@ -144,7 +144,6 @@ class App:
                 padding=ft.padding.symmetric(horizontal=20),
                 content=bar_content,
             ),
-            expand=True,
         )
 
     def _minimize(self):
@@ -247,7 +246,7 @@ class App:
         self._avatar_box = ft.Container(
             width=38, height=38, border_radius=19,
             bgcolor=GREEN,
-            alignment=ft.alignment.CENTER,
+            alignment=ft.alignment.center,
             content=self._avatar_text,
         )
         self._username_lbl = ft.Text("—", color=TEXT_PRI, size=10,

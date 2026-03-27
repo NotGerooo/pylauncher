@@ -1,0 +1,9 @@
+[2026-03-26 16:02:11] [INFO    ] [logger] Logger iniciado. Archivo de log: logs\launcher_20260326_160211.log
+[2026-03-26 16:02:11] [DEBUG   ] [settings] Configuración cargada desde data\launcher_settings.json
+[2026-03-26 16:02:11] [INFO    ] [profile_manager] Perfiles cargados: 1
+[2026-03-26 16:02:11] [INFO    ] [account_manager] Cuentas cargadas: 1
+[2026-03-26 16:02:11] [INFO    ] [version_manager] Actualizando caché de versiones disponibles...
+[2026-03-26 16:02:11] [INFO    ] [app] Interfaz Flet iniciada
+[2026-03-26 16:02:11] [INFO    ] [installer] Descargando manifest de versiones de Mojang...
+[2026-03-26 16:02:13] [INFO    ] [installer] Manifest cargado: 876 versiones disponibles
+[2026-03-26 16:02:13] [INFO    ] [version_manager] Caché actualizado: 876 versiones disponibles
