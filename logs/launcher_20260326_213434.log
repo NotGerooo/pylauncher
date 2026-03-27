@@ -1,0 +1,17 @@
+[2026-03-26 21:34:34] [INFO    ] [logger] Logger iniciado. Archivo de log: logs\launcher_20260326_213434.log
+[2026-03-26 21:34:34] [DEBUG   ] [settings] Configuración cargada desde data\launcher_settings.json
+[2026-03-26 21:34:34] [INFO    ] [profile_manager] Perfiles cargados: 1
+[2026-03-26 21:34:34] [INFO    ] [account_manager] Cuentas cargadas: 1
+[2026-03-26 21:34:34] [INFO    ] [version_manager] Actualizando caché de versiones disponibles...
+[2026-03-26 21:34:34] [INFO    ] [app] Interfaz Flet iniciada
+[2026-03-26 21:34:34] [INFO    ] [installer] Descargando manifest de versiones de Mojang...
+[2026-03-26 21:34:35] [INFO    ] [installer] Manifest cargado: 876 versiones disponibles
+[2026-03-26 21:34:35] [INFO    ] [version_manager] Caché actualizado: 876 versiones disponibles
+[2026-03-26 21:34:37] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-26 21:34:40] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=resourcepack, sort=relevance, offset=0)
+[2026-03-26 21:34:42] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=shader, sort=relevance, offset=0)
+[2026-03-26 21:34:50] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=shader, sort=relevance, offset=0)
+[2026-03-26 21:35:04] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=shader, sort=relevance, offset=0)
+[2026-03-26 21:35:44] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=shader, sort=relevance, offset=0)
+[2026-03-26 21:35:52] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-26 21:35:55] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=20)
