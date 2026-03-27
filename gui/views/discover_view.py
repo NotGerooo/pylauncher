@@ -357,9 +357,10 @@ class DiscoverView:
         query   = (self._search_field.value or "").strip()
         profile = self._active_profile()
         mc_ver  = profile.version_id if profile else None
-        loader  = self._active_loader() if project_type == "mod" else None
-        sort_by = self._sort_dd.value or "relevance"
         project_type = TAB_PROJECT_TYPES[self._tab_index]
+        # Loaders solo aplican a mods; shaders/resourcepacks/modpacks ignoran el loader
+        loader  = self._active_loader() if project_type in ("mod", "modpack") else None
+        sort_by = self._sort_dd.value or "relevance"
 
         # Actualizar installed_set para el perfil activo
         self._installed_set = self._get_installed_set(profile)
