@@ -12,3 +12,4 @@
 [2026-03-26 21:19:37] [WARNING ] [discover_view] DiscoverView fetch error: ModrinthService.search_mods() got an unexpected keyword argument 'sort_by'
 [2026-03-26 21:19:40] [WARNING ] [discover_view] DiscoverView fetch error: ModrinthService.search_mods() got an unexpected keyword argument 'sort_by'
 [2026-03-26 21:19:41] [WARNING ] [discover_view] DiscoverView fetch error: ModrinthService.search_mods() got an unexpected keyword argument 'sort_by'
+[2026-03-26 21:19:44] [WARNING ] [discover_view] DiscoverView fetch error: ModrinthService.search_mods() got an unexpected keyword argument 'sort_by'
