@@ -5,3 +5,6 @@
 [2026-03-26 21:19:25] [INFO    ] [version_manager] Actualizando caché de versiones disponibles...
 [2026-03-26 21:19:25] [INFO    ] [installer] Descargando manifest de versiones de Mojang...
 [2026-03-26 21:19:25] [INFO    ] [app] Interfaz Flet iniciada
+[2026-03-26 21:19:26] [INFO    ] [installer] Manifest cargado: 876 versiones disponibles
+[2026-03-26 21:19:26] [INFO    ] [version_manager] Caché actualizado: 876 versiones disponibles
+[2026-03-26 21:19:26] [WARNING ] [discover_view] DiscoverView fetch error: ModrinthService.search_mods() got an unexpected keyword argument 'sort_by'
