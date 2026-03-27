@@ -357,7 +357,7 @@ class DiscoverView:
         query   = (self._search_field.value or "").strip()
         profile = self._active_profile()
         mc_ver  = profile.version_id if profile else None
-        loader  = self._active_loader()
+        loader  = self._active_loader() if project_type == "mod" else None
         sort_by = self._sort_dd.value or "relevance"
         project_type = TAB_PROJECT_TYPES[self._tab_index]
 
