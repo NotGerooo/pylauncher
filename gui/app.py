@@ -16,6 +16,7 @@ from services.auth_service import AuthService
 from services.modrinth_service import ModrinthService
 from core.launcher import LauncherEngine
 from utils.logger import get_logger
+from gui.views.library_view import LibraryView 
 from gui.theme import (
     BG, SIDEBAR_BG, CARD_BG, CARD2_BG, INPUT_BG,
     BORDER, BORDER_BRIGHT, GREEN, GREEN_DIM, GREEN_SUBTLE,
