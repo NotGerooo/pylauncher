@@ -1,0 +1,10 @@
+[2026-03-28 16:31:52] [INFO    ] [logger] Logger iniciado. Archivo de log: logs\launcher_20260328_163152.log
+[2026-03-28 16:31:52] [DEBUG   ] [settings] Configuración cargada desde data\launcher_settings.json
+[2026-03-28 16:31:52] [INFO    ] [profile_manager] Perfiles cargados: 0
+[2026-03-28 16:31:52] [INFO    ] [account_manager] Cuentas cargadas: 1
+[2026-03-28 16:31:53] [INFO    ] [version_manager] Actualizando caché de versiones disponibles...
+[2026-03-28 16:31:53] [INFO    ] [installer] Descargando manifest de versiones de Mojang...
+[2026-03-28 16:31:53] [INFO    ] [app] Interfaz Flet iniciada
+[2026-03-28 16:31:53] [INFO    ] [installer] Manifest cargado: 876 versiones disponibles
+[2026-03-28 16:31:53] [INFO    ] [version_manager] Caché actualizado: 876 versiones disponibles
+[2026-03-28 16:31:55] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
