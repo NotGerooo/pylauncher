@@ -127,17 +127,17 @@ class SidebarLeft:
 
     # ── Estado activo ─────────────────────────────────────────────────────────
     def set_active(self, vid: str):
-        _LIBRARY_SVG_DIM   = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236b7280'><path d='M2 3h4v18H2zm6 0h3v18H8zm5 0h2.5L18 21h-2.5zm4.2 0H20l1.8 18h-2z'/></svg>"
-        _LIBRARY_SVG_GREEN = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231bd96a'><path d='M2 3h4v18H2zm6 0h3v18H8zm5 0h2.5L18 21h-2.5zm4.2 0H20l1.8 18h-2z'/></svg>"
         for v, btn in self._nav_btns.items():
             active = (v == vid)
             btn._active = active
             btn.bgcolor = NAV_ACTIVE if active else SIDEBAR_BG
-            icon = btn.content
-            if isinstance(icon, ft.Icon):
-                icon.color = GREEN if active else TEXT_DIM
-                try: btn.update()
-                except Exception: pass
+            widget = btn.content
+            if isinstance(widget, ft.Image):          # ícono SVG custom
+                widget.src = _LIBRARY_SVG_GREEN if active else _LIBRARY_SVG_DIM
+            elif isinstance(widget, ft.Icon):
+                widget.color = GREEN if active else TEXT_DIM
+            try: btn.update()
+            except Exception: pass
 
     # ── Instancias ────────────────────────────────────────────────────────────
     def refresh_instances(self):
