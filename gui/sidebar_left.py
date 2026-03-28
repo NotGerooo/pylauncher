@@ -24,7 +24,7 @@ class SidebarLeft:
         top_items = [
             ("home",     ft.icons.HOME_ROUNDED,     "Inicio"),
             ("discover", ft.icons.EXPLORE_ROUNDED,  "Descubrir"),
-            ("library",  ft.icons.LIBRARY_BOOKS_ROUNDED, "Biblioteca"),
+            ("library",  None,                     "Biblioteca"),
         ]
         top_rows = []
         for vid, icon, tip in top_items:
