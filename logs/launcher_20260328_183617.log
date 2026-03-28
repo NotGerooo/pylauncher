@@ -1,0 +1,10 @@
+[2026-03-28 18:36:17] [INFO    ] [logger] Logger iniciado. Archivo de log: logs\launcher_20260328_183617.log
+[2026-03-28 18:36:17] [DEBUG   ] [settings] Configuración cargada desde data\launcher_settings.json
+[2026-03-28 18:36:17] [INFO    ] [profile_manager] Perfiles cargados: 1
+[2026-03-28 18:36:17] [INFO    ] [account_manager] Cuentas cargadas: 1
+[2026-03-28 18:36:17] [INFO    ] [app] Interfaz Flet iniciada
+[2026-03-28 18:36:24] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 18:36:36] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=20)
+[2026-03-28 18:36:40] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=resourcepack, sort=relevance, offset=0)
+[2026-03-28 18:36:43] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=resourcepack, sort=relevance, offset=20)
+[2026-03-28 18:36:46] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=shader, sort=relevance, offset=0)
