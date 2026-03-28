@@ -308,6 +308,10 @@ class AccountManager:
         accounts.sort(key=lambda a: (a.id != self._active_id, a.username))
         return accounts
 
+def get_account_by_username(self, username: str) -> Optional[Account]:
+    """Retorna la cuenta cuyo username coincide (case-sensitive), o None."""
+    return self._find_by_username(username)
+
     def update_skin(self, account_id: str, skin_path: str):
         """Actualiza la ruta de skin local para una cuenta offline."""
         account = self._accounts.get(account_id)
