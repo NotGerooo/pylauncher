@@ -5,3 +5,6 @@
 [2026-03-27 19:32:34] [INFO    ] [version_manager] Actualizando caché de versiones disponibles...
 [2026-03-27 19:32:34] [INFO    ] [installer] Descargando manifest de versiones de Mojang...
 [2026-03-27 19:32:34] [INFO    ] [app] Interfaz Flet iniciada
+[2026-03-27 19:32:35] [INFO    ] [installer] Manifest cargado: 876 versiones disponibles
+[2026-03-27 19:32:35] [INFO    ] [version_manager] Caché actualizado: 876 versiones disponibles
+[2026-03-27 19:32:36] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
