@@ -926,8 +926,8 @@ class ModDetailDialog:
                         self.on_installed()
                 self.page.run_thread(done)
             except Exception as err:
-    def _e(e=err):
-        self._status_lbl.value   = f"Error: {e}"
+                def _e(e=err):
+                    self._status_lbl.value   = f"Error: {e}"
                     self._install_btn.disabled = False
                     try:
                         self._status_lbl.update()
