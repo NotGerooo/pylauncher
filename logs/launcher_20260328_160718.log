@@ -1,0 +1,13 @@
+[2026-03-28 16:07:18] [INFO    ] [logger] Logger iniciado. Archivo de log: logs\launcher_20260328_160718.log
+[2026-03-28 16:07:18] [DEBUG   ] [settings] Configuración cargada desde data\launcher_settings.json
+[2026-03-28 16:07:18] [INFO    ] [profile_manager] Perfiles cargados: 2
+[2026-03-28 16:07:18] [INFO    ] [account_manager] Cuentas cargadas: 1
+[2026-03-28 16:07:18] [INFO    ] [version_manager] Actualizando caché de versiones disponibles...
+[2026-03-28 16:07:18] [INFO    ] [installer] Descargando manifest de versiones de Mojang...
+[2026-03-28 16:07:18] [INFO    ] [app] Interfaz Flet iniciada
+[2026-03-28 16:07:19] [INFO    ] [installer] Manifest cargado: 876 versiones disponibles
+[2026-03-28 16:07:19] [INFO    ] [version_manager] Caché actualizado: 876 versiones disponibles
+[2026-03-28 16:07:21] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 16:07:27] [INFO    ] [profile_manager] Perfil actualizado: '1.9.4 Survival'
+[2026-03-28 16:07:27] [INFO    ] [loader_manager] Descargando instalador Forge 1.9.4-1.9.4-12.17.0.1908-1.9.4…
+[2026-03-28 16:07:27] [ERROR   ] [library_view] Error guardando instancia: No se pudo descargar instalador Forge: HTTP Error 404: Not Found
