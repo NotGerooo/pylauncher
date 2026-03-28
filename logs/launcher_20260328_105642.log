@@ -31,3 +31,6 @@
 [2026-03-28 10:56:53] [DEBUG   ] [installer] Native JAR descargado: jinput-platform-2.0.5-natives-windows.jar
 [2026-03-28 10:56:53] [DEBUG   ] [downloader] Ya válido, omitiendo: lwjgl-platform-2.9.4-nightly-20150209-natives-windows.jar
 [2026-03-28 10:56:53] [DEBUG   ] [installer] Native JAR descargado: lwjgl-platform-2.9.4-nightly-20150209-natives-windows.jar
+[2026-03-28 10:56:54] [DEBUG   ] [installer] Native JAR descargado: text2speech-1.10.3-natives-windows.jar
+[2026-03-28 10:56:55] [INFO    ] [installer] ✓ 34 librerías descargadas
+[2026-03-28 10:56:55] [INFO    ] [installer] Descargando 1305 assets en paralelo...
