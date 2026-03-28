@@ -661,7 +661,7 @@ class ModDetailDialog:
     """
 
     def __init__(self, page, app, project, active_profile,
-                 active_loader, on_installed=None):
+             active_loader, target_dir=None, on_installed=None):
         self.page           = page
         self.app            = app
         self.project        = project
