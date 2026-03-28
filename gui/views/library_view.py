@@ -182,7 +182,10 @@ class LibraryView:
                 ],
             ),
         )
-
+    
+def _open_optifine_dialog(self, profile):
+    _OptiFineDialog(self.page, self.app, profile, self._refresh).open()
+    
     # ── Acciones ──────────────────────────────────────────────────────────────
     def _on_delete(self, profile):
         def confirm(e):
