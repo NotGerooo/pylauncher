@@ -8,3 +8,112 @@
 [2026-03-28 17:33:25] [INFO    ] [installer] Descargando manifest de versiones de Mojang...
 [2026-03-28 17:33:26] [INFO    ] [installer] Manifest cargado: 876 versiones disponibles
 [2026-03-28 17:33:26] [INFO    ] [version_manager] Caché actualizado: 876 versiones disponibles
+[2026-03-28 17:33:46] [INFO    ] [installer] === Iniciando instalación de Minecraft 26.1 ===
+[2026-03-28 17:33:46] [INFO    ] [installer] Descargando cliente JAR de Minecraft 26.1...
+[2026-03-28 17:33:48] [INFO    ] [installer] Descargando 75 librerías en paralelo...
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: gson-2.13.2.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: azure-json-1.4.0.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: oshi-core-6.9.0.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: guava-33.5.0-jre.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: msal4j-1.23.1.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: brigadier-1.3.10.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: blocklist-1.0.10.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: datafixerupper-9.0.19.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: icu4j-77.1.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: netty-buffer-4.2.7.Final.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: netty-codec-compression-4.2.7.Final.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: netty-codec-base-4.2.7.Final.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: commons-io-2.20.0.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: commons-codec-1.19.0.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: patchy-2.2.10.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: failureaccess-1.0.3.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: netty-transport-classes-kqueue-4.2.7.Final.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: netty-transport-classes-epoll-4.2.7.Final.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: netty-handler-4.2.7.Final.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: netty-codec-http-4.2.7.Final.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: jopt-simple-5.0.4.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: netty-transport-4.2.7.Final.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: jna-5.17.0.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: jna-platform-5.17.0.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: commons-compress-1.28.0.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: jorbis-0.0.17.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: commons-lang3-3.19.0.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: jtracy-1.0.37-natives-windows.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: log4j-api-2.25.2.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: netty-common-4.2.7.Final.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: log4j-core-2.25.2.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: joml-1.10.8.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: fastutil-8.5.18.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: logging-1.6.11.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: jspecify-1.0.0.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: jtracy-1.0.37.jar
+[2026-03-28 17:33:48] [DEBUG   ] [downloader] Ya válido, omitiendo: text2speech-1.18.11.jar
+[2026-03-28 17:33:49] [DEBUG   ] [downloader] Ya válido, omitiendo: log4j-slf4j2-impl-2.25.2.jar
+[2026-03-28 17:33:49] [DEBUG   ] [downloader] Ya válido, omitiendo: netty-resolver-4.2.7.Final.jar
+[2026-03-28 17:33:49] [DEBUG   ] [downloader] Ya válido, omitiendo: netty-transport-native-unix-common-4.2.7.Final.jar
+[2026-03-28 17:33:49] [DEBUG   ] [downloader] Ya válido, omitiendo: slf4j-api-2.0.17.jar
+[2026-03-28 17:33:51] [INFO    ] [installer] ✓ 75 librerías descargadas
+[2026-03-28 17:33:52] [INFO    ] [installer] Descargando 4744 assets en paralelo...
+[2026-03-28 17:34:06] [INFO    ] [installer] ✓ 4744 assets descargados
+[2026-03-28 17:34:06] [DEBUG   ] [installer] No se encontraron archivos nativos para extraer en windows para 26.1
+[2026-03-28 17:34:06] [INFO    ] [installer] === Minecraft 26.1 instalado correctamente ===
+[2026-03-28 17:34:06] [INFO    ] [profile_manager] Perfil creado: 'Survival Pro' — MC 26.1
+[2026-03-28 17:34:06] [INFO    ] [loader_manager] Descargando perfil Fabric 0.18.5…
+[2026-03-28 17:34:07] [INFO    ] [loader_manager] Fabric: lib 1/7
+[2026-03-28 17:34:07] [INFO    ] [loader_manager] Fabric: lib 2/7
+[2026-03-28 17:34:07] [INFO    ] [loader_manager] Fabric: lib 3/7
+[2026-03-28 17:34:07] [INFO    ] [loader_manager] Fabric: lib 4/7
+[2026-03-28 17:34:07] [INFO    ] [loader_manager] Fabric: lib 5/7
+[2026-03-28 17:34:07] [INFO    ] [loader_manager] Fabric: lib 6/7
+[2026-03-28 17:34:07] [INFO    ] [loader_manager] Fabric: lib 7/7
+[2026-03-28 17:34:07] [INFO    ] [loader_manager] Fabric instalado.
+[2026-03-28 17:34:36] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 17:35:05] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 17:35:11] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 17:35:13] [INFO    ] [modrinth_service] Modrinth: 1093 versiones para 'P7dR8mSH'
+[2026-03-28 17:35:16] [INFO    ] [modrinth_service] Modrinth: 3 versiones para 'P7dR8mSH'
+[2026-03-28 17:35:17] [INFO    ] [modrinth_service] Mod descargado: fabric-api-0.144.3+26.1.jar → C:\Users\geron\.minecraft\profiles\Survival_Pro\mods
+[2026-03-28 17:35:19] [INFO    ] [modrinth_service] Modrinth: 2 versiones para '9s6osm5g'
+[2026-03-28 17:35:20] [INFO    ] [modrinth_service] Mod descargado: cloth-config-26.1.154.jar → C:\Users\geron\.minecraft\profiles\Survival_Pro\mods
+[2026-03-28 17:35:21] [INFO    ] [modrinth_service] Modrinth: 3 versiones para 'P7dR8mSH'
+[2026-03-28 17:35:21] [DEBUG   ] [downloader] Ya válido, omitiendo: fabric-api-0.144.3+26.1.jar
+[2026-03-28 17:35:21] [INFO    ] [modrinth_service] Mod descargado: fabric-api-0.144.3+26.1.jar → C:\Users\geron\.minecraft\profiles\Survival_Pro\mods
+[2026-03-28 17:35:23] [INFO    ] [modrinth_service] Modrinth: 2 versiones para 'YL57xq9U'
+[2026-03-28 17:35:23] [INFO    ] [modrinth_service] Mod descargado: iris-fabric-1.10.8+mc26.1.jar → C:\Users\geron\.minecraft\profiles\Survival_Pro\mods
+[2026-03-28 17:35:28] [INFO    ] [modrinth_service] Modrinth: 1 versiones para 'NNAgCjsB'
+[2026-03-28 17:35:29] [INFO    ] [modrinth_service] Mod descargado: entityculling-fabric-1.10.0-mc26.1.jar → C:\Users\geron\.minecraft\profiles\Survival_Pro\mods
+[2026-03-28 17:35:31] [INFO    ] [modrinth_service] Modrinth: 2 versiones para 'uXXizFIs'
+[2026-03-28 17:35:31] [INFO    ] [modrinth_service] Mod descargado: ferritecore-9.0.0-fabric.jar → C:\Users\geron\.minecraft\profiles\Survival_Pro\mods
+[2026-03-28 17:35:33] [INFO    ] [modrinth_service] Modrinth: 2 versiones para 'mOgUt4GM'
+[2026-03-28 17:35:33] [INFO    ] [modrinth_service] Mod descargado: modmenu-18.0.0-alpha.8.jar → C:\Users\geron\.minecraft\profiles\Survival_Pro\mods
+[2026-03-28 17:35:34] [INFO    ] [modrinth_service] Modrinth: 4 versiones para 'gvQqBUqZ'
+[2026-03-28 17:35:35] [INFO    ] [modrinth_service] Mod descargado: lithium-neoforge-0.22.1+mc26.1.jar → C:\Users\geron\.minecraft\profiles\Survival_Pro\mods
+[2026-03-28 17:35:37] [INFO    ] [modrinth_service] Modrinth: 2 versiones para '5ZwdcRci'
+[2026-03-28 17:35:37] [INFO    ] [modrinth_service] Mod descargado: ImmediatelyFast-NeoForge-1.15.0+26.1.jar → C:\Users\geron\.minecraft\profiles\Survival_Pro\mods
+[2026-03-28 17:36:01] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=20)
+[2026-03-28 17:36:05] [INFO    ] [modrinth_service] Modrinth: 6 versiones para '51shyZVL'
+[2026-03-28 17:36:05] [INFO    ] [modrinth_service] Mod descargado: moreculling-fabric-26.1-1.7.0-beta.3.jar → C:\Users\geron\.minecraft\profiles\Survival_Pro\mods
+[2026-03-28 17:36:15] [INFO    ] [modrinth_service] Modrinth: 1 versiones para 'yBW8D80W'
+[2026-03-28 17:36:16] [INFO    ] [modrinth_service] Mod descargado: lambdynamiclights-4.10.0+26.1.jar → C:\Users\geron\.minecraft\profiles\Survival_Pro\mods
+[2026-03-28 17:36:20] [INFO    ] [modrinth_service] Modrinth: 2 versiones para 'Wb5oqrBJ'
+[2026-03-28 17:36:21] [INFO    ] [modrinth_service] Mod descargado: chat_heads-1.2.2-fabric-26.1.jar → C:\Users\geron\.minecraft\profiles\Survival_Pro\mods
+[2026-03-28 17:36:27] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=40)
+[2026-03-28 17:37:10] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=60)
+[2026-03-28 17:37:15] [INFO    ] [modrinth_service] Modrinth: 1 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 17:37:15] [INFO    ] [modrinth_service] Modrinth: 1 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 17:37:17] [INFO    ] [modrinth_service] Modrinth: 1 versiones para 'RLzHAoZe'
+[2026-03-28 17:37:18] [INFO    ] [modrinth_service] Mod descargado: Resourcify (26.1-fabric)-1.8.2.jar → C:\Users\geron\.minecraft\profiles\Survival_Pro\mods
+[2026-03-28 17:37:40] [INFO    ] [modrinth_service] Modrinth: 1 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 17:37:41] [INFO    ] [modrinth_service] Modrinth: 0 resultados (type=resourcepack, sort=relevance, offset=0)
+[2026-03-28 17:37:43] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=resourcepack, sort=relevance, offset=0)
+[2026-03-28 17:37:52] [INFO    ] [modrinth_service] Modrinth: 1 versiones para 'd1nRD7RG'
+[2026-03-28 17:37:52] [INFO    ] [modrinth_service] Mod descargado: ProgrammerArtFix-26.1.zip → C:\Users\geron\.minecraft\profiles\Survival_Pro\mods
+[2026-03-28 17:38:05] [INFO    ] [modrinth_service] Modrinth: 1 versiones para 'r4GILswZ'
+[2026-03-28 17:38:08] [INFO    ] [modrinth_service] Mod descargado: Faithful 64x - Release 13.zip → C:\Users\geron\.minecraft\profiles\Survival_Pro\mods
+[2026-03-28 17:38:14] [INFO    ] [modrinth_service] Modrinth: 1 versiones para 'lewweaHO'
+[2026-03-28 17:38:14] [INFO    ] [modrinth_service] Mod descargado: Recolourful Containers 3.1.1 (1.19.4+).zip → C:\Users\geron\.minecraft\profiles\Survival_Pro\mods
+[2026-03-28 17:38:22] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=resourcepack, sort=relevance, offset=20)
+[2026-03-28 17:38:25] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=resourcepack, sort=relevance, offset=40)
+[2026-03-28 17:38:28] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=resourcepack, sort=relevance, offset=60)
+[2026-03-28 17:38:29] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=shader, sort=relevance, offset=0)
+[2026-03-28 17:38:30] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=shader, sort=relevance, offset=0)
