@@ -912,7 +912,7 @@ class ModDetailDialog:
             try:
                 target = self.target_dir or prof.mods_dir
                 os.makedirs(target, exist_ok=True)
-                self.app.modrinth_service.download_mod_version(ver, prof.mods_dir)
+                self.app.modrinth_service.download_mod_version(ver, target)
                 def done():
                     self._status_lbl.value   = "✓ Instalado correctamente"
                     self._install_btn.disabled = False
