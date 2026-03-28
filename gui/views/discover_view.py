@@ -6,22 +6,20 @@ Diseño completo inspirado en Modrinth:
  - Filtros: Versión MC, Loader, Ordenar por
  - Scroll infinito (lazy loading) con ft.ListView
  - Spinner / skeleton mientras carga
- - Botón "Instalar" / "✓ Instalado" por tarjeta
- - Detección de instalación por escaneo de archivos (funciona con mods preexistentes)
+ - Botón "Instalar" / "✓ Instalado" por tarjeta (detección por escaneo de carpeta)
  - Popup de detalle con lista de versiones
 """
 
 import threading
 import os
 import json
-import re
-import time
 import flet as ft
 
 from gui.theme import (
     BG, CARD_BG, CARD2_BG, INPUT_BG, BORDER,
     GREEN, TEXT_PRI, TEXT_SEC, TEXT_DIM, TEXT_INV, ACCENT_RED,
 )
+from utils.install_detector import build_installed_set, is_installed_in
 from utils.logger import get_logger
 
 log = get_logger()
@@ -37,77 +35,15 @@ SORT_LABELS    = {
     "updated":   "Última actualización",
 }
 PAGE_SIZE      = 20
-DEBOUNCE_MS    = 400          # ms de espera tras escribir antes de buscar
+DEBOUNCE_MS    = 400
 
-# project_type por cada tab
 TAB_PROJECT_TYPES = ["mod", "resourcepack", "shader", "modpack"]
 TAB_LABELS        = ["Mods", "Resource Packs", "Shaders", "Modpacks"]
-
-# Extensiones de archivo por tipo de contenido
-TAB_EXTENSIONS = {
-    "mod":         [".jar"],
-    "modpack":     [".jar", ".mrpack", ".zip"],
-    "resourcepack":[".zip"],
-    "shader":      [".zip"],
-}
 
 _PALETTE = [
     "#2d6a4f", "#1e3a5f", "#5c2a2a", "#3a3a1e",
     "#2a1e5c", "#1e5c4a", "#4a3a1e", "#5c3a4a",
 ]
-
-
-# ── Normalización de nombre para detección robusta ────────────────────────────
-def _normalize(text: str) -> str:
-    """
-    Elimina extensiones, versiones numéricas, separadores y pone en minúsculas.
-    Ej: "sodium-0.5.8+mc1.20.1-fabric.jar"  →  "sodium"
-        "Sodium Fabric"                       →  "sodiumfabric"
-    Usamos solo la primera "palabra" del slug para evitar falsos positivos.
-    """
-    # Quitar extensiones conocidas
-    text = re.sub(r"\.(jar|zip|mrpack|disabled)$", "", text, flags=re.IGNORECASE)
-    # Quitar sufijos de versión: -1.2.3, +mc1.20, _v2, etc.
-    text = re.sub(r"[-+_][\d].*$", "", text)
-    # Quitar separadores y pasar a minúsculas
-    text = re.sub(r"[-_. ]", "", text).lower()
-    return text
-
-
-def _build_installed_set(directory: str) -> set:
-    """
-    Escanea un directorio y devuelve un set de nombres normalizados.
-    Funciona con archivos instalados antes o después de esta función.
-    """
-    if not directory or not os.path.isdir(directory):
-        return set()
-    result = set()
-    for fn in os.listdir(directory):
-        normalized = _normalize(fn)
-        if normalized:
-            result.add(normalized)
-    return result
-
-
-def _is_installed_in(project, installed_set: set) -> bool:
-    """
-    Comprueba si un proyecto de Modrinth está instalado comparando
-    slug y title normalizados contra el set de archivos del directorio.
-    """
-    slug_key  = _normalize(project.slug)
-    title_key = _normalize(project.title)
-    # Comparación directa
-    if slug_key in installed_set or title_key in installed_set:
-        return True
-    # Comparación por prefijo: el slug aparece al inicio del nombre de archivo
-    # Ej: slug "sodium" matchea "sodiumfabric0581" del archivo
-    for installed_name in installed_set:
-        if installed_name.startswith(slug_key) or installed_name.startswith(title_key):
-            return True
-        # También al revés: el archivo es más corto (poco común pero posible)
-        if slug_key.startswith(installed_name) and len(installed_name) >= 4:
-            return True
-    return False
 
 
 # ── Helper: widget de icono ────────────────────────────────────────────────────
@@ -140,7 +76,6 @@ def _chip(label: str) -> ft.Container:
 
 # ── Skeleton de carga ─────────────────────────────────────────────────────────
 def _skeleton_card() -> ft.Container:
-    """Tarjeta gris animada para mostrar mientras cargan los datos."""
     def _bar(w, h=10, opacity=0.18):
         return ft.Container(
             width=w, height=h, border_radius=4,
@@ -172,20 +107,19 @@ class DiscoverView:
         self.page       = page
         self.app        = app
 
-        self._results   : list  = []       # acumulado de la página actual
-        self._offset    : int   = 0        # offset Modrinth
+        self._results   : list  = []
+        self._offset    : int   = 0
         self._loading   : bool  = False
-        self._more_avail: bool  = False    # hay más páginas
-        self._tab_index : int   = 0        # tab seleccionado
-        self._debounce_timer = None        # threading.Timer para debounce
+        self._more_avail: bool  = False
+        self._tab_index : int   = 0
+        self._debounce_timer = None
 
-        self._installed_set: set = set()   # nombres normalizados de archivos instalados
+        self._installed_set: set = set()
 
         self._build()
 
     # ── Layout ────────────────────────────────────────────────────────────────
     def _build(self):
-        # ── Tabs de tipo de contenido ──────────────────────────────────────
         self._tab_buttons = []
         tab_row = ft.Row(spacing=4)
         for i, label in enumerate(TAB_LABELS):
@@ -203,7 +137,6 @@ class DiscoverView:
             self._tab_buttons.append(btn)
             tab_row.controls.append(btn)
 
-        # ── Campo de búsqueda ──────────────────────────────────────────────
         self._search_field = ft.TextField(
             hint_text="Busca mods, shaders, packs…",
             hint_style=ft.TextStyle(color=TEXT_DIM),
@@ -215,7 +148,6 @@ class DiscoverView:
             on_change=self._on_search_change,
         )
 
-        # ── Dropdown: perfil ───────────────────────────────────────────────
         self._profile_dd = ft.Dropdown(
             label="Perfil", width=180,
             color=TEXT_PRI, bgcolor=INPUT_BG,
@@ -225,7 +157,6 @@ class DiscoverView:
             on_change=self._on_filter_change,
         )
 
-        # ── Dropdown: loader ───────────────────────────────────────────────
         self._loader_dd = ft.Dropdown(
             label="Loader", width=148,
             color=TEXT_PRI, bgcolor=INPUT_BG,
@@ -238,7 +169,6 @@ class DiscoverView:
             on_change=self._on_filter_change,
         )
 
-        # ── Dropdown: ordenar ──────────────────────────────────────────────
         self._sort_dd = ft.Dropdown(
             label="Ordenar", width=165,
             color=TEXT_PRI, bgcolor=INPUT_BG,
@@ -255,17 +185,16 @@ class DiscoverView:
             bgcolor=CARD_BG, border_radius=12,
             padding=ft.padding.symmetric(horizontal=20, vertical=14),
             content=ft.Column([
-                ft.Row([self._search_field], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                ft.Row([self._search_field],
+                       vertical_alignment=ft.CrossAxisAlignment.CENTER),
                 ft.Container(height=10),
                 ft.Row(
                     [self._profile_dd, self._loader_dd, self._sort_dd],
-                    spacing=10,
-                    wrap=True,
+                    spacing=10, wrap=True,
                 ),
             ], spacing=0),
         )
 
-        # ── Spinner central ────────────────────────────────────────────────
         self._spinner = ft.Container(
             visible=False,
             alignment=ft.alignment.center,
@@ -277,7 +206,6 @@ class DiscoverView:
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
         )
 
-        # ── Estado vacío / error ───────────────────────────────────────────
         self._empty_lbl = ft.Container(
             visible=False,
             alignment=ft.alignment.center,
@@ -292,16 +220,13 @@ class DiscoverView:
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
         )
 
-        # ── Contador de resultados ─────────────────────────────────────────
         self._count_lbl = ft.Text("", color=TEXT_DIM, size=10)
 
-        # ── Lista principal (ListView para scroll nativo) ──────────────────
         self._list_view = ft.ListView(
             expand=True, spacing=8,
             padding=ft.padding.only(bottom=16),
         )
 
-        # ── Botón "cargar más" al final de la lista ────────────────────────
         self._load_more_btn = ft.Container(
             visible=False, alignment=ft.alignment.center,
             padding=ft.padding.only(top=12, bottom=16),
@@ -322,13 +247,11 @@ class DiscoverView:
             expand=True, bgcolor=BG,
             padding=ft.padding.only(left=32, right=32, top=28, bottom=0),
             content=ft.Column([
-                # Encabezado
                 ft.Text("Descubrir", color=TEXT_PRI, size=26,
                         weight=ft.FontWeight.BOLD),
                 ft.Text("Explora mods, shaders y más desde Modrinth",
                         color=TEXT_SEC, size=11),
                 ft.Container(height=16),
-                # Tabs
                 ft.Container(
                     bgcolor=CARD_BG, border_radius=10,
                     padding=ft.padding.symmetric(horizontal=8, vertical=6),
@@ -337,10 +260,8 @@ class DiscoverView:
                 ft.Container(height=12),
                 filter_bar,
                 ft.Container(height=12),
-                # Contador
                 ft.Row([self._count_lbl]),
                 ft.Container(height=6),
-                # Spinner + lista + botón "más"
                 ft.Stack([
                     ft.Column([
                         self._list_view,
@@ -352,7 +273,6 @@ class DiscoverView:
             ], spacing=0, expand=True),
         )
 
-        # Marcar tab inicial
         self._highlight_tab(0)
 
     # ── Ciclo de vida ─────────────────────────────────────────────────────────
@@ -379,8 +299,9 @@ class DiscoverView:
     def _highlight_tab(self, active: int):
         for i, btn in enumerate(self._tab_buttons):
             is_active = (i == active)
-            btn.style.bgcolor = {ft.ControlState.DEFAULT: GREEN if is_active else "transparent"}
-            btn.style.color   = {
+            btn.style.bgcolor = {
+                ft.ControlState.DEFAULT: GREEN if is_active else "transparent"}
+            btn.style.color = {
                 ft.ControlState.DEFAULT: TEXT_INV if is_active else TEXT_DIM,
                 ft.ControlState.HOVERED: TEXT_PRI,
             }
@@ -416,25 +337,25 @@ class DiscoverView:
         self._loading = True
         self.page.run_thread(self._show_spinner)
 
-        query   = (self._search_field.value or "").strip()
-        profile = self._active_profile()
-        mc_ver  = profile.version_id if profile else None
+        query        = (self._search_field.value or "").strip()
+        profile      = self._active_profile()
+        mc_ver       = profile.version_id if profile else None
         project_type = TAB_PROJECT_TYPES[self._tab_index]
-        loader  = self._active_loader() if project_type in ("mod", "modpack") else None
-        sort_by = self._sort_dd.value or "relevance"
+        loader       = self._active_loader() if project_type in ("mod", "modpack") else None
+        sort_by      = self._sort_dd.value or "relevance"
 
-        # ── Escanear directorio de destino para detectar instalados ──────
+        # Escanear la carpeta correcta según el tab activo
         target_dir = self._target_dir(profile) if profile else None
-        self._installed_set = _build_installed_set(target_dir)
+        self._installed_set = build_installed_set(target_dir)
 
         try:
             results = self.app.modrinth_service.search_mods(
-                query      = query if query else "",
-                mc_version = mc_ver,
-                loader     = loader,
-                limit      = PAGE_SIZE,
-                offset     = self._offset,
-                sort_by    = sort_by,
+                query        = query if query else "",
+                mc_version   = mc_ver,
+                loader       = loader,
+                limit        = PAGE_SIZE,
+                offset       = self._offset,
+                sort_by      = sort_by,
                 project_type = project_type,
             )
             self._offset  += len(results)
@@ -463,14 +384,13 @@ class DiscoverView:
 
     # ── Render en hilo principal ──────────────────────────────────────────────
     def _render_results(self, new_results, more: bool):
-        # Si es la primera página (offset == len(new_results)) limpiar lista
         if self._offset == len(new_results):
             self._list_view.controls.clear()
 
         for proj in new_results:
-            self._list_view.controls.append(
-                self._make_card(proj, _is_installed_in(proj, self._installed_set))
-            )
+            installed = is_installed_in(
+                proj.slug, proj.title, self._installed_set)
+            self._list_view.controls.append(self._make_card(proj, installed))
 
         total = len(self._results)
         self._count_lbl.value = (
@@ -489,7 +409,6 @@ class DiscoverView:
 
     # ── Helpers de estado UI ──────────────────────────────────────────────────
     def _show_spinner(self):
-        # Mostrar skeletons mientras carga la primera página
         if self._offset == 0:
             self._list_view.controls.clear()
             for _ in range(6):
@@ -520,7 +439,7 @@ class DiscoverView:
             self._count_lbl.update()
         except Exception: pass
 
-    # ── Helpers de datos ─────────────────────────────────────────────────────
+    # ── Helpers de datos ──────────────────────────────────────────────────────
     def _active_profile(self):
         name = self._profile_dd.value
         return self.app.profile_manager.get_profile_by_name(name) if name else None
@@ -544,7 +463,6 @@ class DiscoverView:
         return None
 
     def _target_dir(self, profile) -> str | None:
-        """Devuelve el directorio de destino según el tipo de contenido del tab activo."""
         if not profile:
             return None
         project_type = TAB_PROJECT_TYPES[self._tab_index]
@@ -552,29 +470,26 @@ class DiscoverView:
             return profile.resourcepacks_dir
         elif project_type == "shader":
             return profile.shaderpacks_dir
-        else:  # "mod" y "modpack"
+        else:
             return profile.mods_dir
 
-    # ── Tarjeta de mod ────────────────────────────────────────────────────────
+    # ── Tarjeta de mod ─────────────────────────────────────────────────────────
     def _make_card(self, proj, is_installed: bool) -> ft.Container:
         author = getattr(proj, "author", "")
 
-        # ── Botón instalado: opaco, sin acción ────────────────────────────
         if is_installed:
             action_btn = ft.Container(
-                bgcolor="#1a3d2a",
-                border_radius=6,
-                opacity=0.65,           # opacidad reducida = instalado/inactivo
+                bgcolor="#1a3d2a", border_radius=6,
+                opacity=0.65,
                 padding=ft.padding.symmetric(horizontal=12, vertical=6),
+                tooltip="Ya instalado en este perfil",
                 content=ft.Row([
                     ft.Icon(ft.icons.CHECK_CIRCLE_ROUNDED, size=13, color=GREEN),
                     ft.Container(width=5),
                     ft.Text("Instalado", color=GREEN, size=9,
                              weight=ft.FontWeight.BOLD),
                 ], spacing=0, tight=True),
-                tooltip="Ya instalado en este perfil",
             )
-        # ── Botón instalar: activo ─────────────────────────────────────────
         else:
             action_btn = ft.Container(
                 bgcolor=GREEN, border_radius=6,
@@ -594,7 +509,6 @@ class DiscoverView:
                 ], spacing=0, tight=True),
             )
 
-        # Fila de meta: autor · descargas
         meta_controls = []
         if author:
             meta_controls += [
@@ -605,7 +519,6 @@ class DiscoverView:
             ft.Text(f"⬇ {proj.downloads:,}", color=TEXT_DIM, size=9)
         )
 
-        # Chips
         chips = ft.Row(
             [_chip(c) for c in proj.categories[:4]],
             spacing=5, wrap=True,
@@ -644,7 +557,7 @@ class DiscoverView:
         )
         return card
 
-    # ── Instalación rápida desde la tarjeta ───────────────────────────────────
+    # ── Instalación rápida ─────────────────────────────────────────────────────
     def _quick_install(self, project):
         profile = self._active_profile()
         if not profile:
@@ -666,8 +579,7 @@ class DiscoverView:
                 target = self._target_dir(profile)
                 os.makedirs(target, exist_ok=True)
                 self.app.modrinth_service.download_mod_version(version, target)
-                # Re-escanear directorio tras instalar
-                self._installed_set = _build_installed_set(target)
+                self._installed_set = build_installed_set(target)
                 self.page.run_thread(lambda: self.app.snack(
                     f"{project.title} instalado en {profile.name}. ✓"))
                 self.page.run_thread(self._refresh_installed_badges)
@@ -678,18 +590,17 @@ class DiscoverView:
         threading.Thread(target=do_install, daemon=True).start()
 
     def _refresh_installed_badges(self):
-        """Reconstruye todas las tarjetas para actualizar badges de instalación."""
         controls = []
         for proj in self._results:
-            controls.append(
-                self._make_card(proj, _is_installed_in(proj, self._installed_set))
-            )
+            installed = is_installed_in(
+                proj.slug, proj.title, self._installed_set)
+            controls.append(self._make_card(proj, installed))
         self._list_view.controls.clear()
         self._list_view.controls.extend(controls)
         try: self._list_view.update()
         except Exception: pass
 
-    # ── Abrir detalle ─────────────────────────────────────────────────────────
+    # ── Abrir detalle ──────────────────────────────────────────────────────────
     def _open_detail(self, project):
         profile = self._active_profile()
         ModDetailDialog(
@@ -701,23 +612,18 @@ class DiscoverView:
         )
 
     def _on_mod_installed(self, project):
-        profile = self._active_profile()
+        profile    = self._active_profile()
         target_dir = self._target_dir(profile)
-        self._installed_set = _build_installed_set(target_dir)
+        self._installed_set = build_installed_set(target_dir)
         self._refresh_installed_badges()
 
 
-# ── Diálogo de detalle ─────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# Diálogo de detalle
+# ══════════════════════════════════════════════════════════════════════════════
 class ModDetailDialog:
-    """
-    Popup completo del mod:
-    - Tabs: Versiones / Descripción
-    - Versiones compatibles (verde) vs incompatibles (gris)
-    - Botón Instalar activo solo para versiones compatibles
-    """
-
     def __init__(self, page, app, project, active_profile,
-             active_loader, target_dir=None, on_installed=None):
+                 active_loader, target_dir=None, on_installed=None):
         self.page           = page
         self.app            = app
         self.project        = project
@@ -734,7 +640,6 @@ class ModDetailDialog:
         author    = getattr(self.project, "author", "")
         prof_name = self.active_profile.name if self.active_profile else "—"
 
-        # Header del popup
         header = ft.Row([
             _icon(self.project.icon_url, self.project.title, size=60),
             ft.Container(width=18),
@@ -769,14 +674,12 @@ class ModDetailDialog:
             ], spacing=3, expand=True),
         ], vertical_alignment=ft.CrossAxisAlignment.START)
 
-        self._status_lbl = ft.Text(
-            "Cargando versiones…", color=TEXT_DIM, size=9)
-        self._spinner_row = ft.Row(
-            [ft.ProgressRing(width=18, height=18, color=GREEN, stroke_width=2),
-             ft.Container(width=8),
-             self._status_lbl],
-            visible=True,
-        )
+        self._status_lbl  = ft.Text("Cargando versiones…", color=TEXT_DIM, size=9)
+        self._spinner_row = ft.Row([
+            ft.ProgressRing(width=18, height=18, color=GREEN, stroke_width=2),
+            ft.Container(width=8),
+            self._status_lbl,
+        ], visible=True)
 
         self._versions_lv = ft.ListView(
             spacing=6, height=280, padding=ft.padding.only(right=6))
@@ -816,21 +719,20 @@ class ModDetailDialog:
         )
         self.page.open(self._dlg)
 
-    # ── Fetch versiones ───────────────────────────────────────────────────────
     def _fetch_versions(self):
         try:
             mc_ver   = (self.active_profile.version_id
                         if self.active_profile else None)
             versions = self.app.modrinth_service.get_project_versions(
                 self.project.project_id,
-                mc_version=None,          # traemos todas, filtramos visualmente
+                mc_version=None,
                 loader=self.active_loader,
             )
             self.page.run_thread(lambda: self._render_versions(versions, mc_ver))
         except Exception as err:
             def _e():
                 self._spinner_row.visible = False
-                self._status_lbl.value = f"Error: {err}"
+                self._status_lbl.value    = f"Error: {err}"
                 try:
                     self._spinner_row.update()
                     self._status_lbl.update()
@@ -838,7 +740,7 @@ class ModDetailDialog:
             self.page.run_thread(_e)
 
     def _render_versions(self, versions, mc_ver):
-        self._versions      = versions
+        self._versions            = versions
         self._spinner_row.visible = False
 
         if not versions:
@@ -856,8 +758,6 @@ class ModDetailDialog:
             1 for v in versions if (not mc_ver or mc_ver in v.game_versions))
 
         self._versions_lv.controls.clear()
-
-        # Encabezado de columnas
         self._versions_lv.controls.append(
             ft.Container(
                 padding=ft.padding.symmetric(horizontal=14, vertical=6),
@@ -871,8 +771,7 @@ class ModDetailDialog:
                 ]),
             )
         )
-        self._versions_lv.controls.append(
-            ft.Divider(height=1, color=BORDER))
+        self._versions_lv.controls.append(ft.Divider(height=1, color=BORDER))
 
         for v in versions:
             compatible = not mc_ver or mc_ver in v.game_versions
@@ -885,7 +784,9 @@ class ModDetailDialog:
                 bgcolor=INPUT_BG if compatible else CARD2_BG,
                 border_radius=8, data=v.version_id,
                 padding=ft.padding.symmetric(horizontal=14, vertical=10),
-                on_click=(lambda e, ver=v: self._select_version(ver)) if compatible else None,
+                on_click=(
+                    lambda e, ver=v: self._select_version(ver)
+                ) if compatible else None,
                 on_hover=(
                     lambda e: (
                         setattr(e.control, "bgcolor",
@@ -911,12 +812,11 @@ class ModDetailDialog:
             )
             self._versions_lv.controls.append(row)
 
-        self._status_lbl.value   = (
+        self._status_lbl.value = (
             f"{len(versions)} versiones · {count_compat} compatibles "
             f"con {mc_ver or 'este perfil'}"
         )
         self._status_lbl.visible = True
-
         try:
             self._spinner_row.update()
             self._status_lbl.update()
@@ -924,8 +824,8 @@ class ModDetailDialog:
         except Exception: pass
 
     def _select_version(self, version):
-        self._selected_ver           = version
-        self._install_btn.disabled   = False
+        self._selected_ver         = version
+        self._install_btn.disabled = False
         for c in self._versions_lv.controls:
             if hasattr(c, "data"):
                 c.bgcolor = "#1a2a20" if c.data == version.version_id else INPUT_BG
@@ -954,7 +854,7 @@ class ModDetailDialog:
                 os.makedirs(target, exist_ok=True)
                 self.app.modrinth_service.download_mod_version(ver, target)
                 def done():
-                    self._status_lbl.value   = "✓ Instalado correctamente"
+                    self._status_lbl.value     = "✓ Instalado correctamente"
                     self._install_btn.disabled = False
                     try:
                         self._status_lbl.update()
@@ -967,7 +867,7 @@ class ModDetailDialog:
                 self.page.run_thread(done)
             except Exception as err:
                 def _e(e=err):
-                    self._status_lbl.value   = f"Error: {e}"
+                    self._status_lbl.value     = f"Error: {e}"
                     self._install_btn.disabled = False
                     try:
                         self._status_lbl.update()
