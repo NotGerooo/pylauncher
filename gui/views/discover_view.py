@@ -894,6 +894,7 @@ class ModDetailDialog:
 
         def do():
             try:
+                target = self.target_dir or prof.mods_dir
                 self.app.modrinth_service.download_mod_version(ver, prof.mods_dir)
                 def done():
                     self._status_lbl.value   = "✓ Instalado correctamente"
