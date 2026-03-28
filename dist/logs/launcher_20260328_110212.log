@@ -1,0 +1,56 @@
+[2026-03-28 11:02:12] [INFO    ] [logger] Logger iniciado. Archivo de log: logs\launcher_20260328_110212.log
+[2026-03-28 11:02:12] [DEBUG   ] [settings] Configuración cargada desde data\launcher_settings.json
+[2026-03-28 11:02:12] [INFO    ] [profile_manager] Perfiles cargados: 4
+[2026-03-28 11:02:12] [INFO    ] [account_manager] Cuentas cargadas: 1
+[2026-03-28 11:02:12] [INFO    ] [version_manager] Actualizando caché de versiones disponibles...
+[2026-03-28 11:02:12] [INFO    ] [installer] Descargando manifest de versiones de Mojang...
+[2026-03-28 11:02:12] [INFO    ] [app] Interfaz Flet iniciada
+[2026-03-28 11:02:13] [INFO    ] [installer] Manifest cargado: 876 versiones disponibles
+[2026-03-28 11:02:13] [INFO    ] [version_manager] Caché actualizado: 876 versiones disponibles
+[2026-03-28 11:02:18] [INFO    ] [auth_service] Sesion offline creada para: Geronimin (UUID: 53f57021-5ef5-30dd-88a8-b0839da0642a)
+[2026-03-28 11:02:18] [INFO    ] [launcher] === Lanzando Minecraft 1.12.2 para 'Geronimin' ===
+[2026-03-28 11:02:18] [INFO    ] [launcher] Sin install_id en loader_meta — lanzando vanilla
+[2026-03-28 11:02:18] [INFO    ] [launcher] Versión efectiva de lanzamiento: 1.12.2
+[2026-03-28 11:02:18] [INFO    ] [java_manager] Usando Java embebido: C:\Users\geron\.minecraft\runtime\java-runtime-delta\bin\java.exe
+[2026-03-28 11:02:18] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl\lwjgl\2.9.2-nightly-20140822\lwjgl-2.9.2-nightly-20140822.jar
+[2026-03-28 11:02:18] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl\lwjgl_util\2.9.2-nightly-20140822\lwjgl_util-2.9.2-nightly-20140822.jar
+[2026-03-28 11:02:18] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl\lwjgl-platform\2.9.2-nightly-20140822\lwjgl-platform-2.9.2-nightly-20140822.jar
+[2026-03-28 11:02:18] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\net\java\jinput\jinput-platform\2.0.5\jinput-platform-2.0.5.jar
+[2026-03-28 11:02:18] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\ca\weblite\java-objc-bridge\1.0.0\java-objc-bridge-1.0.0.jar
+[2026-03-28 11:02:18] [DEBUG   ] [launcher] Classpath con 33 entradas
+[2026-03-28 11:02:18] [INFO    ] [launcher] Assets index usado: 1.12
+[2026-03-28 11:02:18] [DEBUG   ] [launcher] Comando construido con 32 partes
+[2026-03-28 11:02:18] [INFO    ] [launcher] Minecraft iniciado con PID: 24084
+[2026-03-28 11:02:19] [DEBUG   ] [launcher] [MC] [11:02:19] [Client thread/INFO]: Setting user: Geronimin
+[2026-03-28 11:02:19] [INFO    ] [home_view] [MC] [11:02:19] [Client thread/INFO]: Setting user: Geronimin
+[2026-03-28 11:02:21] [DEBUG   ] [launcher] [MC] [11:02:21] [Client thread/INFO]: LWJGL Version: 2.9.4
+[2026-03-28 11:02:21] [INFO    ] [home_view] [MC] [11:02:21] [Client thread/INFO]: LWJGL Version: 2.9.4
+[2026-03-28 11:02:23] [DEBUG   ] [launcher] [MC] [11:02:23] [Client thread/INFO]: Reloading ResourceManager: Default
+[2026-03-28 11:02:23] [INFO    ] [home_view] [MC] [11:02:23] [Client thread/INFO]: Reloading ResourceManager: Default
+[2026-03-28 11:02:23] [DEBUG   ] [launcher] [MC] [11:02:23] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[2026-03-28 11:02:23] [INFO    ] [home_view] [MC] [11:02:23] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[2026-03-28 11:02:24] [DEBUG   ] [launcher] [MC] [11:02:24] [Thread-2/INFO]: Initializing LWJGL OpenAL
+[2026-03-28 11:02:24] [INFO    ] [home_view] [MC] [11:02:24] [Thread-2/INFO]: Initializing LWJGL OpenAL
+[2026-03-28 11:02:24] [DEBUG   ] [launcher] [MC] [11:02:24] [Thread-2/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[2026-03-28 11:02:24] [INFO    ] [home_view] [MC] [11:02:24] [Thread-2/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[2026-03-28 11:02:24] [DEBUG   ] [launcher] [MC] [11:02:24] [Thread-2/INFO]: OpenAL initialized.
+[2026-03-28 11:02:24] [INFO    ] [home_view] [MC] [11:02:24] [Thread-2/INFO]: OpenAL initialized.
+[2026-03-28 11:02:24] [DEBUG   ] [launcher] [MC] [11:02:24] [Sound Library Loader/INFO]: Sound engine started
+[2026-03-28 11:02:24] [INFO    ] [home_view] [MC] [11:02:24] [Sound Library Loader/INFO]: Sound engine started
+[2026-03-28 11:02:29] [DEBUG   ] [launcher] [MC] [11:02:29] [Client thread/INFO]: Created: 1024x512 textures-atlas
+[2026-03-28 11:02:29] [INFO    ] [home_view] [MC] [11:02:29] [Client thread/INFO]: Created: 1024x512 textures-atlas
+[2026-03-28 11:02:31] [DEBUG   ] [launcher] [MC] [11:02:31] [Client thread/INFO]: Narrator library for x64 successfully loaded
+[2026-03-28 11:02:31] [INFO    ] [home_view] [MC] [11:02:31] [Client thread/INFO]: Narrator library for x64 successfully loaded
+[2026-03-28 11:02:31] [DEBUG   ] [launcher] [MC] [11:02:31] [Realms Notification Availability checker #1/INFO]: Could not authorize you against Realms server: java.lang.RuntimeException: Failed to parse into SignedJWT: 0
+[2026-03-28 11:02:31] [INFO    ] [home_view] [MC] [11:02:31] [Realms Notification Availability checker #1/INFO]: Could not authorize you against Realms server: java.lang.RuntimeException: Failed to parse into SignedJWT: 0
+[2026-03-28 11:03:37] [DEBUG   ] [launcher] [MC] [11:03:37] [Client thread/INFO]: Stopping!
+[2026-03-28 11:03:37] [INFO    ] [home_view] [MC] [11:03:37] [Client thread/INFO]: Stopping!
+[2026-03-28 11:03:37] [DEBUG   ] [launcher] [MC] [11:03:37] [Client thread/INFO]: SoundSystem shutting down...
+[2026-03-28 11:03:37] [INFO    ] [home_view] [MC] [11:03:37] [Client thread/INFO]: SoundSystem shutting down...
+[2026-03-28 11:03:38] [DEBUG   ] [launcher] [MC] [11:03:38] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
+[2026-03-28 11:03:38] [INFO    ] [home_view] [MC] [11:03:38] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
+[2026-03-28 11:03:38] [INFO    ] [home_view] Minecraft cerrado con código: 0
+[2026-03-28 11:03:42] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 11:03:50] [INFO    ] [profile_manager] Perfil actualizado: 'Survival Hiper Tecnico'
+[2026-03-28 11:03:50] [INFO    ] [loader_manager] Descargando instalador Forge 1.12.2-1.12.2-14.23.0.2486…
+[2026-03-28 11:03:50] [ERROR   ] [library_view] Error guardando instancia: No se pudo descargar instalador Forge: HTTP Error 404: Not Found

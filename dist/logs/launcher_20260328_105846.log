@@ -1,0 +1,23 @@
+[2026-03-28 10:58:46] [INFO    ] [logger] Logger iniciado. Archivo de log: logs\launcher_20260328_105846.log
+[2026-03-28 10:58:46] [DEBUG   ] [settings] Configuración cargada desde data\launcher_settings.json
+[2026-03-28 10:58:46] [INFO    ] [profile_manager] Perfiles cargados: 3
+[2026-03-28 10:58:46] [INFO    ] [account_manager] Cuentas cargadas: 1
+[2026-03-28 10:58:46] [INFO    ] [version_manager] Actualizando caché de versiones disponibles...
+[2026-03-28 10:58:46] [INFO    ] [installer] Descargando manifest de versiones de Mojang...
+[2026-03-28 10:58:46] [INFO    ] [app] Interfaz Flet iniciada
+[2026-03-28 10:58:47] [INFO    ] [installer] Manifest cargado: 876 versiones disponibles
+[2026-03-28 10:58:47] [INFO    ] [version_manager] Caché actualizado: 876 versiones disponibles
+[2026-03-28 10:58:48] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 10:59:09] [INFO    ] [profile_manager] Perfil creado: 'Survival Hiper Tecnico' — MC 1.12.2
+[2026-03-28 10:59:09] [INFO    ] [loader_manager] OptiFine: guardando metadata…
+[2026-03-28 10:59:09] [INFO    ] [loader_manager] OptiFine listo. Coloca el jar en:
+C:\Users\geron\.minecraft\profiles\Survival_Hiper_Tecnico\mods
+[2026-03-28 11:01:20] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 11:01:23] [INFO    ] [modrinth_service] Modrinth: 1 versiones para 'UVtY3ZAC'
+[2026-03-28 11:01:24] [INFO    ] [modrinth_service] Mod descargado: EnchantmentDescriptions-1.10.2-1.0.0.0.jar → C:\Users\geron\.minecraft\profiles\!.9.4_Survival\mods
+[2026-03-28 11:01:31] [INFO    ] [modrinth_service] Modrinth: 59 versiones para 'idMHQ4n2'
+[2026-03-28 11:01:31] [INFO    ] [modrinth_service] Mod descargado: CustomSkinLoader_ForgeV1-14.28.jar → C:\Users\geron\.minecraft\profiles\!.9.4_Survival\mods
+[2026-03-28 11:01:47] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=20)
+[2026-03-28 11:01:49] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=40)
+[2026-03-28 11:01:50] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=resourcepack, sort=relevance, offset=0)
+[2026-03-28 11:01:55] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=shader, sort=relevance, offset=0)
