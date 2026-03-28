@@ -50,7 +50,7 @@ class LauncherEngine:
     def __init__(self, settings: Settings):
         self._settings       = settings
         self._java_manager   = JavaManager(settings)
-        self._loader_manager = LoaderManager(settings)
+        self._loader_manager = Loader_manager(settings)
 
     # ── API Pública ───────────────────────────────────────────────────────────
 
