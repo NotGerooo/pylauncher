@@ -158,46 +158,27 @@ class LauncherEngine:
         profile: Profile,
         base_version_data: dict,
     ) -> tuple[str, dict]:
-        """
-        Determina qué versión usar para lanzar el juego.
 
-        Lógica:
-        1. Consulta loader_meta.json del perfil buscando un loader activo.
-        2. Si hay loader, carga el JSON de ESA versión desde /versions.
-        3. Si no hay loader (vanilla), usa los datos que ya vienen como argumento.
+        # load_loader_meta devuelve un dict (o {}) con la meta del loader del perfil
+        meta = self._loader_manager.load_loader_meta(profile.game_dir)
 
-        Returns:
-            Tupla (version_id, version_data) que se usará para construir el comando.
+        loader_type = meta.get("loader", "vanilla")
 
-        Raises:
-            LaunchError: Si hay un loader registrado pero su JSON no está en disco
-        """
-        installed_loaders = self._loader_manager.get_installed_loaders(
-            profile.game_dir
-        )
-
-        # Filtramos solo los loaders que corresponden a la versión MC del perfil
-        matching = [
-            entry for entry in installed_loaders
-            if entry.get("mc_version") == profile.version_id
-            and entry.get("loader_type") != "vanilla"
-        ]
-
-        if not matching:
-            # Sin loader: lanzar vanilla directamente
+        if not meta or loader_type == "vanilla":
             log.info("Sin loader activo — lanzando Minecraft vanilla")
             return profile.version_id, base_version_data
 
-        # Si hay varios loaders instalados, usamos el primero (el más reciente)
-        active = matching[0]
-        loader_version_id = active.get("install_id")
+        loader_version_id = meta.get("install_id")
+
+        if not loader_version_id:
+            log.info("Sin install_id en loader_meta — lanzando vanilla")
+            return profile.version_id, base_version_data
 
         log.info(
-            f"Loader detectado: {active['loader_type']} "
-            f"({active['loader_ver']}) → versión '{loader_version_id}'"
+            f"Loader detectado: {loader_type} "
+            f"({meta.get('loader_version')}) → versión '{loader_version_id}'"
         )
 
-        # Cargar el JSON del loader desde /versions/<loader_version_id>/
         loader_json_path = os.path.join(
             self._settings.versions_dir,
             loader_version_id,
@@ -206,22 +187,16 @@ class LauncherEngine:
 
         if not os.path.isfile(loader_json_path):
             raise LaunchError(
-                f"El loader '{loader_version_id}' está registrado en el perfil "
-                f"pero su JSON no se encontró en disco.\n"
-                f"Ruta esperada: {loader_json_path}\n"
-                f"Solución: reinstala el loader desde el gestor de instancias."
+                f"El loader '{loader_version_id}' está registrado pero su JSON "
+                f"no se encontró en disco.\nRuta esperada: {loader_json_path}\n"
+                f"Solución: reinstala el loader."
             )
 
         import json
         with open(loader_json_path, "r", encoding="utf-8") as f:
             loader_version_data = json.load(f)
 
-        # Los loaders (Fabric, Quilt, Forge) heredan librerías de la versión base.
-        # Fusionamos las librerías del loader con las de vanilla para el classpath.
-        loader_version_data = self._merge_libraries(
-            base_version_data, loader_version_data
-        )
-
+        loader_version_data = self._merge_libraries(base_version_data, loader_version_data)
         return loader_version_id, loader_version_data
 
     def _merge_libraries(
