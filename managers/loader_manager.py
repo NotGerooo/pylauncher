@@ -135,8 +135,6 @@ def install_loader(
         return _install_forge(mc_version, loader_version, game_dir, libraries_dir, versions_dir, prog)
     if loader == "neoforge":
         return _install_neoforge(mc_version, loader_version, game_dir, libraries_dir, versions_dir, prog)
-    if loader == "optifine":
-        return _install_optifine(mc_version, loader_version, game_dir, versions_dir, prog)
     raise LoaderInstallError(f"Loader desconocido: {loader}")
 
 
@@ -296,26 +294,6 @@ def _install_neoforge(mc_version, loader_version, game_dir, libraries_dir, versi
     _save_loader_meta(game_dir, meta)
     prog("NeoForge instalado.")
     return meta
-
-
-def _install_optifine(mc_version, loader_version, game_dir, versions_dir, prog):
-    prog("OptiFine: guardando metadata…")
-    mods_dir = os.path.join(game_dir, "mods")
-    os.makedirs(mods_dir, exist_ok=True)
-    meta = {
-        "loader": "optifine",
-        "mc_version": mc_version,
-        "loader_version": loader_version,
-        "main_class": None,
-        "extra_libs": [],
-        "args": [],
-        "mods_dir": mods_dir,
-        "note": f"Coloca el jar de OptiFine en: {mods_dir}",
-    }
-    _save_loader_meta(game_dir, meta)
-    prog(f"OptiFine listo. Coloca el jar en:\n{mods_dir}")
-    return meta
- 
 
 # ── loader_meta.json ──────────────────────────────────────────────────────────
 
