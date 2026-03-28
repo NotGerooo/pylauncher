@@ -1,6 +1,6 @@
 """
-gui/views/library_view.py — Gero's Launcher
-Vista Biblioteca: instancias con diálogo crear/editar estilo Modrinth.
+gui/views/library_view.py — Biblioteca de instancias
+Grid de cards estilo Modrinth. Permite crear, editar y navegar a instancias.
 """
 import os
 import threading
@@ -14,14 +14,6 @@ from utils.logger import get_logger
 
 log = get_logger()
 
-LOADER_LIST = [
-    ("vanilla",  "Vanilla"),
-    ("fabric",   "Fabric"),
-    ("neoforge", "NeoForge"),
-    ("forge",    "Forge"),
-    ("quilt",    "Quilt"),
-]
-
 LOADER_ICONS = {
     "vanilla":  "🎮",
     "fabric":   "🪡",
@@ -30,45 +22,123 @@ LOADER_ICONS = {
     "quilt":    "🪢",
 }
 
+LOADER_LIST = [
+    ("vanilla",  "Vanilla"),
+    ("fabric",   "Fabric"),
+    ("neoforge", "NeoForge"),
+    ("forge",    "Forge"),
+    ("quilt",    "Quilt"),
+]
 
-# ═══════════════════════════════════════════════════════════════════════════════
+
 class LibraryView:
     def __init__(self, page: ft.Page, app):
         self.page = page
         self.app  = app
+        self._build()
 
-        self._list_col = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO, expand=True)
-
-        self.root = ft.Container(
-            expand=True,
-            bgcolor=BG,
-            padding=ft.padding.symmetric(horizontal=36, vertical=28),
-            content=ft.Column(
-                spacing=0, expand=True,
-                controls=[
-                    self._build_header(),
-                    ft.Container(height=20),
-                    self._list_col,
-                ],
-            ),
+    # ── Layout ────────────────────────────────────────────────────────────────
+    def _build(self):
+        # Filtros superiores
+        self._filter_tabs = _FilterTabs(
+            ["Todas", "Modpacks", "Servers", "Custom"],
+            on_change=lambda _: self._refresh(),
         )
 
-    # ── Header ────────────────────────────────────────────────────────────────
-    def _build_header(self) -> ft.Control:
-        return ft.Row(
-            controls=[
-                ft.Column(spacing=2, expand=True, controls=[
-                    ft.Text("Biblioteca", color=TEXT_PRI, size=22,
-                            weight=ft.FontWeight.BOLD),
-                    ft.Text("Tus instancias de Minecraft", color=TEXT_DIM, size=11),
-                ]),
-                ft.ElevatedButton(
-                    "+ Nueva Instancia", bgcolor=GREEN, color=TEXT_INV,
-                    style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
-                    on_click=lambda e: self._open_create_dialog(),
-                ),
+        self._search_field = ft.TextField(
+            hint_text="Buscar…",
+            hint_style=ft.TextStyle(color=TEXT_DIM),
+            color=TEXT_PRI, bgcolor=INPUT_BG,
+            border_color=BORDER, focused_border_color=GREEN,
+            border_radius=20, width=260, height=40,
+            content_padding=ft.padding.symmetric(horizontal=14, vertical=8),
+            prefix_icon=ft.icons.SEARCH,
+            on_change=lambda e: self._refresh(),
+        )
+
+        self._sort_dd = ft.Dropdown(
+            label="Ordenar", color=TEXT_PRI, bgcolor=INPUT_BG,
+            border_color=BORDER, focused_border_color=GREEN,
+            border_radius=8, width=160, height=40,
+            label_style=ft.TextStyle(color=TEXT_DIM, size=9),
+            options=[
+                ft.dropdown.Option("name", "Por nombre"),
+                ft.dropdown.Option("date", "Última vez jugada"),
+                ft.dropdown.Option("version", "Versión MC"),
             ],
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            value="name",
+            content_padding=ft.padding.symmetric(horizontal=10, vertical=6),
+            on_change=lambda e: self._refresh(),
+        )
+
+        toolbar = ft.Container(
+            bgcolor=BG,
+            padding=ft.padding.only(bottom=16),
+            content=ft.Row([
+                self._filter_tabs.root,
+                ft.Container(expand=True),
+                self._search_field,
+                ft.Container(width=10),
+                self._sort_dd,
+            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+        )
+
+        self._grid = ft.GridView(
+            runs_count=3,
+            max_extent=320,
+            child_aspect_ratio=1.7,
+            spacing=14,
+            run_spacing=14,
+            expand=True,
+        )
+
+        self._empty_state = ft.Container(
+            visible=False,
+            expand=True,
+            alignment=ft.alignment.center,
+            content=ft.Column([
+                ft.Text("📦", size=52, text_align=ft.TextAlign.CENTER),
+                ft.Container(height=8),
+                ft.Text("Sin instancias", color=TEXT_SEC, size=16,
+                        weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER),
+                ft.Text("Crea tu primera instancia con el botón '+'",
+                        color=TEXT_DIM, size=10, text_align=ft.TextAlign.CENTER),
+                ft.Container(height=14),
+                ft.Row([
+                    ft.ElevatedButton(
+                        "+ Nueva instancia", bgcolor=GREEN, color=TEXT_INV,
+                        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
+                        on_click=lambda e: self.open_create_dialog(),
+                    )
+                ], alignment=ft.MainAxisAlignment.CENTER),
+            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+        )
+
+        self.root = ft.Container(
+            expand=True, bgcolor=BG,
+            padding=ft.padding.all(28),
+            content=ft.Column([
+                ft.Row([
+                    ft.Column([
+                        ft.Text("Biblioteca", color=TEXT_PRI, size=22,
+                                weight=ft.FontWeight.BOLD),
+                        ft.Text("Tus instancias de Minecraft",
+                                color=TEXT_DIM, size=10),
+                    ], spacing=2),
+                    ft.Container(expand=True),
+                    ft.ElevatedButton(
+                        "+ Nueva instancia", bgcolor=GREEN, color=TEXT_INV,
+                        style=ft.ButtonStyle(
+                            shape=ft.RoundedRectangleBorder(radius=8),
+                            padding=ft.padding.symmetric(horizontal=16, vertical=10),
+                        ),
+                        on_click=lambda e: self.open_create_dialog(),
+                    ),
+                ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                ft.Container(height=16),
+                toolbar,
+                ft.Stack([self._grid, self._empty_state], expand=True),
+            ], spacing=0, expand=True),
         )
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -76,119 +146,158 @@ class LibraryView:
         self._refresh()
 
     def _refresh(self):
-        self._list_col.controls.clear()
         profiles = self.app.profile_manager.get_all_profiles()
-        if not profiles:
-            self._list_col.controls.append(self._empty_state())
-        else:
-            for p in profiles:
-                self._list_col.controls.append(self._build_card(p))
-        self.page.update()
+        query    = (self._search_field.value or "").strip().lower()
+        sort_by  = self._sort_dd.value or "name"
 
-    # ── Estado vacío ──────────────────────────────────────────────────────────
-    def _empty_state(self) -> ft.Control:
-        return ft.Container(expand=True, content=ft.Column(
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            alignment=ft.MainAxisAlignment.CENTER,
-            expand=True,
-            controls=[
-                ft.Text("📦", size=52, text_align=ft.TextAlign.CENTER),
-                ft.Text("No tienes instancias creadas", color=TEXT_SEC, size=14,
-                        text_align=ft.TextAlign.CENTER),
-                ft.Text("Crea tu primera instancia con '+ Nueva Instancia'",
-                        color=TEXT_DIM, size=10, text_align=ft.TextAlign.CENTER),
-                ft.Container(height=12),
-                ft.Row([ft.ElevatedButton(
-                    "+ Nueva Instancia", bgcolor=GREEN, color=TEXT_INV,
-                    style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
-                    on_click=lambda e: self._open_create_dialog(),
-                )], alignment=ft.MainAxisAlignment.CENTER),
-            ],
-        ))
+        # Filtrar
+        if query:
+            profiles = [p for p in profiles if query in p.name.lower()]
 
-    # ── Tarjeta ───────────────────────────────────────────────────────────────
-    def _build_card(self, profile) -> ft.Control:
-        from managers.loader_manager import load_loader_meta
-        meta   = load_loader_meta(profile.game_dir)
-        loader = meta.get("loader", "vanilla") if isinstance(meta, dict) else "vanilla"
-        icon   = LOADER_ICONS.get(loader, "🎮")
-        last   = profile.last_used[:10] if profile.last_used else "—"
+        # Ordenar
+        if sort_by == "name":
+            profiles = sorted(profiles, key=lambda p: p.name.lower())
+        elif sort_by == "date":
+            profiles = sorted(profiles, key=lambda p: p.last_used, reverse=True)
+        elif sort_by == "version":
+            profiles = sorted(profiles, key=lambda p: p.version_id, reverse=True)
+
+        self._grid.controls.clear()
+        self._empty_state.visible = (len(profiles) == 0)
+        self._grid.visible        = (len(profiles) > 0)
+
+        for p in profiles:
+            self._grid.controls.append(self._make_card(p))
+
+        try:
+            self._grid.update()
+            self._empty_state.update()
+        except Exception:
+            pass
+
+    # ── Card de instancia ─────────────────────────────────────────────────────
+    def _make_card(self, profile) -> ft.Container:
+        loader  = self._read_loader(profile)
+        icon    = LOADER_ICONS.get(loader, "🎮")
+        last    = profile.last_used[:10] if profile.last_used else "—"
 
         badge = ft.Container(
             bgcolor=CARD2_BG, border_radius=4,
             padding=ft.padding.symmetric(horizontal=6, vertical=2),
-            content=ft.Text(loader.capitalize(),
-                            color=GREEN if loader != "vanilla" else TEXT_SEC,
-                            size=8, weight=ft.FontWeight.BOLD),
-        )
-
-        play_btn = (
-            ft.ElevatedButton(
-            "▶ Jugar", bgcolor=GREEN, color=TEXT_INV, height=34,
-            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=6)),
-            on_click=lambda e, p=profile: self._open_launch_dialog(p),
-        )
-        )
-
-        return ft.Container(
-            bgcolor=CARD_BG, border_radius=12,
-            padding=ft.padding.symmetric(horizontal=20, vertical=14),
-            border=ft.border.all(1, BORDER),
-            content=ft.Row(
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                controls=[
-                    ft.Container(width=48, height=48, border_radius=10,
-                                 bgcolor=CARD2_BG, alignment=ft.alignment.center,
-                                 content=ft.Text(icon, size=22)),
-                    ft.Container(width=16),
-                    ft.Column(spacing=3, expand=True, controls=[
-                        ft.Row([
-                            ft.Text(profile.name, color=TEXT_PRI, size=13,
-                                    weight=ft.FontWeight.BOLD),
-                            badge,
-                        ], spacing=8, vertical_alignment=ft.CrossAxisAlignment.CENTER),
-                        ft.Text(f"Minecraft {profile.version_id}  •  RAM: {profile.ram_mb} MB",
-                                color=TEXT_SEC, size=9),
-                        ft.Text(f"Última vez: {last}", color=TEXT_DIM, size=8),
-                    ]),
-                    ft.Row(spacing=8, controls=[
-                        play_btn,
-                        ft.OutlinedButton(
-                            "✏ Editar", height=34,
-                            style=ft.ButtonStyle(
-                                shape=ft.RoundedRectangleBorder(radius=6),
-                                side=ft.BorderSide(1, BORDER_BRIGHT), color=TEXT_SEC),
-                            on_click=lambda e, p=profile: self._open_edit_dialog(p),
-                        ),
-                        ft.OutlinedButton(
-                            "🗑", height=34,
-                            style=ft.ButtonStyle(
-                                shape=ft.RoundedRectangleBorder(radius=6),
-                                side=ft.BorderSide(1, ACCENT_RED), color=ACCENT_RED),
-                            on_click=lambda e, p=profile: self._on_delete(p),
-                        ),
-                    ]),
-                ],
+            content=ft.Text(
+                loader.capitalize(),
+                color=GREEN if loader != "vanilla" else TEXT_DIM,
+                size=8, weight=ft.FontWeight.BOLD,
             ),
         )
 
+        card = ft.Container(
+            bgcolor=CARD_BG, border_radius=12,
+            border=ft.border.all(1, BORDER),
+            padding=ft.padding.all(16),
+            on_hover=lambda e: (
+                setattr(e.control, "border",
+                        ft.border.all(1, BORDER_BRIGHT if e.data=="true" else BORDER))
+                or e.control.update()),
+            on_click=lambda e, p=profile: self.app._show_instance(p),
+            content=ft.Column([
+                # Header: icono + badge + menú
+                ft.Row([
+                    ft.Container(
+                        width=44, height=44, border_radius=10,
+                        bgcolor=CARD2_BG, alignment=ft.alignment.center,
+                        content=ft.Text(icon, size=20),
+                    ),
+                    ft.Container(width=10),
+                    ft.Column([
+                        ft.Row([
+                            ft.Text(profile.name, color=TEXT_PRI, size=12,
+                                    weight=ft.FontWeight.BOLD,
+                                    overflow=ft.TextOverflow.ELLIPSIS,
+                                    expand=True),
+                        ]),
+                        badge,
+                    ], spacing=4, expand=True),
+                    ft.PopupMenuButton(
+                        icon=ft.icons.MORE_VERT,
+                        icon_color=TEXT_DIM,
+                        items=[
+                            ft.PopupMenuItem(
+                                text="Abrir",
+                                on_click=lambda e, p=profile: self.app._show_instance(p),
+                            ),
+                            ft.PopupMenuItem(
+                                text="Editar",
+                                on_click=lambda e, p=profile: self._open_edit(p),
+                            ),
+                            ft.PopupMenuItem(
+                                text="Eliminar",
+                                on_click=lambda e, p=profile: self._on_delete(p),
+                            ),
+                        ],
+                    ),
+                ], vertical_alignment=ft.CrossAxisAlignment.START),
+                ft.Container(expand=True),
+                # Footer: versión + última vez
+                ft.Row([
+                    ft.Column([
+                        ft.Text("Minecraft", color=TEXT_DIM, size=8),
+                        ft.Text(profile.version_id, color=TEXT_SEC, size=10,
+                                weight=ft.FontWeight.BOLD),
+                    ], spacing=1),
+                    ft.Container(expand=True),
+                    ft.Column([
+                        ft.Text("Última vez", color=TEXT_DIM, size=8),
+                        ft.Text(last, color=TEXT_SEC, size=9),
+                    ], spacing=1, horizontal_alignment=ft.CrossAxisAlignment.END),
+                ]),
+                ft.Container(height=8),
+                # Botón play
+                ft.ElevatedButton(
+                    "▶ Jugar",
+                    bgcolor=GREEN, color=TEXT_INV,
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=6),
+                        padding=ft.padding.symmetric(horizontal=12, vertical=6),
+                    ),
+                    on_click=lambda e, p=profile: self._launch_instance(p),
+                ),
+            ], spacing=6, expand=True),
+        )
+        return card
+
     # ── Acciones ──────────────────────────────────────────────────────────────
+    def open_create_dialog(self):
+        _CreateInstanceDialog(self.page, self.app, profile=None,
+                              on_done=self._on_instance_saved)
+
+    def _open_edit(self, profile):
+        _CreateInstanceDialog(self.page, self.app, profile=profile,
+                              on_done=self._on_instance_saved)
+
+    def _on_instance_saved(self):
+        self.app._refresh_instance_icons()
+        # Invalidar caché de la instancia si fue editada
+        self._refresh()
+
     def _on_delete(self, profile):
         def confirm(e):
+            self.page.close(dlg)
             if e.control.text == "Eliminar":
                 try:
                     self.app.profile_manager.delete_profile(profile.id)
+                    self.app.invalidate_instance(profile.id)
                     self._refresh()
                     self.app.snack(f"'{profile.name}' eliminada.")
                 except Exception as ex:
                     self.app.snack(str(ex), error=True)
-            self.page.close(dlg)
 
         dlg = ft.AlertDialog(
-            modal=True,
+            modal=True, bgcolor=CARD_BG,
             title=ft.Text("Eliminar instancia", color=TEXT_PRI),
-            content=ft.Text(f"¿Eliminar '{profile.name}'?\n"
-                            "Esto no borra los archivos del juego.", color=TEXT_SEC),
+            content=ft.Text(
+                f"¿Eliminar '{profile.name}'?\nEsto no borra los archivos del juego.",
+                color=TEXT_SEC),
             actions=[
                 ft.TextButton("Cancelar", on_click=confirm),
                 ft.TextButton("Eliminar",
@@ -198,258 +307,411 @@ class LibraryView:
         )
         self.page.open(dlg)
 
-    def _open_create_dialog(self):
-        _InstanceDialog(self.page, self.app, None, self._refresh).open()
+    def _launch_instance(self, profile):
+        """Lanza la instancia directamente sin abrir el view."""
+        self.app._show_instance(profile)
+        # La instancia se lanza desde su propio view
 
-    def _open_edit_dialog(self, profile):
-        _InstanceDialog(self.page, self.app, profile, self._refresh).open()
+    # ── Helpers ───────────────────────────────────────────────────────────────
+    @staticmethod
+    def _read_loader(profile) -> str:
+        meta_path = os.path.join(profile.game_dir, "loader_meta.json")
+        if os.path.isfile(meta_path):
+            try:
+                import json
+                with open(meta_path) as f:
+                    meta = json.load(f)
+                entries = meta if isinstance(meta, list) else [meta]
+                if entries:
+                    return (entries[0].get("loader_type")
+                            or entries[0].get("loader", "vanilla"))
+            except Exception:
+                pass
+        return "vanilla"
 
-    def _open_launch_dialog(self, profile):
-        _LaunchDialog(self.page, self.app, profile).open()
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Diálogo crear / editar  (estilo Modrinth)
-# ═══════════════════════════════════════════════════════════════════════════════
-class _InstanceDialog:
-    def __init__(self, page: ft.Page, app, profile, on_save):
+# ── Filtros superiores (pills) ────────────────────────────────────────────────
+class _FilterTabs:
+    def __init__(self, options: list[str], on_change):
+        self._options   = options
+        self._on_change = on_change
+        self._active    = options[0]
+        self._btns: dict[str, ft.Container] = {}
+        self.root = ft.Row(spacing=6)
+        for opt in options:
+            self.root.controls.append(self._make(opt))
+
+    def _make(self, label: str) -> ft.Container:
+        active = label == self._active
+        txt = ft.Text(label, color=GREEN if active else TEXT_SEC,
+                      size=10, weight=ft.FontWeight.W_500)
+        btn = ft.Container(
+            bgcolor="#1a2e1a" if active else CARD2_BG,
+            border=ft.border.all(1, GREEN if active else BORDER),
+            border_radius=20,
+            padding=ft.padding.symmetric(horizontal=14, vertical=7),
+            content=txt,
+            on_click=lambda e, l=label: self._select(l),
+        )
+        btn._txt = txt
+        self._btns[label] = btn
+        return btn
+
+    def _select(self, label: str):
+        self._active = label
+        for l, btn in self._btns.items():
+            active = l == label
+            btn.bgcolor = "#1a2e1a" if active else CARD2_BG
+            btn.border  = ft.border.all(1, GREEN if active else BORDER)
+            btn._txt.color = GREEN if active else TEXT_SEC
+            try: btn.update()
+            except Exception: pass
+        self._on_change(label)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Diálogo crear / editar instancia
+# ══════════════════════════════════════════════════════════════════════════════
+class _CreateInstanceDialog:
+    """
+    Diálogo de 2 pasos para crear/editar instancias.
+    Paso 0: selección de tipo (Custom / más adelante Modpack)
+    Paso 1: formulario (nombre, loader, versión MC, RAM)
+    Al crear: instala automáticamente la versión si no está instalada.
+    """
+
+    def __init__(self, page: ft.Page, app, profile, on_done):
         self.page    = page
         self.app     = app
-        self.profile = profile
-        self.on_save = on_save
+        self.profile = profile  # None = crear, Profile = editar
+        self.on_done = on_done
 
-        from managers.loader_manager import load_loader_meta
+        # Estado
+        self._step        = 0
+        self._sel_loader  = "vanilla"
+        self._sel_mc      = ""
+        self._available_versions: list[str] = []
+
         if profile:
-            meta = load_loader_meta(profile.game_dir)
-            self._sel_loader = meta.get("loader", "vanilla") if isinstance(meta, dict) else "vanilla"
+            self._sel_loader = self._read_loader(profile)
             self._sel_mc     = profile.version_id
-            self._sel_lv_key = "stable"
-            self._sel_lv_val = meta.get("loader_version") if isinstance(meta, dict) else ""
-        else:
-            self._sel_loader = "vanilla"
-            self._sel_mc     = ""
-            self._sel_lv_key = "stable"
-            self._sel_lv_val = ""
+            self._step       = 1  # editar va directo al formulario
 
         self._loader_btns: dict[str, ft.Container] = {}
-        self._lv_btns:     dict[str, ft.Container] = {}
 
-        installed = app.version_manager.get_installed_version_ids()
-        mc_val = self._sel_mc if self._sel_mc in installed else (installed[0] if installed else None)
-        self._sel_mc = mc_val or ""
+        # Controles del diálogo
+        self._content_area = ft.Container(expand=True)
+        self._back_btn = ft.TextButton(
+            "← Atrás",
+            style=ft.ButtonStyle(color=TEXT_DIM),
+            visible=False,
+            on_click=self._go_back,
+        )
+        self._primary_btn = ft.ElevatedButton(
+            "Continuar" if not profile else "Guardar",
+            bgcolor=GREEN, color=TEXT_INV,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                padding=ft.padding.symmetric(horizontal=22, vertical=12),
+            ),
+            on_click=self._on_primary,
+        )
 
+        self._dlg = ft.AlertDialog(
+            modal=True, bgcolor="#0f1117",
+            title=ft.Row([
+                ft.Text(
+                    ("Editar instancia" if profile else "Nueva instancia"),
+                    color=TEXT_PRI, size=16, weight=ft.FontWeight.BOLD, expand=True),
+                ft.IconButton(
+                    icon=ft.icons.CLOSE, icon_color=TEXT_DIM, icon_size=18,
+                    on_click=lambda e: self.page.close(self._dlg),
+                    style=ft.ButtonStyle(shape=ft.CircleBorder()),
+                ),
+            ]),
+            content=ft.Container(width=600, content=ft.Column([
+                self._content_area,
+            ], spacing=0)),
+            actions=[
+                self._back_btn,
+                ft.Container(expand=True),
+                ft.TextButton("Cancelar",
+                              style=ft.ButtonStyle(color=TEXT_DIM),
+                              on_click=lambda e: self.page.close(self._dlg)),
+                ft.Container(width=8),
+                self._primary_btn,
+            ],
+            actions_alignment=ft.MainAxisAlignment.START,
+        )
+
+        if profile:
+            self._render_step1()
+        else:
+            self._render_step0()
+
+        self.page.open(self._dlg)
+        threading.Thread(target=self._load_versions, daemon=True).start()
+
+    # ── Paso 0 ────────────────────────────────────────────────────────────────
+    def _render_step0(self):
+        self._step = 0
+        self._back_btn.visible   = False
+        self._primary_btn.text   = "Continuar"
+        self._primary_btn.disabled = False
+
+        def type_card(type_id, icon, title, desc, disabled=False):
+            alpha = 0.35 if disabled else 1.0
+
+            def hover(e):
+                if disabled: return
+                e.control.bgcolor = "#1e2530" if e.data=="true" else "#161b22"
+                e.control.border  = ft.border.all(1, GREEN if e.data=="true" else BORDER)
+                e.control.update()
+
+            def click(e):
+                if disabled: return
+                self._render_step1()
+
+            return ft.Container(
+                bgcolor="#161b22", border_radius=10,
+                border=ft.border.all(1, BORDER),
+                padding=ft.padding.symmetric(horizontal=18, vertical=16),
+                opacity=alpha,
+                on_hover=hover, on_click=click,
+                content=ft.Row([
+                    ft.Container(
+                        width=40, height=40, border_radius=10, bgcolor="#1f2937",
+                        alignment=ft.alignment.center,
+                        content=ft.Text(icon, size=20),
+                    ),
+                    ft.Container(width=14),
+                    ft.Column([
+                        ft.Row([
+                            ft.Text(title, color=TEXT_PRI if not disabled else TEXT_DIM,
+                                    size=12, weight=ft.FontWeight.BOLD),
+                            ft.Container(
+                                visible=disabled, bgcolor="#1f2937", border_radius=4,
+                                padding=ft.padding.symmetric(horizontal=6, vertical=2),
+                                content=ft.Text("Próximamente", color=TEXT_DIM, size=8),
+                            ),
+                        ], spacing=8),
+                        ft.Text(desc, color=TEXT_SEC, size=9),
+                    ], spacing=3, expand=True),
+                    ft.Icon(ft.icons.CHEVRON_RIGHT_ROUNDED,
+                             color=TEXT_DIM if not disabled else "transparent", size=18),
+                ]),
+            )
+
+        self._content_area.content = ft.Column([
+            type_card("custom",  "🎮", "Custom Setup",
+                      "Elige tu versión, loader y mods libremente."),
+            type_card("modpack", "📦", "Modpack",
+                      "Importa un modpack desde Modrinth.", disabled=True),
+            type_card("import",  "📂", "Importar",
+                      "Importa una instancia existente.", disabled=True),
+        ], spacing=10)
+
+        self._refresh_content()
+
+    # ── Paso 1 ────────────────────────────────────────────────────────────────
+    def _render_step1(self):
+        self._step = 1
+        self._back_btn.visible = (self.profile is None)
+        self._primary_btn.text = ("Guardar" if self.profile else "+ Crear instancia")
+        self._primary_btn.disabled = True
+
+        # Nombre
         self._name_field = ft.TextField(
-            label="Nombre", bgcolor=INPUT_BG, color=TEXT_PRI,
-            label_style=ft.TextStyle(color=TEXT_DIM),
-            border_color=BORDER, focused_border_color=GREEN,
-            border_radius=8, value=profile.name if profile else "",
-        )
-        self._mc_dd = ft.Dropdown(
-            label="Versión del juego", bgcolor=INPUT_BG, color=TEXT_PRI,
-            label_style=ft.TextStyle(color=TEXT_DIM),
+            label="Nombre de la instancia",
+            value=self.profile.name if self.profile else "",
+            color=TEXT_PRI, bgcolor=INPUT_BG,
             border_color=BORDER, focused_border_color=GREEN, border_radius=8,
-            options=[ft.dropdown.Option(v) for v in installed],
-            value=mc_val,
-            on_change=self._on_mc_change,
+            label_style=ft.TextStyle(color=TEXT_DIM, size=10),
+            on_change=self._check_ready,
         )
-        ram_opts = ["1024","2048","3072","4096","6144","8192"]
-        cur_ram  = str(profile.ram_mb) if profile else "2048"
+
+        # Loader pills
+        self._loader_btns = {}
+        loader_row = ft.Row(spacing=8, wrap=True)
+        for lid, lname in LOADER_LIST:
+            btn = self._make_loader_pill(lid, lname)
+            self._loader_btns[lid] = btn
+            loader_row.controls.append(btn)
+
+        # Versión MC
+        self._version_dd = ft.Dropdown(
+            label="Versión de Minecraft",
+            color=TEXT_PRI, bgcolor=INPUT_BG,
+            border_color=BORDER, focused_border_color=GREEN, border_radius=8,
+            label_style=ft.TextStyle(color=TEXT_DIM, size=10),
+            options=[], hint_text="Cargando…",
+            on_change=self._on_version_change,
+        )
+        if self._available_versions:
+            self._populate_versions()
+
+        # RAM
         self._ram_dd = ft.Dropdown(
-            label="RAM (MB)", bgcolor=INPUT_BG, color=TEXT_PRI,
-            label_style=ft.TextStyle(color=TEXT_DIM),
+            label="RAM (MB)", color=TEXT_PRI, bgcolor=INPUT_BG,
             border_color=BORDER, focused_border_color=GREEN, border_radius=8,
-            options=[ft.dropdown.Option(r) for r in ram_opts],
-            value=cur_ram if cur_ram in ram_opts else "2048",
+            label_style=ft.TextStyle(color=TEXT_DIM, size=10),
+            value=str(self.profile.ram_mb) if self.profile else "2048",
+            options=[ft.dropdown.Option(str(x))
+                     for x in [1024, 2048, 3072, 4096, 6144, 8192]],
         )
-        self._lv_dd = ft.Dropdown(
-            label="Versión específica", bgcolor=INPUT_BG, color=TEXT_PRI,
-            label_style=ft.TextStyle(color=TEXT_DIM),
-            border_color=BORDER, focused_border_color=GREEN,
-            border_radius=8, visible=False, options=[],
-        )
+
+        # Progreso
         self._prog_bar  = ft.ProgressBar(color=GREEN, bgcolor=CARD2_BG, visible=False)
         self._prog_text = ft.Text("", color=TEXT_DIM, size=9)
-        self._save_btn  = ft.ElevatedButton(
-            ("Crear instancia" if not profile else "Guardar cambios"),
-            bgcolor=GREEN, color=TEXT_INV,
-            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
-            on_click=self._on_save,
-        )
 
-        loader_row = ft.Row(spacing=8, wrap=True,
-                            controls=[self._make_loader_pill(lid, lname)
-                                      for lid, lname in LOADER_LIST])
-        self._lv_pills_row = ft.Row(spacing=8, controls=[
-            self._make_lv_pill("stable", "Stable"),
-            self._make_lv_pill("latest", "Latest"),
-            self._make_lv_pill("other",  "Other"),
-        ])
-        self._lv_section = ft.Column([self._lv_pills_row, self._lv_dd],
-                                     spacing=8, tight=True,
-                                     visible=(self._sel_loader != "vanilla"))
-
-        content = ft.Column(scroll=ft.ScrollMode.AUTO, spacing=0, controls=[
+        self._content_area.content = ft.Column([
             self._name_field,
-            ft.Container(height=18),
-            ft.Text("Loader", color=TEXT_PRI, size=12, weight=ft.FontWeight.BOLD),
+            ft.Container(height=16),
+            ft.Text("Loader", color=TEXT_PRI, size=11, weight=ft.FontWeight.BOLD),
             ft.Container(height=8),
             loader_row,
-            ft.Container(height=18),
-            ft.Text("Versión del juego", color=TEXT_PRI, size=12,
+            ft.Container(height=16),
+            ft.Text("Versión del juego", color=TEXT_PRI, size=11,
                     weight=ft.FontWeight.BOLD),
             ft.Container(height=8),
-            self._mc_dd,
-            ft.Container(height=18),
-            self._lv_section,
-            ft.Container(height=18),
-            ft.Text("Memoria RAM", color=TEXT_PRI, size=12,
-                    weight=ft.FontWeight.BOLD),
+            self._version_dd,
+            ft.Container(height=16),
+            ft.Text("Memoria RAM", color=TEXT_PRI, size=11, weight=ft.FontWeight.BOLD),
             ft.Container(height=8),
             self._ram_dd,
             ft.Container(height=10),
             self._prog_bar,
             self._prog_text,
-        ])
+        ], spacing=0, scroll=ft.ScrollMode.AUTO)
 
-        self._dlg = ft.AlertDialog(
-            modal=True, bgcolor=CARD_BG,
-            title=ft.Text(
-                "Crear instancia" if not profile else "Editar instancia",
-                color=TEXT_PRI, weight=ft.FontWeight.BOLD, size=16,
-            ),
-            content=ft.Container(width=460, height=530, content=content),
-            actions=[
-                ft.TextButton("Cancelar",
-                              style=ft.ButtonStyle(color=TEXT_SEC),
-                              on_click=lambda e: self.page.close(self._dlg)),
-                self._save_btn,
-            ],
-        )
+        self._refresh_content()
 
-    def open(self):
-        self.page.open(self._dlg)
-
+    # ── Loader pills ──────────────────────────────────────────────────────────
     def _make_loader_pill(self, lid: str, lname: str) -> ft.Container:
         active = (lid == self._sel_loader)
-        btn = _pill(lname, active, lambda e, l=lid: self._select_loader(l))
-        self._loader_btns[lid] = btn
+        txt = ft.Text(
+            ("✓ " if active else "") + lname,
+            color=GREEN if active else TEXT_SEC, size=10,
+        )
+        btn = ft.Container(
+            bgcolor="#1a2e1a" if active else CARD2_BG,
+            border=ft.border.all(1, GREEN if active else BORDER),
+            border_radius=20,
+            padding=ft.padding.symmetric(horizontal=14, vertical=7),
+            content=txt,
+            on_click=lambda e, l=lid: self._select_loader(l),
+        )
+        btn._txt = txt
         return btn
 
     def _select_loader(self, lid: str):
         self._sel_loader = lid
         for l, btn in self._loader_btns.items():
-            _set_pill(btn, btn._label, l == lid)
+            active = l == lid
+            btn.bgcolor = "#1a2e1a" if active else CARD2_BG
+            btn.border  = ft.border.all(1, GREEN if active else BORDER)
+            btn._txt.color = GREEN if active else TEXT_SEC
+            btn._txt.value = ("✓ " if active else "") + dict(LOADER_LIST)[l]
             try: btn.update()
             except Exception: pass
-        self._lv_section.visible = lid != "vanilla"
-        try: self._lv_section.update()
-        except Exception: pass
-        self._sel_lv_key = "stable"
-        for k, b in self._lv_btns.items():
-            _set_pill(b, b._label, k == "stable")
-            try: b.update()
-            except Exception: pass
-        self._lv_dd.visible = False
-        try: self._lv_dd.update()
-        except Exception: pass
 
-    def _make_lv_pill(self, key: str, label: str) -> ft.Container:
-        active = (key == self._sel_lv_key)
-        btn = _pill(label, active, lambda e, k=key: self._select_lv(k))
-        self._lv_btns[key] = btn
-        return btn
+    # ── Versiones ─────────────────────────────────────────────────────────────
+    def _load_versions(self):
+        try:
+            versions = self.app.version_manager.get_available_versions("release")
+            self._available_versions = [v.id for v in versions]
+        except Exception:
+            self._available_versions = self.app.version_manager.get_installed_version_ids()
+        if self._step == 1:
+            self.page.run_thread(self._populate_versions)
 
-    def _select_lv(self, key: str):
-        self._sel_lv_key = key
-        for k, b in self._lv_btns.items():
-            _set_pill(b, b._label, k == key)
-            try: b.update()
-            except Exception: pass
-        if key == "other":
-            self._lv_dd.visible = True
-            self._load_lv_dropdown()
-        else:
-            self._lv_dd.visible = False
-        try: self._lv_dd.update()
+    def _populate_versions(self):
+        versions = self._available_versions or self.app.version_manager.get_installed_version_ids()
+        self._version_dd.options   = [ft.dropdown.Option(v) for v in versions]
+        self._version_dd.hint_text = None
+        cur = self._sel_mc
+        self._version_dd.value = cur if cur in versions else (versions[0] if versions else None)
+        self._sel_mc = self._version_dd.value or ""
+        try: self._version_dd.update()
         except Exception: pass
+        self._check_ready(None)
 
-    def _on_mc_change(self, e):
+    def _on_version_change(self, e):
         self._sel_mc = e.control.value or ""
-        if self._lv_dd.visible:
-            self._load_lv_dropdown()
+        self._check_ready(e)
 
-    def _load_lv_dropdown(self):
-        self._lv_dd.options = [ft.dropdown.Option("Cargando…")]
-        self._lv_dd.value   = None
-        try: self._lv_dd.update()
+    def _check_ready(self, e):
+        name_ok    = bool(getattr(self, "_name_field", None)
+                          and self._name_field.value.strip())
+        version_ok = bool(self._sel_mc)
+        enabled    = (name_ok and version_ok) if self._step == 1 else True
+        self._primary_btn.disabled = not enabled
+        try: self._primary_btn.update()
         except Exception: pass
 
-        def fetch():
-            from managers.loader_manager import get_loader_versions
-            versions = get_loader_versions(self._sel_loader, self._sel_mc)
-            opts = [ft.dropdown.Option(v) for v in versions]
-            def apply():
-                self._lv_dd.options = opts
-                self._lv_dd.value   = versions[0] if versions else None
-                try: self._lv_dd.update()
-                except Exception: pass
-            self.page.run_thread(apply)
+    # ── Navegación ────────────────────────────────────────────────────────────
+    def _go_back(self, e):
+        self._render_step0()
 
-        threading.Thread(target=fetch, daemon=True).start()
+    def _on_primary(self, e):
+        if self._step == 0:
+            self._render_step1()
+        else:
+            self._do_save()
 
-    def _resolve_lv(self) -> str:
-        if self._sel_lv_key == "other" and self._lv_dd.value:
-            return self._lv_dd.value
-        from managers.loader_manager import get_loader_versions
-        versions = get_loader_versions(self._sel_loader, self._sel_mc)
-        return versions[0] if versions else "latest"
-
-    def _on_save(self, e):
+    # ── Guardar ───────────────────────────────────────────────────────────────
+    def _do_save(self):
         name    = (self._name_field.value or "").strip()
         version = self._sel_mc
-        ram_str = self._ram_dd.value or "2048"
+        ram     = int(self._ram_dd.value) if self._ram_dd.value else 2048
 
-        if not name:
-            self._name_field.error_text = "El nombre no puede estar vacío"
-            self._name_field.update(); return
-        if not version:
-            self.app.snack("Selecciona una versión de Minecraft.", error=True); return
+        if not name or not version:
+            self.app.snack("Nombre y versión son obligatorios.", error=True)
+            return
 
-        try: ram_mb = int(ram_str)
-        except ValueError: ram_mb = 2048
-
-        loader_version = self._resolve_lv() if self._sel_loader != "vanilla" else None
-
-        self._save_btn.disabled = True
-        self._prog_bar.visible  = True
-        self._prog_text.value   = "Iniciando…"
+        self._primary_btn.disabled = True
+        self._prog_bar.visible     = True
+        self._prog_text.value      = "Preparando…"
         try:
-            self._save_btn.update()
+            self._primary_btn.update()
             self._prog_bar.update()
             self._prog_text.update()
         except Exception: pass
 
         def worker():
             try:
-                from managers.loader_manager import install_loader, _save_loader_meta
-
                 def prog(msg):
                     self._prog_text.value = msg
                     try: self._prog_text.update()
                     except Exception: pass
 
+                # Instalar versión si no está instalada
+                installed = self.app.version_manager.get_installed_version_ids()
+                if version not in installed:
+                    prog(f"Descargando Minecraft {version}…")
+                    self.app.version_manager.install_version(version)
+
+                # Crear / actualizar perfil
                 if self.profile:
                     self.app.profile_manager.update_profile(
-                        self.profile.id, name=name, version_id=version, ram_mb=ram_mb)
+                        self.profile.id, name=name, version_id=version, ram_mb=ram)
                     pobj = self.app.profile_manager.get_profile(self.profile.id)
+                    self.app.invalidate_instance(self.profile.id)
                 else:
                     pobj = self.app.profile_manager.create_profile(
-                        name, version, ram_mb=ram_mb)
+                        name, version, ram_mb=ram)
 
+                # Guardar loader_meta
+                from managers.loader_manager import _save_loader_meta
                 if self._sel_loader != "vanilla":
+                    from managers.loader_manager import install_loader, get_loader_versions
+                    prog(f"Instalando {self._sel_loader}…")
+                    lv_list  = get_loader_versions(self._sel_loader, version)
+                    lv       = lv_list[0] if lv_list else "latest"
                     install_loader(
                         loader=self._sel_loader,
                         mc_version=version,
-                        loader_version=loader_version,
+                        loader_version=lv,
                         game_dir=pobj.game_dir,
                         libraries_dir=self.app.settings.libraries_dir,
                         versions_dir=self.app.settings.versions_dir,
@@ -464,130 +726,47 @@ class _InstanceDialog:
 
                 def finish():
                     self.page.close(self._dlg)
-                    self.on_save()
+                    self.on_done()
+                    self.app._refresh_instance_icons()
                     self.app.snack("Instancia guardada correctamente.")
 
                 self.page.run_thread(finish)
 
             except Exception as ex:
                 log.error(f"Error guardando instancia: {ex}")
-                def show_err():
+                def err():
                     self.app.snack(str(ex), error=True)
-                    self._save_btn.disabled = False
-                    self._prog_bar.visible  = False
-                    self._prog_text.value   = ""
+                    self._primary_btn.disabled = False
+                    self._prog_bar.visible     = False
+                    self._prog_text.value      = ""
                     try:
-                        self._save_btn.update()
+                        self._primary_btn.update()
                         self._prog_bar.update()
                         self._prog_text.update()
                     except Exception: pass
-                self.page.run_thread(show_err)
+                self.page.run_thread(err)
 
         threading.Thread(target=worker, daemon=True).start()
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Diálogo lanzar
-# ═══════════════════════════════════════════════════════════════════════════════
-class _LaunchDialog:
-    def __init__(self, page: ft.Page, app, profile):
-        self.page    = page
-        self.app     = app
-        self.profile = profile
-
-        from managers.loader_manager import load_loader_meta
-        meta   = load_loader_meta(profile.game_dir)
-        loader = meta.get("loader", "vanilla") if isinstance(meta, dict) else "vanilla"
-        icon   = LOADER_ICONS.get(loader, "🎮")
-
-        self._user_field = ft.TextField(
-            label="Nombre de usuario", bgcolor=INPUT_BG, color=TEXT_PRI,
-            label_style=ft.TextStyle(color=TEXT_DIM),
-            border_color=BORDER, focused_border_color=GREEN, border_radius=8,
-            value=app.settings.last_profile or "Player",
-        )
-        self._dlg = ft.AlertDialog(
-            modal=True, bgcolor=CARD_BG,
-            title=ft.Text(f"Lanzar  {profile.name}",
-                          color=TEXT_PRI, weight=ft.FontWeight.BOLD),
-            content=ft.Container(width=320, content=ft.Column(spacing=0, tight=True, controls=[
-                ft.Text(f"{icon} {loader.capitalize()}  •  Minecraft {profile.version_id}"
-                        f"  •  {profile.ram_mb} MB RAM", color=TEXT_DIM, size=10),
-                ft.Container(height=12),
-                self._user_field,
-            ])),
-            actions=[
-                ft.TextButton("Cancelar", style=ft.ButtonStyle(color=TEXT_SEC),
-                              on_click=lambda e: self.page.close(self._dlg)),
-                ft.ElevatedButton("▶ Jugar", bgcolor=GREEN, color=TEXT_INV,
-                                  style=ft.ButtonStyle(
-                                      shape=ft.RoundedRectangleBorder(radius=8)),
-                                  on_click=self._on_launch),
-            ],
-        )
-
-    def open(self):
-        self.page.open(self._dlg)
-
-    def _on_launch(self, e):
-        username = (self._user_field.value or "").strip()
-        if not username:
-            self._user_field.error_text = "Ingresa tu nombre"
-            self._user_field.update(); return
-
+    def _refresh_content(self):
         try:
-            session      = self.app.auth_service.create_offline_session(username)
-            version_data = self.app.version_manager.get_version_data(
-                self.profile.version_id)
-        except Exception as ex:
-            self.app.snack(str(ex), error=True); return
+            self._content_area.update()
+            self._back_btn.update()
+            self._primary_btn.update()
+        except Exception: pass
 
-        self.page.close(self._dlg)
-
-        def run():
+    @staticmethod
+    def _read_loader(profile) -> str:
+        meta_path = os.path.join(profile.game_dir, "loader_meta.json")
+        if os.path.isfile(meta_path):
             try:
-                process = self.app.launcher_engine.launch(
-                    self.profile, session, version_data,
-                    on_output=lambda line: log.info(f"[MC] {line}"))
-                self.app.settings.last_profile = self.profile.name
-                log.info(f"Minecraft PID={process.pid}")
-                process.wait()
-                rc = process.returncode
-                log.info(f"Minecraft cerrado código={rc}")
-                if rc != 0:
-                    self.app.snack(
-                        f"Minecraft cerró con error (código {rc}). Revisa logs.",
-                        error=True)
-            except Exception as ex:
-                log.error(f"Launch error: {ex}")
-                self.app.snack(str(ex), error=True)
-
-        threading.Thread(target=run, daemon=True).start()
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# Helpers de pills
-# ═══════════════════════════════════════════════════════════════════════════════
-def _pill(label: str, active: bool, on_click) -> ft.Container:
-    text_ctrl = ft.Text(
-        ("✓ " if active else "") + label,
-        color=GREEN if active else TEXT_SEC,
-        size=10, weight=ft.FontWeight.W_500,
-    )
-    btn = ft.Container(
-        bgcolor="#1a2e1a" if active else CARD2_BG,
-        border=ft.border.all(1, GREEN if active else BORDER),
-        border_radius=20,
-        padding=ft.padding.symmetric(horizontal=14, vertical=7),
-        content=text_ctrl,
-        on_click=on_click,
-    )
-    btn._label     = label
-    btn._text_ctrl = text_ctrl
-    return btn
-
-
-def _set_pill(btn: ft.Container, label: str, active: bool):
-    btn.bgcolor          = "#1a2e1a" if active else CARD2_BG
-    btn.border           = ft.border.all(1, GREEN if active else BORDER)
-    btn._text_ctrl.value = ("✓ " if active else "") + label
-    btn._text_ctrl.color = GREEN if active else TEXT_SEC
+                import json
+                with open(meta_path) as f:
+                    meta = json.load(f)
+                entries = meta if isinstance(meta, list) else [meta]
+                if entries:
+                    return (entries[0].get("loader_type")
+                            or entries[0].get("loader", "vanilla"))
+            except Exception:
+                pass
+        return "vanilla"
