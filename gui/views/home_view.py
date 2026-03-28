@@ -22,36 +22,14 @@ class HomeView:
         self._build()
 
     # ── Build ─────────────────────────────────────────────────────────────────
+    # ── Build ─────────────────────────────────────────────────────────────────
     def _build(self):
-        # ── Launch card ──────────────────────────────────────────────────────
-        profiles = self.app.profile_manager.get_all_profiles() # O el nombre que le hayas dado a la lista completa
+        # 1. Obtenemos los perfiles para llenar el selector
+        profiles = self.app.profile_manager.get_all_profiles()
 
-        if profiles:
-            profile_dropdown = ft.Dropdown(
-                label="Perfil",
-                options=[
-                    ft.dropdown.Option(p.name) for p in profiles
-                ],
-                value=profiles[0].name,
-                expand=True
-            )
-        else:
-            profile_dropdown = ft.Column(
-                [
-                    ft.Text(
-                        "No tienes perfiles creados",
-                        color="red",
-                        size=14
-                    ),
-                    ft.ElevatedButton(
-                        "Crear perfil",
-                        on_click=lambda e: page.go("/create_profile")
-                    )
-                ]
-            )
-
+        # 2. Creamos el Dropdown de Perfiles (Este reemplaza al campo de username)
         self._profile_dd = ft.Dropdown(
-            label="Perfil",
+            label="Seleccionar Perfil de Juego",
             label_style=ft.TextStyle(color=TEXT_DIM, size=10),
             color=TEXT_PRI,
             bgcolor=INPUT_BG,
@@ -60,9 +38,10 @@ class HomeView:
             border_radius=8,
             content_padding=ft.padding.symmetric(horizontal=12, vertical=10),
             expand=True,
-            options=[],
+            options=[ft.dropdown.Option(p.name) for p in profiles] if profiles else [],
         )
 
+        # 3. Botón de jugar
         self._launch_btn = ft.ElevatedButton(
             "▶  JUGAR",
             bgcolor=GREEN,
@@ -70,23 +49,23 @@ class HomeView:
             style=ft.ButtonStyle(
                 shape=ft.RoundedRectangleBorder(radius=8),
                 padding=ft.padding.symmetric(horizontal=28, vertical=14),
-                overlay_color=ft.colors.with_opacity(0.15, "#000000"),
             ),
             on_click=self._on_launch,
         )
 
+        # 4. El Launch Card ahora solo tiene el Selector de Perfil y el Botón
         launch_card = ft.Container(
             bgcolor=CARD_BG,
             border_radius=12,
             padding=ft.padding.all(24),
             content=ft.Row([
-                self._username_field,
-                ft.Container(width=16),
-                self._profile_dd,
+                self._profile_dd,    # Ahora el selector ocupa el espacio principal
                 ft.Container(width=16),
                 self._launch_btn,
             ], vertical_alignment=ft.CrossAxisAlignment.END),
         )
+        
+        # ... (el resto de tu código de progress_row y versions_card se mantiene igual)
 
         # ── Progress bar (oculta inicialmente) ────────────────────────────────
         self._progress_label = ft.Text("", color=TEXT_DIM, size=9)
