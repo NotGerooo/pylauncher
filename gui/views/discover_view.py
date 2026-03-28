@@ -7,6 +7,7 @@ Diseño completo inspirado en Modrinth:
  - Scroll infinito (lazy loading) con ft.ListView
  - Spinner / skeleton mientras carga
  - Botón "Instalar" / "✓ Instalado" por tarjeta
+ - Detección de instalación por escaneo de archivos (funciona con mods preexistentes)
  - Popup de detalle con lista de versiones
 """
 
@@ -42,10 +43,71 @@ DEBOUNCE_MS    = 400          # ms de espera tras escribir antes de buscar
 TAB_PROJECT_TYPES = ["mod", "resourcepack", "shader", "modpack"]
 TAB_LABELS        = ["Mods", "Resource Packs", "Shaders", "Modpacks"]
 
+# Extensiones de archivo por tipo de contenido
+TAB_EXTENSIONS = {
+    "mod":         [".jar"],
+    "modpack":     [".jar", ".mrpack", ".zip"],
+    "resourcepack":[".zip"],
+    "shader":      [".zip"],
+}
+
 _PALETTE = [
     "#2d6a4f", "#1e3a5f", "#5c2a2a", "#3a3a1e",
     "#2a1e5c", "#1e5c4a", "#4a3a1e", "#5c3a4a",
 ]
+
+
+# ── Normalización de nombre para detección robusta ────────────────────────────
+def _normalize(text: str) -> str:
+    """
+    Elimina extensiones, versiones numéricas, separadores y pone en minúsculas.
+    Ej: "sodium-0.5.8+mc1.20.1-fabric.jar"  →  "sodium"
+        "Sodium Fabric"                       →  "sodiumfabric"
+    Usamos solo la primera "palabra" del slug para evitar falsos positivos.
+    """
+    # Quitar extensiones conocidas
+    text = re.sub(r"\.(jar|zip|mrpack|disabled)$", "", text, flags=re.IGNORECASE)
+    # Quitar sufijos de versión: -1.2.3, +mc1.20, _v2, etc.
+    text = re.sub(r"[-+_][\d].*$", "", text)
+    # Quitar separadores y pasar a minúsculas
+    text = re.sub(r"[-_. ]", "", text).lower()
+    return text
+
+
+def _build_installed_set(directory: str) -> set:
+    """
+    Escanea un directorio y devuelve un set de nombres normalizados.
+    Funciona con archivos instalados antes o después de esta función.
+    """
+    if not directory or not os.path.isdir(directory):
+        return set()
+    result = set()
+    for fn in os.listdir(directory):
+        normalized = _normalize(fn)
+        if normalized:
+            result.add(normalized)
+    return result
+
+
+def _is_installed_in(project, installed_set: set) -> bool:
+    """
+    Comprueba si un proyecto de Modrinth está instalado comparando
+    slug y title normalizados contra el set de archivos del directorio.
+    """
+    slug_key  = _normalize(project.slug)
+    title_key = _normalize(project.title)
+    # Comparación directa
+    if slug_key in installed_set or title_key in installed_set:
+        return True
+    # Comparación por prefijo: el slug aparece al inicio del nombre de archivo
+    # Ej: slug "sodium" matchea "sodiumfabric0581" del archivo
+    for installed_name in installed_set:
+        if installed_name.startswith(slug_key) or installed_name.startswith(title_key):
+            return True
+        # También al revés: el archivo es más corto (poco común pero posible)
+        if slug_key.startswith(installed_name) and len(installed_name) >= 4:
+            return True
+    return False
 
 
 # ── Helper: widget de icono ────────────────────────────────────────────────────
@@ -117,7 +179,7 @@ class DiscoverView:
         self._tab_index : int   = 0        # tab seleccionado
         self._debounce_timer = None        # threading.Timer para debounce
 
-        self._installed_set: set = set()   # IDs/slugs ya instalados
+        self._installed_set: set = set()   # nombres normalizados de archivos instalados
 
         self._build()
 
@@ -358,12 +420,12 @@ class DiscoverView:
         profile = self._active_profile()
         mc_ver  = profile.version_id if profile else None
         project_type = TAB_PROJECT_TYPES[self._tab_index]
-        # Loaders solo aplican a mods; shaders/resourcepacks/modpacks ignoran el loader
         loader  = self._active_loader() if project_type in ("mod", "modpack") else None
         sort_by = self._sort_dd.value or "relevance"
 
-        # Actualizar installed_set para el perfil activo
-        self._installed_set = self._get_installed_set(profile)
+        # ── Escanear directorio de destino para detectar instalados ──────
+        target_dir = self._target_dir(profile) if profile else None
+        self._installed_set = _build_installed_set(target_dir)
 
         try:
             results = self.app.modrinth_service.search_mods(
@@ -407,7 +469,7 @@ class DiscoverView:
 
         for proj in new_results:
             self._list_view.controls.append(
-                self._make_card(proj, self._is_installed(proj))
+                self._make_card(proj, _is_installed_in(proj, self._installed_set))
             )
 
         total = len(self._results)
@@ -437,7 +499,7 @@ class DiscoverView:
                 self._list_view.update()
                 self._empty_lbl.update()
             except Exception: pass
-        self._spinner.visible = False          # spinner grande deshabilitado
+        self._spinner.visible = False
         try: self._spinner.update()
         except Exception: pass
 
@@ -481,23 +543,10 @@ class DiscoverView:
                     pass
         return None
 
-    def _get_installed_set(self, profile) -> set:
-        if not profile or not os.path.isdir(profile.mods_dir):
-            return set()
-        result = set()
-        for fn in os.listdir(profile.mods_dir):
-            key = re.sub(r"[-_. ]", "", fn.lower()
-                         .replace(".jar", "").replace(".disabled", ""))
-            result.add(key)
-        return result
-
-    def _is_installed(self, proj) -> bool:
-        slug_key  = re.sub(r"[-_. ]", "", proj.slug.lower())
-        title_key = re.sub(r"[-_. ]", "", proj.title.lower())
-        return slug_key in self._installed_set or title_key in self._installed_set
-
-    def _target_dir(self, profile) -> str:
+    def _target_dir(self, profile) -> str | None:
         """Devuelve el directorio de destino según el tipo de contenido del tab activo."""
+        if not profile:
+            return None
         project_type = TAB_PROJECT_TYPES[self._tab_index]
         if project_type == "resourcepack":
             return profile.resourcepacks_dir
@@ -510,10 +559,12 @@ class DiscoverView:
     def _make_card(self, proj, is_installed: bool) -> ft.Container:
         author = getattr(proj, "author", "")
 
-        # Botón de instalación / estado instalado
+        # ── Botón instalado: opaco, sin acción ────────────────────────────
         if is_installed:
             action_btn = ft.Container(
-                bgcolor="#1a3d2a", border_radius=6,
+                bgcolor="#1a3d2a",
+                border_radius=6,
+                opacity=0.65,           # opacidad reducida = instalado/inactivo
                 padding=ft.padding.symmetric(horizontal=12, vertical=6),
                 content=ft.Row([
                     ft.Icon(ft.icons.CHECK_CIRCLE_ROUNDED, size=13, color=GREEN),
@@ -521,7 +572,9 @@ class DiscoverView:
                     ft.Text("Instalado", color=GREEN, size=9,
                              weight=ft.FontWeight.BOLD),
                 ], spacing=0, tight=True),
+                tooltip="Ya instalado en este perfil",
             )
+        # ── Botón instalar: activo ─────────────────────────────────────────
         else:
             action_btn = ft.Container(
                 bgcolor=GREEN, border_radius=6,
@@ -610,10 +663,11 @@ class DiscoverView:
                     self.page.run_thread(lambda: self.app.snack(
                         "Sin versión compatible con este perfil.", error=True))
                     return
-                target = self._target_dir(profile)          # ← cambiado
-                os.makedirs(target, exist_ok=True) 
+                target = self._target_dir(profile)
+                os.makedirs(target, exist_ok=True)
                 self.app.modrinth_service.download_mod_version(version, target)
-                self._installed_set = self._get_installed_set(profile)
+                # Re-escanear directorio tras instalar
+                self._installed_set = _build_installed_set(target)
                 self.page.run_thread(lambda: self.app.snack(
                     f"{project.title} instalado en {profile.name}. ✓"))
                 self.page.run_thread(self._refresh_installed_badges)
@@ -624,10 +678,12 @@ class DiscoverView:
         threading.Thread(target=do_install, daemon=True).start()
 
     def _refresh_installed_badges(self):
-        """Reconstruye todas las tarjetas para actualizar badges Instalado."""
+        """Reconstruye todas las tarjetas para actualizar badges de instalación."""
         controls = []
         for proj in self._results:
-            controls.append(self._make_card(proj, self._is_installed(proj)))
+            controls.append(
+                self._make_card(proj, _is_installed_in(proj, self._installed_set))
+            )
         self._list_view.controls.clear()
         self._list_view.controls.extend(controls)
         try: self._list_view.update()
@@ -640,13 +696,14 @@ class DiscoverView:
             self.page, self.app, project,
             active_profile=profile,
             active_loader=self._active_loader(),
-            target_dir=self._target_dir(profile) if profile else None,   # ← nuevo
+            target_dir=self._target_dir(profile) if profile else None,
             on_installed=lambda: self._on_mod_installed(project),
         )
 
     def _on_mod_installed(self, project):
         profile = self._active_profile()
-        self._installed_set = self._get_installed_set(profile)
+        target_dir = self._target_dir(profile)
+        self._installed_set = _build_installed_set(target_dir)
         self._refresh_installed_badges()
 
 
@@ -667,10 +724,10 @@ class ModDetailDialog:
         self.active_profile = active_profile
         self.active_loader  = active_loader
         self.on_installed   = on_installed
+        self.target_dir     = target_dir
         self._versions      = []
         self._selected_ver  = None
         self._build()
-        self.target_dir     = target_dir 
         threading.Thread(target=self._fetch_versions, daemon=True).start()
 
     def _build(self):
