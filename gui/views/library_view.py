@@ -90,6 +90,19 @@ class LibraryView:
 
     # ── Estado vacío ──────────────────────────────────────────────────────────
     def _empty_state(self) -> ft.Control:
+        play_btn = (
+    ft.ElevatedButton(
+        "⚙ Configurar", bgcolor=CARD2_BG, color=TEXT_SEC, height=34,
+        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=6)),
+        on_click=lambda e, p=profile: self._open_optifine_dialog(p),
+    )
+    if loader == "optifine"
+    else ft.ElevatedButton(
+        "▶ Jugar", bgcolor=GREEN, color=TEXT_INV, height=34,
+        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=6)),
+        on_click=lambda e, p=profile: self._open_launch_dialog(p),
+    )
+)
         return ft.Container(expand=True, content=ft.Column(
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             alignment=ft.MainAxisAlignment.CENTER,
