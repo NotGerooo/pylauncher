@@ -4,6 +4,7 @@ Vista Biblioteca: instancias con diálogo crear/editar estilo Modrinth.
 """
 import threading
 import flet as ft
+import os
 
 from gui.theme import (
     BG, CARD_BG, CARD2_BG, INPUT_BG, BORDER, BORDER_BRIGHT,
