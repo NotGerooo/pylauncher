@@ -610,17 +610,17 @@ class DiscoverView:
                     self.page.run_thread(lambda: self.app.snack(
                         "Sin versión compatible con este perfil.", error=True))
                     return
-                self.app.modrinth_service.download_mod_version(
-                    version, profile.mods_dir)
-                # Actualizar set de instalados y re-renderizar
+                target = self._target_dir(profile)          # ← cambiado
+                self.app.modrinth_service.download_mod_version(version, target)
                 self._installed_set = self._get_installed_set(profile)
                 self.page.run_thread(lambda: self.app.snack(
                     f"{project.title} instalado en {profile.name}. ✓"))
-                # Refrescar la tarjeta en la lista
                 self.page.run_thread(self._refresh_installed_badges)
             except Exception as err:
                 self.page.run_thread(
                     lambda: self.app.snack(f"Error: {err}", error=True))
+
+        threading.Thread(target=do_install, daemon=True).start()
 
         threading.Thread(target=do_install, daemon=True).start()
 
