@@ -3,3 +3,12 @@
 [2026-03-28 17:38:59] [INFO    ] [profile_manager] Perfiles cargados: 1
 [2026-03-28 17:38:59] [INFO    ] [account_manager] Cuentas cargadas: 1
 [2026-03-28 17:38:59] [INFO    ] [app] Interfaz Flet iniciada
+[2026-03-28 17:39:02] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 17:39:05] [INFO    ] [modrinth_service] Modrinth: 2 versiones para 'YL57xq9U'
+[2026-03-28 17:39:05] [DEBUG   ] [downloader] Ya válido, omitiendo: iris-fabric-1.10.8+mc26.1.jar
+[2026-03-28 17:39:05] [INFO    ] [modrinth_service] Mod descargado: iris-fabric-1.10.8+mc26.1.jar → C:\Users\geron\.minecraft\profiles\Survival_Pro\mods
+[2026-03-28 17:39:22] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 17:39:23] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=resourcepack, sort=relevance, offset=0)
+[2026-03-28 17:39:35] [INFO    ] [modrinth_service] Modrinth: 1 versiones para 'd1nRD7RG'
+[2026-03-28 17:39:35] [DEBUG   ] [downloader] Ya válido, omitiendo: ProgrammerArtFix-26.1.zip
+[2026-03-28 17:39:35] [INFO    ] [modrinth_service] Mod descargado: ProgrammerArtFix-26.1.zip → C:\Users\geron\.minecraft\profiles\Survival_Pro\mods
