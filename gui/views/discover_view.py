@@ -671,6 +671,7 @@ class ModDetailDialog:
         self._versions      = []
         self._selected_ver  = None
         self._build()
+         self.target_dir     = target_dir 
         threading.Thread(target=self._fetch_versions, daemon=True).start()
 
     def _build(self):
