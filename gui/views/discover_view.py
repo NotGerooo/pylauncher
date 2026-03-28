@@ -634,7 +634,7 @@ class DiscoverView:
                 self.page.run_thread(self._refresh_installed_badges)
             except Exception as err:
                 self.page.run_thread(
-                    lambda: self.app.snack(f"Error: {err}", error=True))
+                    lambda e=err: self.app.snack(f"Error: {e}", error=True))
 
         threading.Thread(target=do_install, daemon=True).start()
 
