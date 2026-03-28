@@ -90,8 +90,7 @@ class LibraryView:
 
     # ── Estado vacío ──────────────────────────────────────────────────────────
     def _empty_state(self) -> ft.Control:
-        play_btn = (
-        ft.ElevatedButton(
+        play_btn = (ft.ElevatedButton(
             "⚙ Configurar", bgcolor=CARD2_BG, color=TEXT_SEC, height=34,
             style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=6)),
             on_click=lambda e, p=profile: self._open_optifine_dialog(p),
