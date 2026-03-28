@@ -24,3 +24,62 @@
 [2026-03-27 20:57:11] [INFO    ] [home_view] [MC] [20:57:11] [Client thread/INFO]: Setting user: Geronimin
 [2026-03-27 20:57:12] [DEBUG   ] [launcher] [MC] [20:57:12] [Client thread/INFO]: LWJGL Version: 2.9.4
 [2026-03-27 20:57:12] [INFO    ] [home_view] [MC] [20:57:12] [Client thread/INFO]: LWJGL Version: 2.9.4
+[2026-03-27 20:57:14] [DEBUG   ] [launcher] [MC] [20:57:14] [Client thread/INFO]: Reloading ResourceManager: Default
+[2026-03-27 20:57:14] [INFO    ] [home_view] [MC] [20:57:14] [Client thread/INFO]: Reloading ResourceManager: Default
+[2026-03-27 20:57:15] [DEBUG   ] [launcher] [MC] [20:57:15] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[2026-03-27 20:57:15] [INFO    ] [home_view] [MC] [20:57:15] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[2026-03-27 20:57:15] [DEBUG   ] [launcher] [MC] [20:57:15] [Thread-3/INFO]: Initializing LWJGL OpenAL
+[2026-03-27 20:57:15] [INFO    ] [home_view] [MC] [20:57:15] [Thread-3/INFO]: Initializing LWJGL OpenAL
+[2026-03-27 20:57:15] [DEBUG   ] [launcher] [MC] [20:57:15] [Thread-3/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[2026-03-27 20:57:15] [INFO    ] [home_view] [MC] [20:57:15] [Thread-3/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[2026-03-27 20:57:15] [DEBUG   ] [launcher] [MC] [20:57:15] [Thread-3/INFO]: OpenAL initialized.
+[2026-03-27 20:57:15] [INFO    ] [home_view] [MC] [20:57:15] [Thread-3/INFO]: OpenAL initialized.
+[2026-03-27 20:57:15] [DEBUG   ] [launcher] [MC] [20:57:15] [Sound Library Loader/INFO]: Sound engine started
+[2026-03-27 20:57:15] [INFO    ] [home_view] [MC] [20:57:15] [Sound Library Loader/INFO]: Sound engine started
+[2026-03-27 20:57:16] [DEBUG   ] [launcher] [MC] [20:57:16] [Client thread/INFO]: Created: 1024x512 textures-atlas
+[2026-03-27 20:57:16] [INFO    ] [home_view] [MC] [20:57:16] [Client thread/INFO]: Created: 1024x512 textures-atlas
+[2026-03-27 20:57:18] [DEBUG   ] [launcher] [MC] [20:57:18] [Realms Notification Availability checker #1/ERROR]: Could not parse RealmsError: com.google.gson.stream.MalformedJsonException: Use JsonReader.setLenient(true) to accept malformed JSON at line 1 column 12
+[2026-03-27 20:57:18] [INFO    ] [home_view] [MC] [20:57:18] [Realms Notification Availability checker #1/ERROR]: Could not parse RealmsError: com.google.gson.stream.MalformedJsonException: Use JsonReader.setLenient(true) to accept malformed JSON at line 1 column 12
+[2026-03-27 20:57:18] [DEBUG   ] [launcher] [MC] [20:57:18] [Realms Notification Availability checker #1/ERROR]: The error was: <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+[2026-03-27 20:57:18] [INFO    ] [home_view] [MC] [20:57:18] [Realms Notification Availability checker #1/ERROR]: The error was: <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+[2026-03-27 20:57:18] [DEBUG   ] [launcher] [MC] <html><head>
+[2026-03-27 20:57:18] [INFO    ] [home_view] [MC] <html><head>
+[2026-03-27 20:57:18] [DEBUG   ] [launcher] [MC] <title>404 Not Found</title>
+[2026-03-27 20:57:18] [INFO    ] [home_view] [MC] <title>404 Not Found</title>
+[2026-03-27 20:57:18] [DEBUG   ] [launcher] [MC] </head><body>
+[2026-03-27 20:57:18] [INFO    ] [home_view] [MC] </head><body>
+[2026-03-27 20:57:18] [DEBUG   ] [launcher] [MC] <h1>Not Found</h1>
+[2026-03-27 20:57:18] [INFO    ] [home_view] [MC] <h1>Not Found</h1>
+[2026-03-27 20:57:18] [DEBUG   ] [launcher] [MC] <p>The requested URL was not found on this server.</p>
+[2026-03-27 20:57:18] [INFO    ] [home_view] [MC] <p>The requested URL was not found on this server.</p>
+[2026-03-27 20:57:18] [DEBUG   ] [launcher] [MC] <hr>
+[2026-03-27 20:57:18] [INFO    ] [home_view] [MC] <hr>
+[2026-03-27 20:57:18] [DEBUG   ] [launcher] [MC] <address>Apache Server at mcoapi.minecraft.net Port 443</address>
+[2026-03-27 20:57:18] [INFO    ] [home_view] [MC] <address>Apache Server at mcoapi.minecraft.net Port 443</address>
+[2026-03-27 20:57:18] [DEBUG   ] [launcher] [MC] </body></html>
+[2026-03-27 20:57:18] [INFO    ] [home_view] [MC] </body></html>
+[2026-03-27 20:57:18] [DEBUG   ] [launcher] [MC] [20:57:18] [Realms Notification Availability checker #1/ERROR]: Realms http code: 404 -  error code: 0 -  message: null - raw body: <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+[2026-03-27 20:57:18] [INFO    ] [home_view] [MC] [20:57:18] [Realms Notification Availability checker #1/ERROR]: Realms http code: 404 -  error code: 0 -  message: null - raw body: <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+[2026-03-27 20:57:18] [DEBUG   ] [launcher] [MC] <html><head>
+[2026-03-27 20:57:18] [INFO    ] [home_view] [MC] <html><head>
+[2026-03-27 20:57:18] [DEBUG   ] [launcher] [MC] <title>404 Not Found</title>
+[2026-03-27 20:57:18] [INFO    ] [home_view] [MC] <title>404 Not Found</title>
+[2026-03-27 20:57:18] [DEBUG   ] [launcher] [MC] </head><body>
+[2026-03-27 20:57:18] [INFO    ] [home_view] [MC] </head><body>
+[2026-03-27 20:57:18] [DEBUG   ] [launcher] [MC] <h1>Not Found</h1>
+[2026-03-27 20:57:18] [INFO    ] [home_view] [MC] <h1>Not Found</h1>
+[2026-03-27 20:57:18] [DEBUG   ] [launcher] [MC] <p>The requested URL was not found on this server.</p>
+[2026-03-27 20:57:18] [INFO    ] [home_view] [MC] <p>The requested URL was not found on this server.</p>
+[2026-03-27 20:57:18] [DEBUG   ] [launcher] [MC] <hr>
+[2026-03-27 20:57:18] [INFO    ] [home_view] [MC] <hr>
+[2026-03-27 20:57:18] [DEBUG   ] [launcher] [MC] <address>Apache Server at mcoapi.minecraft.net Port 443</address>
+[2026-03-27 20:57:18] [INFO    ] [home_view] [MC] <address>Apache Server at mcoapi.minecraft.net Port 443</address>
+[2026-03-27 20:57:18] [DEBUG   ] [launcher] [MC] </body></html>
+[2026-03-27 20:57:18] [INFO    ] [home_view] [MC] </body></html>
+[2026-03-27 20:57:20] [DEBUG   ] [launcher] [MC] [20:57:20] [Client thread/INFO]: Stopping!
+[2026-03-27 20:57:20] [INFO    ] [home_view] [MC] [20:57:20] [Client thread/INFO]: Stopping!
+[2026-03-27 20:57:20] [DEBUG   ] [launcher] [MC] [20:57:20] [Client thread/INFO]: SoundSystem shutting down...
+[2026-03-27 20:57:20] [INFO    ] [home_view] [MC] [20:57:20] [Client thread/INFO]: SoundSystem shutting down...
+[2026-03-27 20:57:20] [DEBUG   ] [launcher] [MC] [20:57:20] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
+[2026-03-27 20:57:20] [INFO    ] [home_view] [MC] [20:57:20] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
+[2026-03-27 20:57:21] [INFO    ] [home_view] Minecraft cerrado con código: 0
