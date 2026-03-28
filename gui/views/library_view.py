@@ -498,6 +498,129 @@ class _InstanceDialog:
         threading.Thread(target=worker, daemon=True).start()
 
 
+class _OptiFineDialog:
+    """
+    Diálogo que guía al usuario para instalar OptiFine manualmente.
+    Monitorea la carpeta mods/ y notifica cuando detecta el jar.
+    """
+    def __init__(self, page: ft.Page, app, profile, on_done):
+        self.page    = page
+        self.app     = app
+        self.profile = profile
+        self.on_done = on_done
+        self._monitoring = False
+ 
+        from managers.loader_manager import load_loader_meta
+        meta     = load_loader_meta(profile.game_dir)
+        mods_dir = meta.get("mods_dir") or os.path.join(profile.game_dir, "mods")
+        mc_ver   = meta.get("mc_version", profile.version_id)
+        lv       = meta.get("loader_version", "")
+ 
+        self._mods_dir   = mods_dir
+        self._status_txt = ft.Text("Esperando que descargues el jar…",
+                                   color=TEXT_DIM, size=10)
+ 
+        self._dlg = ft.AlertDialog(
+            modal=True, bgcolor=CARD_BG,
+            title=ft.Text("Instalar OptiFine", color=TEXT_PRI,
+                          weight=ft.FontWeight.BOLD),
+            content=ft.Container(width=440, content=ft.Column(
+                spacing=0, tight=True,
+                controls=[
+                    ft.Text(f"OptiFine {lv}  •  Minecraft {mc_ver}",
+                            color=TEXT_DIM, size=10),
+                    ft.Container(height=16),
+                    ft.Container(
+                        bgcolor=CARD2_BG, border_radius=8,
+                        padding=ft.padding.all(14),
+                        content=ft.Column(spacing=6, controls=[
+                            ft.Text("Pasos para instalar OptiFine:",
+                                    color=TEXT_PRI, size=11,
+                                    weight=ft.FontWeight.BOLD),
+                            ft.Text("1. Haz clic en 'Abrir optifine.net'",
+                                    color=TEXT_SEC, size=10),
+                            ft.Text("2. Descarga la versión para Minecraft " + mc_ver,
+                                    color=TEXT_SEC, size=10),
+                            ft.Text("3. Copia el archivo .jar a esta carpeta:",
+                                    color=TEXT_SEC, size=10),
+                            ft.Container(
+                                bgcolor=INPUT_BG, border_radius=6,
+                                padding=ft.padding.symmetric(horizontal=10, vertical=6),
+                                content=ft.Text(mods_dir, color=GREEN,
+                                                size=9, selectable=True),
+                            ),
+                            ft.Text("4. El launcher lo detectará automáticamente ✓",
+                                    color=TEXT_SEC, size=10),
+                        ]),
+                    ),
+                    ft.Container(height=14),
+                    self._status_txt,
+                ],
+            )),
+            actions=[
+                ft.TextButton("Cerrar", style=ft.ButtonStyle(color=TEXT_SEC),
+                              on_click=self._on_close),
+                ft.ElevatedButton(
+                    "📂 Abrir carpeta mods",
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                        bgcolor=CARD2_BG, color=TEXT_PRI),
+                    on_click=self._open_folder,
+                ),
+                ft.ElevatedButton(
+                    "🌐 Abrir optifine.net",
+                    bgcolor=GREEN, color=TEXT_INV,
+                    style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
+                    on_click=self._open_web,
+                ),
+            ],
+        )
+ 
+    def open(self):
+        self.page.open(self._dlg)
+        self._start_monitor()
+ 
+    def _open_web(self, e):
+        import webbrowser
+        webbrowser.open("https://optifine.net/downloads")
+ 
+    def _open_folder(self, e):
+        import subprocess
+        os.makedirs(self._mods_dir, exist_ok=True)
+        subprocess.Popen(["explorer", self._mods_dir])
+ 
+    def _on_close(self, e):
+        self._monitoring = False
+        self.page.close(self._dlg)
+ 
+    def _start_monitor(self):
+        import threading
+        self._monitoring = True
+ 
+        def watch():
+            import time
+            seen = set(os.listdir(self._mods_dir)) if os.path.isdir(self._mods_dir) else set()
+            while self._monitoring:
+                time.sleep(2)
+                if not os.path.isdir(self._mods_dir):
+                    continue
+                current = set(os.listdir(self._mods_dir))
+                new = current - seen
+                for f in new:
+                    if "optifine" in f.lower() and f.endswith(".jar"):
+                        self._monitoring = False
+                        def notify():
+                            self._status_txt.value = f"✓ OptiFine detectado: {f}"
+                            self._status_txt.color = GREEN
+                            try: self._status_txt.update()
+                            except Exception: pass
+                            self.app.snack(f"✓ OptiFine instalado: {f}")
+                            self.on_done()
+                        self.page.run_thread(notify)
+                        return
+                seen = current
+ 
+        threading.Thread(target=watch, daemon=True).start()
 # ═══════════════════════════════════════════════════════════════════════════════
 # Diálogo lanzar
 # ═══════════════════════════════════════════════════════════════════════════════
