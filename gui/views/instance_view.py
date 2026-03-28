@@ -12,6 +12,7 @@ from gui.theme import (
     BG, CARD_BG, CARD2_BG, INPUT_BG, BORDER, BORDER_BRIGHT,
     GREEN, TEXT_PRI, TEXT_SEC, TEXT_DIM, TEXT_INV, ACCENT_RED,
 )
+from utils.install_detector import build_installed_set, is_installed_in
 from utils.logger import get_logger
 
 log = get_logger()
@@ -66,7 +67,6 @@ class InstanceView:
         loader = self._read_loader()
         icon   = LOADER_ICONS.get(loader, "🎮")
 
-        # ── Header ────────────────────────────────────────────────────────────
         self._play_btn = ft.ElevatedButton(
             "▶  Play",
             bgcolor=GREEN, color=TEXT_INV,
@@ -82,7 +82,6 @@ class InstanceView:
             padding=ft.padding.symmetric(horizontal=28, vertical=16),
             border=ft.border.only(bottom=ft.BorderSide(1, BORDER)),
             content=ft.Row([
-                # Back button
                 ft.IconButton(
                     icon=ft.icons.ARROW_BACK_IOS_NEW_ROUNDED,
                     icon_color=TEXT_DIM, icon_size=18,
@@ -90,7 +89,6 @@ class InstanceView:
                     on_click=lambda e: self.app._show_view("library"),
                 ),
                 ft.Container(width=8),
-                # Icono instancia
                 ft.Container(
                     width=44, height=44, border_radius=10,
                     bgcolor=CARD2_BG, alignment=ft.alignment.center,
@@ -106,7 +104,6 @@ class InstanceView:
                         color=TEXT_DIM, size=9),
                 ], spacing=3),
                 ft.Container(expand=True),
-                # Settings
                 ft.IconButton(
                     icon=ft.icons.SETTINGS_OUTLINED,
                     icon_color=TEXT_DIM, icon_size=20,
@@ -118,7 +115,6 @@ class InstanceView:
             ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
         )
 
-        # ── Tab bar ───────────────────────────────────────────────────────────
         tabs_data = [
             ("content", "📦 Content"),
             ("files",   "📁 Files"),
@@ -139,7 +135,6 @@ class InstanceView:
             content=tab_row,
         )
 
-        # ── Tab content area ──────────────────────────────────────────────────
         self._tab_area = ft.Container(expand=True, bgcolor=BG)
 
         self.root = ft.Column(
@@ -176,25 +171,26 @@ class InstanceView:
             except Exception: pass
         self._render_tab()
 
-    # ── Lifecycle ─────────────────────────────────────────────────────────────
     def on_show(self):
         self._render_tab()
 
     def _render_tab(self):
         if self._active_tab == "content":
-            self._tab_area.content = _ContentTab(self.page, self.app, self.profile).root
+            self._tab_area.content = _ContentTab(
+                self.page, self.app, self.profile).root
         elif self._active_tab == "files":
-            self._tab_area.content = _FilesTab(self.page, self.app, self.profile).root
+            self._tab_area.content = _FilesTab(
+                self.page, self.app, self.profile).root
         elif self._active_tab == "worlds":
-            self._tab_area.content = _WorldsTab(self.page, self.app, self.profile).root
+            self._tab_area.content = _WorldsTab(
+                self.page, self.app, self.profile).root
         elif self._active_tab == "logs":
-            self._tab_area.content = _LogsTab(self.page, self.app, self.profile).root
+            self._tab_area.content = _LogsTab(
+                self.page, self.app, self.profile).root
         try: self._tab_area.update()
         except Exception: pass
 
-    # ── Play ──────────────────────────────────────────────────────────────────
     def _on_play(self, e):
-        # Obtener cuenta activa
         try:
             acc = self.app.account_manager.get_active_account()
             if not acc:
@@ -252,20 +248,18 @@ class InstanceView:
                 self.page.run_thread(err)
 
         threading.Thread(target=run, daemon=True).start()
-        self.app.snack(f"Iniciando Minecraft {self.profile.version_id} como {username}…")
+        self.app.snack(
+            f"Iniciando Minecraft {self.profile.version_id} como {username}…")
 
-    # ── Edit ──────────────────────────────────────────────────────────────────
     def _open_edit(self):
         from gui.views.library_view import _CreateInstanceDialog
         def done():
-            # Recargar perfil actualizado
             updated = self.app.profile_manager.get_profile(self.profile.id)
             if updated:
                 self.profile = updated
-            self._build()   # reconstruir con datos actualizados
+            self._build()
         _CreateInstanceDialog(self.page, self.app, self.profile, on_done=done)
 
-    # ── Helpers ───────────────────────────────────────────────────────────────
     def _read_loader(self) -> str:
         meta_path = os.path.join(self.profile.game_dir, "loader_meta.json")
         if os.path.isfile(meta_path):
@@ -283,7 +277,7 @@ class InstanceView:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Tab: Content (Mods + Resource Packs + Shaders unificados)
+# Tab: Content
 # ══════════════════════════════════════════════════════════════════════════════
 class _ContentTab:
     FILTERS = ["All", "Mods", "Resource Packs", "Shaders"]
@@ -300,7 +294,6 @@ class _ContentTab:
         self._build()
 
     def _build(self):
-        # Barra de filtros
         self._filter_btns: dict[str, ft.Container] = {}
         filter_row = ft.Row(spacing=6)
         for f in self.FILTERS:
@@ -308,7 +301,6 @@ class _ContentTab:
             self._filter_btns[f] = btn
             filter_row.controls.append(btn)
 
-        # Barra de búsqueda + sort + acciones
         self._search_field = ft.TextField(
             hint_text="Buscar proyectos…",
             hint_style=ft.TextStyle(color=TEXT_DIM),
@@ -378,7 +370,6 @@ class _ContentTab:
             ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
         )
 
-        # Encabezado de columnas
         col_hdr = ft.Container(
             bgcolor=CARD_BG,
             padding=ft.padding.only(left=80, right=24, top=6, bottom=6),
@@ -392,10 +383,13 @@ class _ContentTab:
         )
 
         self._count_lbl = ft.Text("", color=TEXT_DIM, size=9)
-        self._empty_lbl = ft.Text("Sin contenido en esta categoría.",
-                                   color=TEXT_DIM, size=11, visible=False,
-                                   text_align=ft.TextAlign.CENTER)
-        self._list_col  = ft.Column(spacing=2, scroll=ft.ScrollMode.AUTO, expand=True)
+        self._empty_lbl = ft.Text(
+            "Sin contenido en esta categoría.",
+            color=TEXT_DIM, size=11, visible=False,
+            text_align=ft.TextAlign.CENTER,
+        )
+        self._list_col  = ft.Column(
+            spacing=2, scroll=ft.ScrollMode.AUTO, expand=True)
 
         self.root = ft.Column([
             toolbar,
@@ -414,13 +408,15 @@ class _ContentTab:
 
         self._refresh()
 
-    # ── Filtros pills ─────────────────────────────────────────────────────────
+    # ── Filter pills ──────────────────────────────────────────────────────────
     def _make_filter(self, label: str) -> ft.Container:
         active = label == self._filter
-        txt = ft.Text(label, color=TEXT_PRI if active else TEXT_SEC, size=10,
-                      weight=ft.FontWeight.BOLD if active else ft.FontWeight.NORMAL)
-        ind = ft.Container(height=2, border_radius=1,
-                            bgcolor=GREEN if active else "transparent")
+        txt = ft.Text(
+            label, color=TEXT_PRI if active else TEXT_SEC, size=10,
+            weight=ft.FontWeight.BOLD if active else ft.FontWeight.NORMAL)
+        ind = ft.Container(
+            height=2, border_radius=1,
+            bgcolor=GREEN if active else "transparent")
         btn = ft.Container(
             padding=ft.padding.symmetric(horizontal=12, vertical=8),
             on_click=lambda e, l=label: self._set_filter(l),
@@ -434,8 +430,8 @@ class _ContentTab:
         self._filter = label
         for l, btn in self._filter_btns.items():
             active = l == label
-            btn._txt.color  = TEXT_PRI if active else TEXT_SEC
-            btn._txt.weight = ft.FontWeight.BOLD if active else ft.FontWeight.NORMAL
+            btn._txt.color   = TEXT_PRI if active else TEXT_SEC
+            btn._txt.weight  = ft.FontWeight.BOLD if active else ft.FontWeight.NORMAL
             btn._ind.bgcolor = GREEN if active else "transparent"
             try: btn.update()
             except Exception: pass
@@ -451,10 +447,8 @@ class _ContentTab:
 
     # ── Recolección de items ──────────────────────────────────────────────────
     def _collect_items(self) -> list[dict]:
-        """Recolecta mods, resource packs y shaders del perfil."""
         items = []
 
-        # MODS
         if self._filter in ("All", "Mods"):
             mods_dir = os.path.join(self.profile.game_dir, "mods")
             if os.path.isdir(mods_dir):
@@ -462,7 +456,7 @@ class _ContentTab:
                     fp = os.path.join(mods_dir, fn)
                     if not os.path.isfile(fp):
                         continue
-                    is_enabled = fn.endswith(".jar") and not fn.endswith(".jar.disabled")
+                    is_enabled  = fn.endswith(".jar") and not fn.endswith(".jar.disabled")
                     is_disabled = fn.endswith(".jar.disabled")
                     if not (is_enabled or is_disabled):
                         continue
@@ -476,13 +470,13 @@ class _ContentTab:
                         "version":    _parse_version(fn),
                     })
 
-        # RESOURCE PACKS
         if self._filter in ("All", "Resource Packs"):
             rp_dir = os.path.join(self.profile.game_dir, "resourcepacks")
             if os.path.isdir(rp_dir):
                 for fn in os.listdir(rp_dir):
                     fp = os.path.join(rp_dir, fn)
-                    if not os.path.isfile(fp): continue
+                    if not os.path.isfile(fp):
+                        continue
                     low = fn.lower()
                     if not (low.endswith(".zip") or low.endswith(".zip.disabled")):
                         continue
@@ -497,13 +491,13 @@ class _ContentTab:
                         "version":    _parse_version(fn),
                     })
 
-        # SHADERS
         if self._filter in ("All", "Shaders"):
             sh_dir = os.path.join(self.profile.game_dir, "shaderpacks")
             if os.path.isdir(sh_dir):
                 for fn in os.listdir(sh_dir):
                     fp = os.path.join(sh_dir, fn)
-                    if not os.path.isfile(fp): continue
+                    if not os.path.isfile(fp):
+                        continue
                     low = fn.lower()
                     if not (low.endswith(".zip") or low.endswith(".zip.disabled")):
                         continue
@@ -524,13 +518,10 @@ class _ContentTab:
     def _refresh(self):
         items = self._collect_items()
 
-        # Filtrar por búsqueda
         q = self._search_q.strip().lower()
         if q:
-            items = [i for i in items
-                     if q in i["filename"].lower()]
+            items = [i for i in items if q in i["filename"].lower()]
 
-        # Ordenar
         if self._sort == "name":
             items.sort(key=lambda i: i["filename"].lower())
         elif self._sort == "status":
@@ -540,7 +531,8 @@ class _ContentTab:
 
         self._list_col.controls.clear()
         self._empty_lbl.visible = (len(items) == 0)
-        self._count_lbl.value   = f"{len(items)} proyecto{'s' if len(items)!=1 else ''}"
+        self._count_lbl.value   = (
+            f"{len(items)} proyecto{'s' if len(items) != 1 else ''}")
 
         for item in items:
             self._list_col.controls.append(self._make_row(item))
@@ -555,7 +547,9 @@ class _ContentTab:
     def _make_row(self, item: dict) -> ft.Container:
         fn      = item["filename"]
         is_en   = item["is_enabled"]
-        disp    = re.sub(r'\.(jar|zip)(\.disabled)?$', '', fn, flags=re.IGNORECASE)
+        # Nombre de display: quitar extensión y ".disabled"
+        disp    = re.sub(
+            r'\.(jar|zip)(\.disabled)?$', '', fn, flags=re.IGNORECASE)
 
         type_badge = ft.Container(
             bgcolor=CARD2_BG, border_radius=4,
@@ -563,26 +557,43 @@ class _ContentTab:
             content=ft.Text(item["type"], color=TEXT_DIM, size=7),
         )
 
+        # Badge de estado: habilitado / deshabilitado
+        status_badge = ft.Container(
+            bgcolor="#1a3d2a" if is_en else CARD2_BG,
+            border_radius=4,
+            padding=ft.padding.symmetric(horizontal=6, vertical=2),
+            content=ft.Row([
+                ft.Icon(
+                    ft.icons.CIRCLE,
+                    size=6,
+                    color=GREEN if is_en else TEXT_DIM,
+                ),
+                ft.Container(width=4),
+                ft.Text(
+                    "Activo" if is_en else "Desactivado",
+                    color=GREEN if is_en else TEXT_DIM,
+                    size=7,
+                ),
+            ], spacing=0, tight=True),
+        )
+
         return ft.Container(
             bgcolor=INPUT_BG, border_radius=8,
             padding=ft.padding.symmetric(horizontal=16, vertical=10),
             on_hover=lambda e: (
                 setattr(e.control, "bgcolor",
-                        CARD2_BG if e.data=="true" else INPUT_BG)
+                        CARD2_BG if e.data == "true" else INPUT_BG)
                 or e.control.update()),
             content=ft.Row([
-                # Checkbox placeholder (para selección futura)
-                ft.Checkbox(value=False,
-                            fill_color={"selected": GREEN},
-                            check_color=TEXT_INV,
-                            width=20),
+                ft.Checkbox(
+                    value=False,
+                    fill_color={"selected": GREEN},
+                    check_color=TEXT_INV,
+                    width=20,
+                ),
                 ft.Container(width=10),
-
-                # Icono
                 _initial_icon(disp, size=40),
                 ft.Container(width=14),
-
-                # Nombre + badge de tipo
                 ft.Column([
                     ft.Row([
                         ft.Text(disp, color=TEXT_PRI, size=10,
@@ -590,19 +601,20 @@ class _ContentTab:
                                 overflow=ft.TextOverflow.ELLIPSIS,
                                 expand=True),
                         type_badge,
-                    ], spacing=6),
+                        ft.Container(width=4),
+                        status_badge,
+                    ], spacing=4),
                     ft.Text(fn, color=TEXT_DIM, size=8, italic=True,
                             overflow=ft.TextOverflow.ELLIPSIS),
                 ], spacing=2, expand=True),
 
-                # Versión
                 ft.Text(item["version"] or "—", color=TEXT_SEC, size=9,
                         width=160, text_align=ft.TextAlign.CENTER),
 
-                # Acciones
                 ft.Row([
                     ft.IconButton(
-                        icon=(ft.icons.TOGGLE_ON if is_en else ft.icons.TOGGLE_OFF),
+                        icon=(ft.icons.TOGGLE_ON if is_en
+                              else ft.icons.TOGGLE_OFF),
                         icon_color=GREEN if is_en else TEXT_DIM,
                         icon_size=22,
                         tooltip="Deshabilitar" if is_en else "Habilitar",
@@ -645,12 +657,15 @@ class _ContentTab:
         dlg = ft.AlertDialog(
             modal=True, bgcolor=CARD_BG,
             title=ft.Text("Eliminar", color=TEXT_PRI),
-            content=ft.Text(f"¿Eliminar '{item['filename']}'?", color=TEXT_SEC),
+            content=ft.Text(
+                f"¿Eliminar '{item['filename']}'?", color=TEXT_SEC),
             actions=[
                 ft.TextButton("Cancelar", on_click=confirm),
-                ft.TextButton("Eliminar",
-                              style=ft.ButtonStyle(color=ACCENT_RED),
-                              on_click=confirm),
+                ft.TextButton(
+                    "Eliminar",
+                    style=ft.ButtonStyle(color=ACCENT_RED),
+                    on_click=confirm,
+                ),
             ],
         )
         self.page.open(dlg)
@@ -668,7 +683,6 @@ class _ContentTab:
         fn   = os.path.basename(src)
         low  = fn.lower()
 
-        # Determinar carpeta destino según tipo de archivo
         if low.endswith(".jar"):
             dest_dir = os.path.join(self.profile.game_dir, "mods")
         else:
@@ -689,7 +703,6 @@ class _ContentTab:
             self.app.snack(str(ex), error=True)
 
     def _on_browse(self, e):
-        """Abre el buscador de Modrinth filtrado por la instancia."""
         loader = self._read_loader()
         _BrowseContentDialog(
             self.page, self.app, self.profile,
@@ -715,7 +728,7 @@ class _ContentTab:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Browse Content Dialog
+# Browse Content Dialog — usa install_detector para marcar ya instalados
 # ══════════════════════════════════════════════════════════════════════════════
 class _BrowseContentDialog:
     """Búsqueda de contenido en Modrinth filtrado por instancia."""
@@ -727,6 +740,13 @@ class _BrowseContentDialog:
         "Shaders":        "shader",
     }
 
+    # Subcarpeta de destino por project_type
+    _DEST_FOLDER = {
+        "mod":          "mods",
+        "resourcepack": "resourcepacks",
+        "shader":       "shaderpacks",
+    }
+
     def __init__(self, page, app, profile, content_type, loader, on_install):
         self.page         = page
         self.app          = app
@@ -736,6 +756,13 @@ class _BrowseContentDialog:
         self.on_install   = on_install
         self._results     = []
         self._selected_id = None
+
+        project_type      = self._TYPE_MAP.get(content_type, "mod")
+        dest_folder       = self._DEST_FOLDER.get(project_type, "mods")
+        dest_dir          = os.path.join(profile.game_dir, dest_folder)
+        # Escanear carpeta para saber qué está instalado
+        self._installed_set = build_installed_set(dest_dir)
+
         self._build()
 
     def _build(self):
@@ -756,7 +783,8 @@ class _BrowseContentDialog:
             + (f" + {self.loader}" if self.loader else ""),
             color=TEXT_DIM, size=9,
         )
-        self._results_col = ft.Column(spacing=6, scroll=ft.ScrollMode.AUTO, height=380)
+        self._results_col = ft.Column(
+            spacing=6, scroll=ft.ScrollMode.AUTO, height=380)
         self._install_btn = ft.ElevatedButton(
             "⬇ Instalar seleccionado",
             bgcolor=GREEN, color=TEXT_INV,
@@ -785,8 +813,9 @@ class _BrowseContentDialog:
                 self._results_col,
             ], spacing=8)),
             actions=[
-                ft.TextButton("Cerrar",
-                              on_click=lambda e: self.page.close(self._dlg)),
+                ft.TextButton(
+                    "Cerrar",
+                    on_click=lambda e: self.page.close(self._dlg)),
                 self._install_btn,
             ],
         )
@@ -819,7 +848,6 @@ class _BrowseContentDialog:
                 )
                 self.page.run_thread(lambda: self._show_results(results))
             except TypeError:
-                # Fallback si modrinth_service no acepta project_type
                 try:
                     results = self.app.modrinth_service.search_mods(
                         query, mc_version=mc_ver, loader=loader)
@@ -837,17 +865,45 @@ class _BrowseContentDialog:
         self._results_col.controls.clear()
 
         for r in results:
-            mc_v   = ", ".join(r.game_versions[-3:]) if r.game_versions else "—"
-            author = getattr(r, "author", "")
+            mc_v      = ", ".join(r.game_versions[-3:]) if r.game_versions else "—"
+            author    = getattr(r, "author", "")
+            installed = is_installed_in(r.slug, r.title, self._installed_set)
+
+            # Badge de instalado dentro del diálogo de búsqueda
+            if installed:
+                badge = ft.Container(
+                    bgcolor="#1a3d2a", border_radius=4,
+                    padding=ft.padding.symmetric(horizontal=8, vertical=3),
+                    content=ft.Row([
+                        ft.Icon(ft.icons.CHECK_CIRCLE_ROUNDED,
+                                size=10, color=GREEN),
+                        ft.Container(width=4),
+                        ft.Text("Instalado", color=GREEN, size=8,
+                                weight=ft.FontWeight.BOLD),
+                    ], spacing=0, tight=True),
+                )
+            else:
+                badge = ft.Container(
+                    bgcolor=CARD2_BG, border_radius=4,
+                    padding=ft.padding.symmetric(horizontal=8, vertical=3),
+                    content=ft.Text("No instalado", color=TEXT_DIM, size=8),
+                )
+
             row = ft.Container(
                 bgcolor=INPUT_BG, border_radius=8,
                 padding=ft.padding.symmetric(horizontal=14, vertical=10),
                 data=r.project_id,
-                on_click=lambda e, pid=r.project_id: self._select(pid),
-                on_hover=lambda e: (
-                    setattr(e.control, "bgcolor",
-                            CARD2_BG if e.data=="true" else INPUT_BG)
-                    or e.control.update()),
+                on_click=(
+                    (lambda e, pid=r.project_id: self._select(pid))
+                    if not installed else None
+                ),
+                on_hover=(
+                    lambda e: (
+                        setattr(e.control, "bgcolor",
+                                CARD2_BG if e.data == "true" else INPUT_BG)
+                        or e.control.update())
+                ) if not installed else None,
+                opacity=0.6 if installed else 1.0,
                 content=ft.Row([
                     _initial_icon(r.title, size=42),
                     ft.Container(width=14),
@@ -855,25 +911,35 @@ class _BrowseContentDialog:
                         ft.Text(r.title, color=TEXT_PRI, size=10,
                                 weight=ft.FontWeight.BOLD,
                                 overflow=ft.TextOverflow.ELLIPSIS),
-                        ft.Text(f"por {author}" if author
-                                 else (r.description[:60] + "…"
-                                       if len(r.description) > 60
-                                       else r.description),
-                                color=TEXT_SEC, size=9,
-                                overflow=ft.TextOverflow.ELLIPSIS),
+                        ft.Text(
+                            f"por {author}" if author
+                            else (r.description[:60] + "…"
+                                  if len(r.description) > 60
+                                  else r.description),
+                            color=TEXT_SEC, size=9,
+                            overflow=ft.TextOverflow.ELLIPSIS),
                     ], spacing=2, expand=True),
                     ft.Column([
+                        badge,
+                        ft.Container(height=4),
                         ft.Text(mc_v, color=TEXT_DIM, size=8,
                                 text_align=ft.TextAlign.RIGHT),
                         ft.Text(f"⬇ {r.downloads:,}", color=TEXT_DIM, size=8,
                                 text_align=ft.TextAlign.RIGHT),
-                    ], spacing=2, width=130,
+                    ], spacing=0, width=130,
                        horizontal_alignment=ft.CrossAxisAlignment.END),
                 ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
             )
             self._results_col.controls.append(row)
 
-        self._status_lbl.value = f"{len(results)} resultados"
+        installed_count = sum(
+            1 for r in results
+            if is_installed_in(r.slug, r.title, self._installed_set)
+        )
+        self._status_lbl.value = (
+            f"{len(results)} resultados"
+            + (f" · {installed_count} ya instalados" if installed_count else "")
+        )
         try:
             self._results_col.update()
             self._status_lbl.update()
@@ -883,6 +949,11 @@ class _BrowseContentDialog:
         self._selected_id          = pid
         self._install_btn.disabled = False
         for c in self._results_col.controls:
+            if not c.data:
+                continue
+            # No resaltar los ya instalados (opacity 0.6)
+            if c.opacity == 0.6:
+                continue
             c.bgcolor = "#1a2520" if c.data == pid else INPUT_BG
             try: c.update()
             except Exception: pass
@@ -902,25 +973,25 @@ class _BrowseContentDialog:
             self._install_btn.update()
         except Exception: pass
 
-        # Determinar carpeta destino según content_type
-        type_folder = {
-            "mod":          "mods",
-            "resourcepack": "resourcepacks",
-            "shader":       "shaderpacks",
-        }.get(self._TYPE_MAP.get(self.content_type, "mod"), "mods")
-        dest_dir = os.path.join(self.profile.game_dir, type_folder)
+        project_type = self._TYPE_MAP.get(self.content_type, "mod")
+        dest_folder  = self._DEST_FOLDER.get(project_type, "mods")
+        dest_dir     = os.path.join(self.profile.game_dir, dest_folder)
         os.makedirs(dest_dir, exist_ok=True)
 
         def download():
             try:
                 version = self.app.modrinth_service.get_latest_version(
-                    self._selected_id, mc_version=self.profile.version_id,
-                    loader=self.loader)
+                    self._selected_id,
+                    mc_version=self.profile.version_id,
+                    loader=self.loader,
+                )
                 if not version:
                     self.page.run_thread(lambda: self._set_status(
                         "Sin versión compatible."))
                     return
                 self.app.modrinth_service.download_mod_version(version, dest_dir)
+                # Actualizar installed_set tras instalar
+                self._installed_set = build_installed_set(dest_dir)
 
                 def done():
                     self._status_lbl.value     = f"✓ {proj.title} instalado"
@@ -931,6 +1002,9 @@ class _BrowseContentDialog:
                     except Exception: pass
                     self.on_install()
                     self.app.snack(f"{proj.title} instalado.")
+                    # Refrescar badges en el diálogo
+                    self.page.run_thread(
+                        lambda: self._show_results(self._results))
                 self.page.run_thread(done)
             except Exception as err:
                 self.page.run_thread(
@@ -984,7 +1058,8 @@ class _FilesTab:
                         style=ft.ButtonStyle(
                             shape=ft.RoundedRectangleBorder(radius=6),
                             side=ft.BorderSide(1, BORDER), color=TEXT_SEC,
-                            padding=ft.padding.symmetric(horizontal=12, vertical=6),
+                            padding=ft.padding.symmetric(
+                                horizontal=12, vertical=6),
                         ),
                         on_click=lambda e, p=path: self._open_folder(p),
                     ),
@@ -1010,7 +1085,8 @@ class _FilesTab:
                         weight=ft.FontWeight.BOLD),
                 ft.Text("Carpetas de la instancia", color=TEXT_DIM, size=9),
                 ft.Container(height=16),
-                ft.Column(rows, spacing=8, scroll=ft.ScrollMode.AUTO, expand=True),
+                ft.Column(rows, spacing=8, scroll=ft.ScrollMode.AUTO,
+                          expand=True),
             ], spacing=0, expand=True),
         )
 
@@ -1067,7 +1143,8 @@ class _WorldsTab:
                                 weight=ft.FontWeight.BOLD, expand=True),
                     ]),
                 ))
-            content = ft.Column(rows, spacing=8, scroll=ft.ScrollMode.AUTO, expand=True)
+            content = ft.Column(
+                rows, spacing=8, scroll=ft.ScrollMode.AUTO, expand=True)
         else:
             content = ft.Container(
                 expand=True, alignment=ft.alignment.center,
@@ -1075,9 +1152,12 @@ class _WorldsTab:
                     ft.Text("🌍", size=48, text_align=ft.TextAlign.CENTER),
                     ft.Container(height=8),
                     ft.Text("Sin mundos guardados", color=TEXT_SEC, size=14,
-                            text_align=ft.TextAlign.CENTER, weight=ft.FontWeight.BOLD),
-                    ft.Text("Los mundos aparecerán aquí después de jugar.",
-                            color=TEXT_DIM, size=10, text_align=ft.TextAlign.CENTER),
+                            text_align=ft.TextAlign.CENTER,
+                            weight=ft.FontWeight.BOLD),
+                    ft.Text(
+                        "Los mundos aparecerán aquí después de jugar.",
+                        color=TEXT_DIM, size=10,
+                        text_align=ft.TextAlign.CENTER),
                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
             )
 
@@ -1086,8 +1166,10 @@ class _WorldsTab:
             content=ft.Column([
                 ft.Text("Mundos", color=TEXT_PRI, size=16,
                         weight=ft.FontWeight.BOLD),
-                ft.Text(f"{len(worlds)} mundo{'s' if len(worlds) != 1 else ''} guardado{'s' if len(worlds) != 1 else ''}",
-                        color=TEXT_DIM, size=9),
+                ft.Text(
+                    f"{len(worlds)} mundo{'s' if len(worlds) != 1 else ''} "
+                    f"guardado{'s' if len(worlds) != 1 else ''}",
+                    color=TEXT_DIM, size=9),
                 ft.Container(height=16),
                 content,
             ], spacing=0, expand=True),
@@ -1095,7 +1177,7 @@ class _WorldsTab:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Tab: Logs (placeholder)
+# Tab: Logs
 # ══════════════════════════════════════════════════════════════════════════════
 class _LogsTab:
     def __init__(self, page, app, profile):
