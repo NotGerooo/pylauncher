@@ -3,8 +3,7 @@ gui/sidebar_left.py — Sidebar izquierdo icon-only.
 Iconos de navegación principal + instancias de perfil.
 """
 import flet as ft
-_LIBRARY_SVG_DIM   = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236b7280'><path d='M2 3h4v18H2zm6 0h3v18H8zm5 0h2.5L18 21h-2.5zm4.2 0H20l1.8 18h-2z'/></svg>"
-_LIBRARY_SVG_GREEN = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231bd96a'><path d='M2 3h4v18H2zm6 0h3v18H8zm5 0h2.5L18 21h-2.5zm4.2 0H20l1.8 18h-2z'/></svg>"
+
 from gui.theme import (
     SIDEBAR_BG, CARD2_BG, BORDER,
     GREEN, TEXT_INV, TEXT_SEC, TEXT_DIM,
@@ -12,6 +11,9 @@ from gui.theme import (
 )
 
 _SIDEBAR_W = 68
+
+_LIBRARY_SVG_DIM   = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236b7280'><path d='M2 3h4v18H2zm6 0h3v18H8zm5 0h2.5L18 21h-2.5zm4.2 0H20l1.8 18h-2z'/></svg>"
+_LIBRARY_SVG_GREEN = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231bd96a'><path d='M2 3h4v18H2zm6 0h3v18H8zm5 0h2.5L18 21h-2.5zm4.2 0H20l1.8 18h-2z'/></svg>"
 
 
 class SidebarLeft:
@@ -23,8 +25,8 @@ class SidebarLeft:
     # ── Build ─────────────────────────────────────────────────────────────────
     def _build(self):
         top_items = [
-            ("home",     ft.icons.HOME_ROUNDED,     "Inicio"),
-            ("discover", ft.icons.EXPLORE_ROUNDED,  "Descubrir"),
+            ("home",     ft.icons.HOME_ROUNDED,    "Inicio"),
+            ("discover", ft.icons.EXPLORE_ROUNDED, "Descubrir"),
             ("library",  None,                     "Biblioteca"),
         ]
         top_rows = []
@@ -51,8 +53,8 @@ class SidebarLeft:
         )
 
         bottom_items = [
-            ("settings", ft.icons.SETTINGS_ROUNDED,  "Ajustes"),
-            ("accounts", ft.icons.PERSON_ROUNDED,     "Cuenta"),
+            ("settings", ft.icons.SETTINGS_ROUNDED, "Ajustes"),
+            ("accounts", ft.icons.PERSON_ROUNDED,   "Cuenta"),
         ]
         bottom_rows = []
         for vid, icon, tip in bottom_items:
@@ -117,9 +119,9 @@ class SidebarLeft:
         btn = self._nav_btns.get(vid)
         if btn and not btn._active:
             btn.bgcolor = NAV_HOVER if e.data == "true" else SIDEBAR_BG
-            icon = btn.content
-            if isinstance(icon, ft.Icon):
-                icon.color = TEXT_SEC if e.data == "true" else TEXT_DIM
+            widget = btn.content
+            if isinstance(widget, ft.Icon):
+                widget.color = TEXT_SEC if e.data == "true" else TEXT_DIM
             try: btn.update()
             except Exception: pass
 
