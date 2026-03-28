@@ -1,0 +1,16 @@
+[2026-03-28 10:36:45] [INFO    ] [logger] Logger iniciado. Archivo de log: logs\launcher_20260328_103645.log
+[2026-03-28 10:36:45] [DEBUG   ] [settings] Configuración cargada desde data\launcher_settings.json
+[2026-03-28 10:36:45] [INFO    ] [profile_manager] Perfiles cargados: 2
+[2026-03-28 10:36:45] [INFO    ] [account_manager] Cuentas cargadas: 1
+[2026-03-28 10:36:45] [INFO    ] [version_manager] Actualizando caché de versiones disponibles...
+[2026-03-28 10:36:45] [INFO    ] [installer] Descargando manifest de versiones de Mojang...
+[2026-03-28 10:36:45] [INFO    ] [app] Interfaz Flet iniciada
+[2026-03-28 10:36:47] [INFO    ] [installer] Manifest cargado: 876 versiones disponibles
+[2026-03-28 10:36:47] [INFO    ] [version_manager] Caché actualizado: 876 versiones disponibles
+[2026-03-28 10:36:48] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 10:36:52] [INFO    ] [profile_manager] Perfil eliminado: '1.9.4'
+[2026-03-28 10:37:05] [INFO    ] [profile_manager] Perfil creado: '1.9.4 Survival' — MC 1.9.4
+[2026-03-28 10:37:05] [INFO    ] [loader_manager] OptiFine: guardando metadata…
+[2026-03-28 10:37:05] [INFO    ] [loader_manager] Abriendo optifine.net en el navegador…
+[2026-03-28 10:37:05] [INFO    ] [loader_manager] OptiFine: descarga el jar para MC 1.9.4 y colócalo en:
+C:\Users\geron\.minecraft\profiles\1.9.4_Survival\mods
