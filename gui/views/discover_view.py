@@ -48,21 +48,6 @@ _PALETTE = [
 ]
 
 
-class Profile:
-    ...
-    @property
-    def mods_dir(self):
-        return os.path.join(self.game_dir, "mods")
-
-    # ← AQUÍ, justo después de mods_dir
-    @property
-    def resourcepacks_dir(self):
-        return os.path.join(self.game_dir, "resourcepacks")
-
-    @property
-    def shaderpacks_dir(self):
-        return os.path.join(self.game_dir, "shaderpacks")
-
 # ── Helper: widget de icono ────────────────────────────────────────────────────
 def _icon(url: str, title: str, size: int = 52) -> ft.Control:
     color    = _PALETTE[abs(hash(title)) % len(_PALETTE)]

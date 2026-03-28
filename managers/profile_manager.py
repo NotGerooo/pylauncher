@@ -37,7 +37,11 @@ class Profile:
     def saves_dir(self):   return os.path.join(self.game_dir, "saves")
     @property
     def config_dir(self):  return os.path.join(self.game_dir, "config")
-
+    @property
+    def resourcepacks_dir(self): return os.path.join(self.game_dir, "resourcepacks")
+    @property
+    def shaderpacks_dir(self):   return os.path.join(self.game_dir, "shaderpacks")
+    
     def to_dict(self):
         return {
             "id": self.id, "name": self.name,
