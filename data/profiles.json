@@ -1,38 +1,4 @@
 {
     "version": "1.0",
-    "profiles": [
-        {
-            "id": "4a5b0fc1-7f74-47f1-aa3d-3c40a029b720",
-            "name": "Gero",
-            "version_id": "1.21.11",
-            "game_dir": "C:\\Users\\geron\\.pylauncher\\profiles\\Gero",
-            "ram_mb": 8192,
-            "java_path": "",
-            "icon": "grass",
-            "created_at": "2026-03-09T08:36:03.480179",
-            "last_used": "2026-03-09T08:36:03.480179"
-        },
-        {
-            "id": "bc0422e1-6aa1-4631-ae71-4ffcf2a30a4c",
-            "name": "1.9.4 Survival",
-            "version_id": "1.9.4",
-            "game_dir": "C:\\Users\\geron\\.minecraft\\profiles\\1.9.4_Survival",
-            "ram_mb": 8192,
-            "java_path": "",
-            "icon": "grass",
-            "created_at": "2026-03-28T10:37:05.078771",
-            "last_used": "2026-03-28T10:37:05.078771"
-        },
-        {
-            "id": "181ebb93-96d1-406a-a6d7-1eb2954326d2",
-            "name": "1-12-2 Survivals",
-            "version_id": "1.12.2",
-            "game_dir": "C:\\Users\\geron\\.minecraft\\profiles\\1-12-2_Survivals",
-            "ram_mb": 8192,
-            "java_path": "",
-            "icon": "grass",
-            "created_at": "2026-03-28T16:10:48.872697",
-            "last_used": "2026-03-28T16:10:48.872697"
-        }
-    ]
+    "profiles": []
 }
