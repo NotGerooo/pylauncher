@@ -24,7 +24,7 @@ class HomeView:
     # ── Build ─────────────────────────────────────────────────────────────────
     def _build(self):
         # ── Launch card ──────────────────────────────────────────────────────
-        profiles = self.app.profile_manager.get_profile()
+        profiles = self.app.profile_manager.get_all_profiles() # O el nombre que le hayas dado a la lista completa
 
         if profiles:
             profile_dropdown = ft.Dropdown(
