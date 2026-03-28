@@ -89,28 +89,28 @@ class SidebarLeft:
 
     # ── Botón de icono ────────────────────────────────────────────────────────
     def _make_icon_btn(self, vid: str, icon, tooltip: str) -> ft.Container:
-    if vid == "library":
-        icon_widget = ft.Image(
-            src=_LIBRARY_SVG_DIM,
-            width=22, height=22,
-            fit=ft.ImageFit.CONTAIN,
-        )
-    else:
-        icon_widget = ft.Icon(icon, size=22, color=TEXT_DIM)
+        if vid == "library":
+            icon_widget = ft.Image(
+                src=_LIBRARY_SVG_DIM,
+                width=22, height=22,
+                fit=ft.ImageFit.CONTAIN,
+            )
+        else:
+            icon_widget = ft.Icon(icon, size=22, color=TEXT_DIM)
 
-    btn = ft.Container(
-        width=44, height=44,
-        border_radius=10,
-        bgcolor=SIDEBAR_BG,
-        alignment=ft.alignment.center,
-        tooltip=tooltip,
-        content=icon_widget,
-        on_click=lambda e, v=vid: self.app._show_view(v),
-        on_hover=lambda e, v=vid: self._on_hover(e, v),
-    )
-    btn._active = False
-    btn._vid    = vid
-    return btn
+        btn = ft.Container(
+            width=44, height=44,
+            border_radius=10,
+            bgcolor=SIDEBAR_BG,
+            alignment=ft.alignment.center,
+            tooltip=tooltip,
+            content=icon_widget,
+            on_click=lambda e, v=vid: self.app._show_view(v),
+            on_hover=lambda e, v=vid: self._on_hover(e, v),
+        )
+        btn._active = False
+        btn._vid    = vid
+        return btn
 
     def _on_hover(self, e, vid: str):
         btn = self._nav_btns.get(vid)
