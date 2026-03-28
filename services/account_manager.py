@@ -17,7 +17,6 @@ Responsabilidades:
 import json
 import os
 import uuid
-import hashlib
 from datetime import datetime
 from typing import Optional
 from utils.logger import get_logger
@@ -32,23 +31,6 @@ class AccountType:
 
 
 class Account:
-    """
-    Representa una cuenta del launcher.
-
-    Atributos comunes:
-        id          : Identificador único interno (uuid4)
-        type        : "offline" o "microsoft"
-        username    : Nombre visible del jugador
-        uuid        : UUID del jugador para Minecraft
-        skin_path   : Ruta local al PNG de skin (None = usar default)
-
-    Atributos solo Microsoft:
-        access_token        : Token de acceso de Minecraft
-        refresh_token       : Token de refresco de Microsoft
-        token_expiry        : ISO-8601 de cuándo vence el access_token
-        avatar_url          : URL de la skin oficial
-    """
-
     def __init__(
         self,
         account_id:    str,
@@ -71,8 +53,6 @@ class Account:
         self.token_expiry  = token_expiry
         self.avatar_url    = avatar_url
 
-    # ─── Propiedades de conveniencia
-
     @property
     def is_microsoft(self) -> bool:
         return self.type == AccountType.MICROSOFT
@@ -83,7 +63,6 @@ class Account:
 
     @property
     def is_token_expired(self) -> bool:
-        """Retorna True si el access_token de Microsoft ha vencido."""
         if not self.token_expiry:
             return True
         try:
@@ -91,8 +70,6 @@ class Account:
             return datetime.utcnow() >= expiry
         except ValueError:
             return True
-
-    # ─── Serialización
 
     def to_dict(self) -> dict:
         return {
@@ -134,25 +111,6 @@ class AccountError(Exception):
 # ─── AccountManager ──────────────────────────────────────────────────────────
 
 class AccountManager:
-    """
-    Gestiona la lista de cuentas del launcher.
-
-    Uso básico:
-        mgr = AccountManager(data_dir="data/")
-
-        # Agregar cuenta offline
-        account = mgr.add_offline_account("Steve")
-
-        # Listar cuentas
-        for acc in mgr.get_all_accounts():
-            print(acc)
-
-        # Cambiar cuenta activa
-        mgr.set_active_account(account.id)
-
-        # Obtener sesión lista para lanzar
-        session = mgr.build_session(account.id)
-    """
 
     _FILENAME = "accounts.json"
 
@@ -163,24 +121,10 @@ class AccountManager:
         self._active_id: Optional[str] = None
         self._load()
 
-    # ─── API pública — CRUD
+    # ─── CRUD ────────────────────────────────────────────────────────────────
 
     def add_offline_account(self, username: str) -> Account:
-        """
-        Crea y agrega una cuenta offline.
-
-        Args:
-            username: Nombre del jugador (3-16 caracteres, solo letras/números/_)
-
-        Returns:
-            Account recién creada
-
-        Raises:
-            AccountError: Si el username es inválido o ya existe
-        """
         self._validate_username(username)
-
-        # No permitir duplicados (case-insensitive)
         if self._find_by_username(username):
             raise AccountError(f"Ya existe una cuenta con el nombre '{username}'.")
 
@@ -195,8 +139,6 @@ class AccountManager:
         )
 
         self._accounts[account_id] = account
-
-        # Si es la primera cuenta, marcarla como activa
         if not self._active_id:
             self._active_id = account_id
 
@@ -213,16 +155,6 @@ class AccountManager:
         token_expiry:  str,
         avatar_url:    Optional[str] = None,
     ) -> Account:
-        """
-        Agrega una cuenta Microsoft después del flujo OAuth completado.
-
-        Normalmente este método lo llama MicrosoftAuth después
-        del login exitoso. No llamar directamente desde la UI.
-
-        Returns:
-            Account recién creada o actualizada (si ya existía el mismo UUID)
-        """
-        # Si ya existe una cuenta con ese UUID, actualizarla (re-login)
         existing = self._find_by_mc_uuid(player_uuid)
         if existing:
             existing.username      = username
@@ -247,7 +179,6 @@ class AccountManager:
         )
 
         self._accounts[account_id] = account
-
         if not self._active_id:
             self._active_id = account_id
 
@@ -256,24 +187,12 @@ class AccountManager:
         return account
 
     def remove_account(self, account_id: str) -> bool:
-        """
-        Elimina una cuenta del launcher.
-
-        Si era la cuenta activa, se activa la siguiente disponible.
-
-        Returns:
-            True si se eliminó correctamente
-
-        Raises:
-            AccountError: Si el ID no existe
-        """
         if account_id not in self._accounts:
             raise AccountError(f"Cuenta no encontrada: {account_id}")
 
         username = self._accounts[account_id].username
         del self._accounts[account_id]
 
-        # Reasignar activa si era la eliminada
         if self._active_id == account_id:
             remaining = list(self._accounts.keys())
             self._active_id = remaining[0] if remaining else None
@@ -283,12 +202,6 @@ class AccountManager:
         return True
 
     def set_active_account(self, account_id: str):
-        """
-        Establece una cuenta como activa (default al lanzar).
-
-        Raises:
-            AccountError: Si el ID no existe
-        """
         if account_id not in self._accounts:
             raise AccountError(f"Cuenta no encontrada: {account_id}")
         self._active_id = account_id
@@ -296,24 +209,21 @@ class AccountManager:
         log.info(f"Cuenta activa: {self._accounts[account_id].username}")
 
     def get_active_account(self) -> Optional[Account]:
-        """Retorna la cuenta activa, o None si no hay ninguna."""
         return self._accounts.get(self._active_id)
 
     def get_account(self, account_id: str) -> Optional[Account]:
         return self._accounts.get(account_id)
 
     def get_all_accounts(self) -> list[Account]:
-        """Retorna todas las cuentas, activa primero."""
         accounts = list(self._accounts.values())
         accounts.sort(key=lambda a: (a.id != self._active_id, a.username))
         return accounts
 
-def get_account_by_username(self, username: str) -> Optional[Account]:
-    """Retorna la cuenta cuyo username coincide (case-sensitive), o None."""
-    return self._find_by_username(username)
+    def get_account_by_username(self, username: str) -> Optional[Account]:
+        """Retorna la cuenta cuyo username coincide (case-insensitive), o None."""
+        return self._find_by_username(username)
 
     def update_skin(self, account_id: str, skin_path: str):
-        """Actualiza la ruta de skin local para una cuenta offline."""
         account = self._accounts.get(account_id)
         if not account:
             raise AccountError(f"Cuenta no encontrada: {account_id}")
@@ -330,7 +240,6 @@ def get_account_by_username(self, username: str) -> Optional[Account]:
         refresh_token: str,
         token_expiry:  str,
     ):
-        """Actualiza tokens de una cuenta Microsoft después de refrescarlos."""
         account = self._accounts.get(account_id)
         if not account:
             raise AccountError(f"Cuenta no encontrada: {account_id}")
@@ -341,25 +250,9 @@ def get_account_by_username(self, username: str) -> Optional[Account]:
         log.debug(f"Tokens actualizados para: {account.username}")
 
     def build_session(self, account_id: str) -> dict:
-        """
-        Construye el diccionario de sesión listo para pasarle a core/launcher.py.
-
-        El launcher usa:
-            session["username"]     → nombre en el juego
-            session["uuid"]         → UUID del jugador
-            session["access_token"] → token (offline = "0")
-            session["is_online"]    → bool
-
-        Returns:
-            dict con los campos de sesión
-
-        Raises:
-            AccountError: Si la cuenta no existe
-        """
         account = self._accounts.get(account_id)
         if not account:
             raise AccountError(f"Cuenta no encontrada: {account_id}")
-
         return {
             "username":     account.username,
             "uuid":         account.uuid,
@@ -367,7 +260,7 @@ def get_account_by_username(self, username: str) -> Optional[Account]:
             "is_online":    account.is_microsoft,
         }
 
-    # ─── Helpers privados
+    # ─── Helpers privados ────────────────────────────────────────────────────
 
     def _validate_username(self, username: str):
         import re
@@ -382,10 +275,7 @@ def get_account_by_username(self, username: str) -> Optional[Account]:
             raise AccountError("El nombre solo puede contener letras, números y guiones bajos.")
 
     def _offline_uuid(self, username: str) -> str:
-        """UUID v3 determinista, igual que Minecraft offline."""
-        namespace = uuid.UUID("OfflinePlayer" + username, version=3) \
-            if False else uuid.uuid3(uuid.NAMESPACE_DNS, f"OfflinePlayer:{username}")
-        return str(namespace)
+        return str(uuid.uuid3(uuid.NAMESPACE_DNS, f"OfflinePlayer:{username}"))
 
     def _find_by_username(self, username: str) -> Optional[Account]:
         u = username.lower()
@@ -400,7 +290,7 @@ def get_account_by_username(self, username: str) -> Optional[Account]:
                 return acc
         return None
 
-    # ─── Persistencia
+    # ─── Persistencia ────────────────────────────────────────────────────────
 
     def _save(self):
         os.makedirs(self._data_dir, exist_ok=True)
