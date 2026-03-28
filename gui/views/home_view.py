@@ -23,7 +23,7 @@ class HomeView:
     # ── Build ─────────────────────────────────────────────────────────────────
     def _build(self):
         # ── Launch card ──────────────────────────────────────────────────────
-        profiles = profile_manager.get_profiles()
+        profiles = ProfileManager.get_profiles()
 
         if profiles:
             profile_dropdown = ft.Dropdown(
