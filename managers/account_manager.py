@@ -86,6 +86,12 @@ class AccountManager:
     def get_active_account(self) -> Account | None:
         return self._accounts.get(self._active_id)
 
+    def get_account_by_username(self, username: str) -> Account | None:
+        """Devuelve la cuenta cuyo username coincide (case-sensitive)."""
+        return next(
+            (a for a in self._accounts.values() if a.username == username), None
+        )
+
     def set_active_account(self, account_id: str):
         if account_id not in self._accounts:
             raise AccountError("Cuenta no encontrada")
