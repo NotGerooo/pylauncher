@@ -20,7 +20,6 @@ LOADER_LIST = [
     ("neoforge", "NeoForge"),
     ("forge",    "Forge"),
     ("quilt",    "Quilt"),
-    ("optifine", "OptiFine"),
 ]
 
 LOADER_ICONS = {
@@ -130,12 +129,6 @@ class LibraryView:
                 "⚙ Configurar", bgcolor=CARD2_BG, color=TEXT_SEC, height=34,
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=6)),
                 on_click=lambda e, p=profile: self._open_optifine_dialog(p),
-            )
-            if loader == "optifine"
-            else ft.ElevatedButton(
-                "▶ Jugar", bgcolor=GREEN, color=TEXT_INV, height=34,
-                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=6)),
-                on_click=lambda e, p=profile: self._open_launch_dialog(p),
             )
         )
 
