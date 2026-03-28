@@ -28,7 +28,6 @@ LOADER_ICONS = {
     "neoforge": "🔷",
     "forge":    "🔨",
     "quilt":    "🪢",
-    "optifine": "✨",
 }
 
 
