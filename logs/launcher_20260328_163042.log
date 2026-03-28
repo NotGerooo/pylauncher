@@ -5,3 +5,16 @@
 [2026-03-28 16:30:43] [INFO    ] [version_manager] Actualizando caché de versiones disponibles...
 [2026-03-28 16:30:43] [INFO    ] [app] Interfaz Flet iniciada
 [2026-03-28 16:30:43] [INFO    ] [installer] Descargando manifest de versiones de Mojang...
+[2026-03-28 16:30:44] [INFO    ] [installer] Manifest cargado: 876 versiones disponibles
+[2026-03-28 16:30:44] [INFO    ] [version_manager] Caché actualizado: 876 versiones disponibles
+[2026-03-28 16:30:47] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 16:30:50] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=resourcepack, sort=relevance, offset=0)
+[2026-03-28 16:31:02] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=resourcepack, sort=relevance, offset=0)
+[2026-03-28 16:31:04] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=resourcepack, sort=relevance, offset=0)
+[2026-03-28 16:31:06] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=resourcepack, sort=relevance, offset=0)
+[2026-03-28 16:31:07] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 16:31:09] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 16:31:11] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 16:31:16] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 16:31:17] [INFO    ] [modrinth_service] Modrinth: 0 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 16:31:20] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
