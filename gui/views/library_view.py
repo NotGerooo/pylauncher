@@ -223,7 +223,7 @@ class _InstanceDialog:
             self._sel_loader = meta.get("loader", "vanilla") if isinstance(meta, dict) else "vanilla"
             self._sel_mc     = profile.version_id
             self._sel_lv_key = "stable"          # pill
-            self._sel_lv_val = meta.get("loader_version") or ""
+            self._sel_lv_val = meta.get("loader_version") if isinstance(meta, dict) else ""
         else:
             self._sel_loader = "vanilla"
             self._sel_mc     = ""
