@@ -638,8 +638,6 @@ class DiscoverView:
 
         threading.Thread(target=do_install, daemon=True).start()
 
-        threading.Thread(target=do_install, daemon=True).start()
-
     def _refresh_installed_badges(self):
         """Reconstruye todas las tarjetas para actualizar badges Instalado."""
         controls = []
