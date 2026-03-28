@@ -285,6 +285,10 @@ def _save_loader_meta(game_dir: str, meta: dict):
 def load_loader_meta(game_dir: str) -> dict:
     path = os.path.join(game_dir, "loader_meta.json")
     if not os.path.isfile(path):
-        return {}
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+        return {"loader": "vanilla"}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {"loader": "vanilla"}
+    except Exception:
+        return {"loader": "vanilla"}
