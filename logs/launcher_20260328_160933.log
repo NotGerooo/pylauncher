@@ -32,3 +32,21 @@
 [2026-03-28 16:09:50] [INFO    ] [launcher] Assets index usado: 1.9
 [2026-03-28 16:09:50] [DEBUG   ] [launcher] Comando construido con 32 partes
 [2026-03-28 16:09:50] [INFO    ] [launcher] Minecraft iniciado con PID: 16848
+[2026-03-28 16:09:52] [DEBUG   ] [launcher] [MC] [16:09:52] [Client thread/INFO]: Setting user: Geronimin
+[2026-03-28 16:09:52] [INFO    ] [home_view] [MC] [16:09:52] [Client thread/INFO]: Setting user: Geronimin
+[2026-03-28 16:09:53] [DEBUG   ] [launcher] [MC] [16:09:53] [Client thread/INFO]: LWJGL Version: 2.9.4
+[2026-03-28 16:09:53] [INFO    ] [home_view] [MC] [16:09:53] [Client thread/INFO]: LWJGL Version: 2.9.4
+[2026-03-28 16:09:55] [DEBUG   ] [launcher] [MC] [16:09:55] [Client thread/INFO]: Reloading ResourceManager: Default
+[2026-03-28 16:09:55] [INFO    ] [home_view] [MC] [16:09:55] [Client thread/INFO]: Reloading ResourceManager: Default
+[2026-03-28 16:09:55] [DEBUG   ] [launcher] [MC] [16:09:55] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[2026-03-28 16:09:55] [INFO    ] [home_view] [MC] [16:09:55] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[2026-03-28 16:09:56] [DEBUG   ] [launcher] [MC] [16:09:56] [Thread-4/INFO]: Initializing LWJGL OpenAL
+[2026-03-28 16:09:56] [INFO    ] [home_view] [MC] [16:09:56] [Thread-4/INFO]: Initializing LWJGL OpenAL
+[2026-03-28 16:09:56] [DEBUG   ] [launcher] [MC] [16:09:56] [Thread-4/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[2026-03-28 16:09:56] [INFO    ] [home_view] [MC] [16:09:56] [Thread-4/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[2026-03-28 16:09:56] [DEBUG   ] [launcher] [MC] [16:09:56] [Thread-4/INFO]: OpenAL initialized.
+[2026-03-28 16:09:56] [INFO    ] [home_view] [MC] [16:09:56] [Thread-4/INFO]: OpenAL initialized.
+[2026-03-28 16:09:56] [DEBUG   ] [launcher] [MC] [16:09:56] [Sound Library Loader/INFO]: Sound engine started
+[2026-03-28 16:09:56] [INFO    ] [home_view] [MC] [16:09:56] [Sound Library Loader/INFO]: Sound engine started
+[2026-03-28 16:09:57] [DEBUG   ] [launcher] [MC] [16:09:57] [Client thread/INFO]: Created: 1024x512 textures-atlas
+[2026-03-28 16:09:57] [INFO    ] [home_view] [MC] [16:09:57] [Client thread/INFO]: Created: 1024x512 textures-atlas
