@@ -24,7 +24,7 @@ from managers.profile_manager import Profile
 from managers.java_manager import JavaManager
 from services.auth_service import PlayerSession
 from utils.logger import get_logger
-import managers.loader_manager as LoaderManager
+from managers.loader_manager import LoaderManager
 
 log = get_logger()
 
