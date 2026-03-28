@@ -12,9 +12,6 @@ from gui.theme import (
 
 _SIDEBAR_W = 68
 
-_LIBRARY_SVG_DIM   = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236b7280'><path d='M2 3h4v18H2zm6 0h3v18H8zm5 0h2.5L18 21h-2.5zm4.2 0H20l1.8 18h-2z'/></svg>"
-_LIBRARY_SVG_GREEN = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231bd96a'><path d='M2 3h4v18H2zm6 0h3v18H8zm5 0h2.5L18 21h-2.5zm4.2 0H20l1.8 18h-2z'/></svg>"
-
 
 class SidebarLeft:
     def __init__(self, app):
@@ -25,9 +22,9 @@ class SidebarLeft:
     # ── Build ─────────────────────────────────────────────────────────────────
     def _build(self):
         top_items = [
-            ("home",     ft.icons.HOME_ROUNDED,    "Inicio"),
-            ("discover", ft.icons.EXPLORE_ROUNDED, "Descubrir"),
-            ("library", ft.icons.LIBRARY_BOOKS_ROUNDED, "Biblioteca"),
+            ("home",     ft.icons.HOME_ROUNDED,     "Inicio"),
+            ("discover", ft.icons.EXPLORE_ROUNDED,  "Descubrir"),
+            ("library",  ft.icons.LIBRARY_BOOKS_ROUNDED, "Biblioteca"),
         ]
         top_rows = []
         for vid, icon, tip in top_items:
@@ -53,8 +50,8 @@ class SidebarLeft:
         )
 
         bottom_items = [
-            ("settings", ft.icons.SETTINGS_ROUNDED, "Ajustes"),
-            ("accounts", ft.icons.PERSON_ROUNDED,   "Cuenta"),
+            ("settings", ft.icons.SETTINGS_ROUNDED,  "Ajustes"),
+            ("accounts", ft.icons.PERSON_ROUNDED,     "Cuenta"),
         ]
         bottom_rows = []
         for vid, icon, tip in bottom_items:
@@ -92,22 +89,13 @@ class SidebarLeft:
 
     # ── Botón de icono ────────────────────────────────────────────────────────
     def _make_icon_btn(self, vid: str, icon, tooltip: str) -> ft.Container:
-        if vid == "library":
-            icon_widget = ft.Image(
-                src=_LIBRARY_SVG_DIM,
-                width=22, height=22,
-                fit=ft.ImageFit.CONTAIN,
-            )
-        else:
-            icon_widget = ft.Icon(icon, size=22, color=TEXT_DIM)
-
         btn = ft.Container(
             width=44, height=44,
             border_radius=10,
             bgcolor=SIDEBAR_BG,
             alignment=ft.alignment.center,
             tooltip=tooltip,
-            content=icon_widget,
+            content=ft.Icon(icon, size=22, color=TEXT_DIM),
             on_click=lambda e, v=vid: self.app._show_view(v),
             on_hover=lambda e, v=vid: self._on_hover(e, v),
         )
@@ -119,9 +107,9 @@ class SidebarLeft:
         btn = self._nav_btns.get(vid)
         if btn and not btn._active:
             btn.bgcolor = NAV_HOVER if e.data == "true" else SIDEBAR_BG
-            widget = btn.content
-            if isinstance(widget, ft.Icon):
-                widget.color = TEXT_SEC if e.data == "true" else TEXT_DIM
+            icon = btn.content
+            if isinstance(icon, ft.Icon):
+                icon.color = TEXT_SEC if e.data == "true" else TEXT_DIM
             try: btn.update()
             except Exception: pass
 
@@ -131,11 +119,9 @@ class SidebarLeft:
             active = (v == vid)
             btn._active = active
             btn.bgcolor = NAV_ACTIVE if active else SIDEBAR_BG
-            widget = btn.content
-            if isinstance(widget, ft.Image):
-                widget.src = _LIBRARY_SVG_GREEN if active else _LIBRARY_SVG_DIM
-            elif isinstance(widget, ft.Icon):
-                widget.color = GREEN if active else TEXT_DIM
+            icon = btn.content
+            if isinstance(icon, ft.Icon):
+                icon.color = GREEN if active else TEXT_DIM
             try: btn.update()
             except Exception: pass
 
