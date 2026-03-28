@@ -7,3 +7,4 @@
 [2026-03-28 16:33:00] [INFO    ] [app] Interfaz Flet iniciada
 [2026-03-28 16:33:01] [INFO    ] [installer] Manifest cargado: 876 versiones disponibles
 [2026-03-28 16:33:01] [INFO    ] [version_manager] Caché actualizado: 876 versiones disponibles
+[2026-03-28 16:51:33] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
