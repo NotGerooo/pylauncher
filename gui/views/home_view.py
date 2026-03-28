@@ -25,29 +25,29 @@ class HomeView:
         # ── Launch card ──────────────────────────────────────────────────────
         profiles = profile_manager.get_profiles()
 
-if profiles:
-    profile_dropdown = ft.Dropdown(
-        label="Perfil",
-        options=[
-            ft.dropdown.Option(p.name) for p in profiles
-        ],
-        value=profiles[0].name,
-        expand=True
-    )
-else:
-    profile_dropdown = ft.Column(
-        [
-            ft.Text(
-                "No tienes perfiles creados",
-                color="red",
-                size=14
-            ),
-            ft.ElevatedButton(
-                "Crear perfil",
-                on_click=lambda e: page.go("/create_profile")
+        if profiles:
+            profile_dropdown = ft.Dropdown(
+                label="Perfil",
+                options=[
+                    ft.dropdown.Option(p.name) for p in profiles
+                ],
+                value=profiles[0].name,
+                expand=True
             )
-        ]
-    )
+        else:
+            profile_dropdown = ft.Column(
+                [
+                    ft.Text(
+                        "No tienes perfiles creados",
+                        color="red",
+                        size=14
+                    ),
+                    ft.ElevatedButton(
+                        "Crear perfil",
+                        on_click=lambda e: page.go("/create_profile")
+                    )
+                ]
+            )
 
         self._profile_dd = ft.Dropdown(
             label="Perfil",
