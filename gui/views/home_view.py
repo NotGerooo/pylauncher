@@ -23,18 +23,31 @@ class HomeView:
     # ── Build ─────────────────────────────────────────────────────────────────
     def _build(self):
         # ── Launch card ──────────────────────────────────────────────────────
-        self._username_field = ft.TextField(
-            value="Player",
-            label="Usuario",
-            label_style=ft.TextStyle(color=TEXT_DIM, size=10),
-            color=TEXT_PRI,
-            bgcolor=INPUT_BG,
-            border_color=BORDER,
-            focused_border_color=GREEN,
-            border_radius=8,
-            content_padding=ft.padding.symmetric(horizontal=12, vertical=10),
-            width=200,
-        )
+        profiles = profile_manager.get_profiles()
+
+if profiles:
+    profile_dropdown = ft.Dropdown(
+        label="Perfil",
+        options=[
+            ft.dropdown.Option(p.name) for p in profiles
+        ],
+        value=profiles[0].name,
+        expand=True
+    )
+else:
+    profile_dropdown = ft.Column(
+        [
+            ft.Text(
+                "No tienes perfiles creados",
+                color="red",
+                size=14
+            ),
+            ft.ElevatedButton(
+                "Crear perfil",
+                on_click=lambda e: page.go("/create_profile")
+            )
+        ]
+    )
 
         self._profile_dd = ft.Dropdown(
             label="Perfil",
