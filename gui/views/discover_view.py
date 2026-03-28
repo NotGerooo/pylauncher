@@ -626,6 +626,7 @@ class DiscoverView:
                         "Sin versión compatible con este perfil.", error=True))
                     return
                 target = self._target_dir(profile)          # ← cambiado
+                os.makedirs(target, exist_ok=True) 
                 self.app.modrinth_service.download_mod_version(version, target)
                 self._installed_set = self._get_installed_set(profile)
                 self.page.run_thread(lambda: self.app.snack(
