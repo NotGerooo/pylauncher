@@ -220,7 +220,7 @@ class _InstanceDialog:
         from managers.loader_manager import load_loader_meta
         if profile:
             meta = load_loader_meta(profile.game_dir)
-            self._sel_loader = meta.get("loader", "vanilla")
+            self._sel_loader = meta.get("loader", "vanilla") if isinstance(meta, dict) else "vanilla"
             self._sel_mc     = profile.version_id
             self._sel_lv_key = "stable"          # pill
             self._sel_lv_val = meta.get("loader_version") or ""
