@@ -26,7 +26,7 @@ from utils.logger import get_logger
 log = get_logger()
 
 # ── Constantes ────────────────────────────────────────────────────────────────
-LOADERS        = ["fabric", "forge", "neoforge", "quilt", "optifine"]
+LOADERS        = ["fabric", "forge", "neoforge", "quilt"]
 SORT_OPTIONS   = ["relevance", "downloads", "follows", "newest", "updated"]
 SORT_LABELS    = {
     "relevance": "Relevancia",
