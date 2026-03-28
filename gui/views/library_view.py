@@ -83,8 +83,7 @@ class LibraryView:
         else:
             for p in profiles:
                 self._list_col.controls.append(self._build_card(p))
-        try: self._list_col.update()
-        except Exception: pass
+        self.page.update()
 
     # ── Estado vacío ──────────────────────────────────────────────────────────
     def _empty_state(self) -> ft.Control:
