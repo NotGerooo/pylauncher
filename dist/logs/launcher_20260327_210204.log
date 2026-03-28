@@ -1,0 +1,340 @@
+[2026-03-27 21:02:04] [INFO    ] [logger] Logger iniciado. Archivo de log: logs\launcher_20260327_210204.log
+[2026-03-27 21:02:04] [DEBUG   ] [settings] Configuración cargada desde data\launcher_settings.json
+[2026-03-27 21:02:04] [INFO    ] [profile_manager] Perfiles cargados: 3
+[2026-03-27 21:02:04] [INFO    ] [account_manager] Cuentas cargadas: 1
+[2026-03-27 21:02:04] [INFO    ] [version_manager] Actualizando caché de versiones disponibles...
+[2026-03-27 21:02:04] [INFO    ] [installer] Descargando manifest de versiones de Mojang...
+[2026-03-27 21:02:04] [INFO    ] [app] Interfaz Flet iniciada
+[2026-03-27 21:02:05] [INFO    ] [installer] Manifest cargado: 876 versiones disponibles
+[2026-03-27 21:02:05] [INFO    ] [version_manager] Caché actualizado: 876 versiones disponibles
+[2026-03-27 21:02:08] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-27 21:02:18] [INFO    ] [profile_manager] Perfil actualizado: '1.9.4 Survival'
+[2026-03-27 21:02:18] [INFO    ] [loader_manager] OptiFine: guardando metadata…
+[2026-03-27 21:02:18] [INFO    ] [loader_manager] OptiFine: descarga el jar manualmente desde optifine.net → mods/
+[2026-03-27 21:02:22] [INFO    ] [auth_service] Sesion offline creada para: Geronimin (UUID: 53f57021-5ef5-30dd-88a8-b0839da0642a)
+[2026-03-27 21:02:22] [INFO    ] [launcher] === Lanzando Minecraft 1.9.4 para 'Geronimin' ===
+[2026-03-27 21:02:22] [INFO    ] [launcher] Sin install_id en loader_meta — lanzando vanilla
+[2026-03-27 21:02:22] [INFO    ] [launcher] Versión efectiva de lanzamiento: 1.9.4
+[2026-03-27 21:02:22] [INFO    ] [java_manager] Usando Java embebido: C:\Users\geron\.minecraft\runtime\java-runtime-delta\bin\java.exe
+[2026-03-27 21:02:22] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl\lwjgl\2.9.2-nightly-20140822\lwjgl-2.9.2-nightly-20140822.jar
+[2026-03-27 21:02:22] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl\lwjgl_util\2.9.2-nightly-20140822\lwjgl_util-2.9.2-nightly-20140822.jar
+[2026-03-27 21:02:22] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl\lwjgl-platform\2.9.2-nightly-20140822\lwjgl-platform-2.9.2-nightly-20140822.jar
+[2026-03-27 21:02:22] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\net\java\jinput\jinput-platform\2.0.5\jinput-platform-2.0.5.jar
+[2026-03-27 21:02:22] [DEBUG   ] [launcher] Classpath con 32 entradas
+[2026-03-27 21:02:22] [INFO    ] [launcher] Assets index usado: 1.9
+[2026-03-27 21:02:22] [DEBUG   ] [launcher] Comando construido con 32 partes
+[2026-03-27 21:02:22] [INFO    ] [launcher] Minecraft iniciado con PID: 4688
+[2026-03-27 21:02:24] [DEBUG   ] [launcher] [MC] [21:02:24] [Client thread/INFO]: Setting user: Geronimin
+[2026-03-27 21:02:24] [INFO    ] [home_view] [MC] [21:02:24] [Client thread/INFO]: Setting user: Geronimin
+[2026-03-27 21:02:25] [DEBUG   ] [launcher] [MC] [21:02:25] [Client thread/INFO]: LWJGL Version: 2.9.4
+[2026-03-27 21:02:25] [INFO    ] [home_view] [MC] [21:02:25] [Client thread/INFO]: LWJGL Version: 2.9.4
+[2026-03-27 21:02:27] [DEBUG   ] [launcher] [MC] [21:02:27] [Client thread/INFO]: Reloading ResourceManager: Default
+[2026-03-27 21:02:27] [INFO    ] [home_view] [MC] [21:02:27] [Client thread/INFO]: Reloading ResourceManager: Default
+[2026-03-27 21:02:27] [DEBUG   ] [launcher] [MC] [21:02:27] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[2026-03-27 21:02:27] [INFO    ] [home_view] [MC] [21:02:27] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[2026-03-27 21:02:27] [DEBUG   ] [launcher] [MC] [21:02:27] [Thread-4/INFO]: Initializing LWJGL OpenAL
+[2026-03-27 21:02:27] [INFO    ] [home_view] [MC] [21:02:27] [Thread-4/INFO]: Initializing LWJGL OpenAL
+[2026-03-27 21:02:27] [DEBUG   ] [launcher] [MC] [21:02:27] [Thread-4/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[2026-03-27 21:02:27] [INFO    ] [home_view] [MC] [21:02:27] [Thread-4/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[2026-03-27 21:02:28] [DEBUG   ] [launcher] [MC] [21:02:28] [Thread-4/INFO]: OpenAL initialized.
+[2026-03-27 21:02:28] [INFO    ] [home_view] [MC] [21:02:28] [Thread-4/INFO]: OpenAL initialized.
+[2026-03-27 21:02:28] [DEBUG   ] [launcher] [MC] [21:02:28] [Sound Library Loader/INFO]: Sound engine started
+[2026-03-27 21:02:28] [INFO    ] [home_view] [MC] [21:02:28] [Sound Library Loader/INFO]: Sound engine started
+[2026-03-27 21:02:28] [DEBUG   ] [launcher] [MC] [21:02:28] [Client thread/INFO]: Created: 1024x512 textures-atlas
+[2026-03-27 21:02:28] [INFO    ] [home_view] [MC] [21:02:28] [Client thread/INFO]: Created: 1024x512 textures-atlas
+[2026-03-27 21:02:38] [DEBUG   ] [launcher] [MC] mar 27, 2026 9:02:38 P.?M. io.netty.util.internal.PlatformDependent <clinit>
+[2026-03-27 21:02:38] [INFO    ] [home_view] [MC] mar 27, 2026 9:02:38 P.?M. io.netty.util.internal.PlatformDependent <clinit>
+[2026-03-27 21:02:38] [DEBUG   ] [launcher] [MC] INFORMACI�N: Your platform does not provide complete low-level API for accessing direct buffers reliably. Unless explicitly requested, heap buffer will always be preferred to avoid potential system unstability.
+[2026-03-27 21:02:38] [INFO    ] [home_view] [MC] INFORMACI�N: Your platform does not provide complete low-level API for accessing direct buffers reliably. Unless explicitly requested, heap buffer will always be preferred to avoid potential system unstability.
+[2026-03-27 21:02:39] [DEBUG   ] [launcher] [MC] [21:02:39] [Client thread/ERROR]: Can't ping Old-Building-SG.aternos.me:24744: Internal Exception: java.net.SocketException: Connection reset
+[2026-03-27 21:02:39] [INFO    ] [home_view] [MC] [21:02:39] [Client thread/ERROR]: Can't ping Old-Building-SG.aternos.me:24744: Internal Exception: java.net.SocketException: Connection reset
+[2026-03-27 21:03:02] [DEBUG   ] [launcher] [MC] [21:03:02] [Client thread/ERROR]: Can't ping Old-Building-SDG.aternos.me:24744: Internal Exception: java.net.SocketException: Connection reset
+[2026-03-27 21:03:02] [INFO    ] [home_view] [MC] [21:03:02] [Client thread/ERROR]: Can't ping Old-Building-SDG.aternos.me:24744: Internal Exception: java.net.SocketException: Connection reset
+[2026-03-27 21:03:05] [DEBUG   ] [launcher] [MC] [21:03:05] [Client thread/INFO]: Connecting to Old-Building-SDG.aternos.me, 24744
+[2026-03-27 21:03:05] [INFO    ] [home_view] [MC] [21:03:05] [Client thread/INFO]: Connecting to Old-Building-SDG.aternos.me, 24744
+[2026-03-27 21:03:06] [DEBUG   ] [launcher] [MC] [21:03:06] [Client thread/INFO]: [CHAT] Geronimin joined the game
+[2026-03-27 21:03:06] [INFO    ] [home_view] [MC] [21:03:06] [Client thread/INFO]: [CHAT] Geronimin joined the game
+[2026-03-27 21:04:13] [DEBUG   ] [launcher] [MC] [21:04:13] [Client thread/INFO]: [CHAT] Geronimin has just earned the achievement [Getting an Upgrade]
+[2026-03-27 21:04:13] [INFO    ] [home_view] [MC] [21:04:13] [Client thread/INFO]: [CHAT] Geronimin has just earned the achievement [Getting an Upgrade]
+[2026-03-27 21:04:17] [DEBUG   ] [launcher] [MC] [21:04:17] [Client thread/INFO]: [CHAT] Geronimin has just earned the achievement [Time to Strike!]
+[2026-03-27 21:04:17] [INFO    ] [home_view] [MC] [21:04:17] [Client thread/INFO]: [CHAT] Geronimin has just earned the achievement [Time to Strike!]
+[2026-03-27 21:10:34] [DEBUG   ] [launcher] [MC] [21:10:34] [Client thread/INFO]: Reloading ResourceManager: Default
+[2026-03-27 21:10:34] [INFO    ] [home_view] [MC] [21:10:34] [Client thread/INFO]: Reloading ResourceManager: Default
+[2026-03-27 21:10:35] [DEBUG   ] [launcher] [MC] [21:10:35] [Client thread/INFO]: SoundSystem shutting down...
+[2026-03-27 21:10:35] [INFO    ] [home_view] [MC] [21:10:35] [Client thread/INFO]: SoundSystem shutting down...
+[2026-03-27 21:10:35] [DEBUG   ] [launcher] [MC] [21:10:35] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
+[2026-03-27 21:10:35] [INFO    ] [home_view] [MC] [21:10:35] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
+[2026-03-27 21:10:35] [DEBUG   ] [launcher] [MC] [21:10:35] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[2026-03-27 21:10:35] [INFO    ] [home_view] [MC] [21:10:35] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[2026-03-27 21:10:35] [DEBUG   ] [launcher] [MC] [21:10:35] [Thread-7/INFO]: Initializing LWJGL OpenAL
+[2026-03-27 21:10:35] [INFO    ] [home_view] [MC] [21:10:35] [Thread-7/INFO]: Initializing LWJGL OpenAL
+[2026-03-27 21:10:35] [DEBUG   ] [launcher] [MC] [21:10:35] [Thread-7/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[2026-03-27 21:10:35] [INFO    ] [home_view] [MC] [21:10:35] [Thread-7/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[2026-03-27 21:10:36] [DEBUG   ] [launcher] [MC] [21:10:36] [Thread-7/INFO]: OpenAL initialized.
+[2026-03-27 21:10:36] [INFO    ] [home_view] [MC] [21:10:36] [Thread-7/INFO]: OpenAL initialized.
+[2026-03-27 21:10:36] [DEBUG   ] [launcher] [MC] [21:10:36] [Client thread/INFO]: Created: 1024x512 textures-atlas
+[2026-03-27 21:10:36] [INFO    ] [home_view] [MC] [21:10:36] [Client thread/INFO]: Created: 1024x512 textures-atlas
+[2026-03-27 21:10:36] [DEBUG   ] [launcher] [MC] [21:10:36] [Sound Library Loader/INFO]: Sound engine started
+[2026-03-27 21:10:36] [INFO    ] [home_view] [MC] [21:10:36] [Sound Library Loader/INFO]: Sound engine started
+[2026-03-27 21:10:36] [DEBUG   ] [launcher] [MC] [21:10:36] [Client thread/INFO]: Reloading ResourceManager: Default
+[2026-03-27 21:10:36] [INFO    ] [home_view] [MC] [21:10:36] [Client thread/INFO]: Reloading ResourceManager: Default
+[2026-03-27 21:10:37] [DEBUG   ] [launcher] [MC] [21:10:37] [Client thread/INFO]: SoundSystem shutting down...
+[2026-03-27 21:10:37] [INFO    ] [home_view] [MC] [21:10:37] [Client thread/INFO]: SoundSystem shutting down...
+[2026-03-27 21:10:37] [DEBUG   ] [launcher] [MC] [21:10:37] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
+[2026-03-27 21:10:37] [INFO    ] [home_view] [MC] [21:10:37] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
+[2026-03-27 21:10:37] [DEBUG   ] [launcher] [MC] [21:10:37] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[2026-03-27 21:10:37] [INFO    ] [home_view] [MC] [21:10:37] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[2026-03-27 21:10:37] [DEBUG   ] [launcher] [MC] [21:10:37] [Thread-9/INFO]: Initializing LWJGL OpenAL
+[2026-03-27 21:10:37] [INFO    ] [home_view] [MC] [21:10:37] [Thread-9/INFO]: Initializing LWJGL OpenAL
+[2026-03-27 21:10:37] [DEBUG   ] [launcher] [MC] [21:10:37] [Thread-9/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[2026-03-27 21:10:37] [INFO    ] [home_view] [MC] [21:10:37] [Thread-9/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[2026-03-27 21:10:37] [DEBUG   ] [launcher] [MC] [21:10:37] [Client thread/INFO]: Created: 1024x512 textures-atlas
+[2026-03-27 21:10:37] [INFO    ] [home_view] [MC] [21:10:37] [Client thread/INFO]: Created: 1024x512 textures-atlas
+[2026-03-27 21:10:37] [DEBUG   ] [launcher] [MC] [21:10:37] [Thread-9/INFO]: OpenAL initialized.
+[2026-03-27 21:10:37] [INFO    ] [home_view] [MC] [21:10:37] [Thread-9/INFO]: OpenAL initialized.
+[2026-03-27 21:10:37] [DEBUG   ] [launcher] [MC] [21:10:37] [Sound Library Loader/INFO]: Sound engine started
+[2026-03-27 21:10:37] [INFO    ] [home_view] [MC] [21:10:37] [Sound Library Loader/INFO]: Sound engine started
+[2026-03-27 21:10:49] [DEBUG   ] [launcher] [MC] [21:10:49] [Client thread/INFO]: Reloading ResourceManager: Default
+[2026-03-27 21:10:49] [INFO    ] [home_view] [MC] [21:10:49] [Client thread/INFO]: Reloading ResourceManager: Default
+[2026-03-27 21:10:49] [DEBUG   ] [launcher] [MC] [21:10:49] [Client thread/INFO]: SoundSystem shutting down...
+[2026-03-27 21:10:49] [INFO    ] [home_view] [MC] [21:10:49] [Client thread/INFO]: SoundSystem shutting down...
+[2026-03-27 21:10:49] [DEBUG   ] [launcher] [MC] [21:10:49] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
+[2026-03-27 21:10:49] [INFO    ] [home_view] [MC] [21:10:49] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
+[2026-03-27 21:10:49] [DEBUG   ] [launcher] [MC] [21:10:49] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[2026-03-27 21:10:49] [INFO    ] [home_view] [MC] [21:10:49] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[2026-03-27 21:10:50] [DEBUG   ] [launcher] [MC] [21:10:50] [Thread-11/INFO]: Initializing LWJGL OpenAL
+[2026-03-27 21:10:50] [INFO    ] [home_view] [MC] [21:10:50] [Thread-11/INFO]: Initializing LWJGL OpenAL
+[2026-03-27 21:10:50] [DEBUG   ] [launcher] [MC] [21:10:50] [Thread-11/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[2026-03-27 21:10:50] [INFO    ] [home_view] [MC] [21:10:50] [Thread-11/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[2026-03-27 21:10:50] [DEBUG   ] [launcher] [MC] [21:10:50] [Client thread/INFO]: Created: 1024x512 textures-atlas
+[2026-03-27 21:10:50] [INFO    ] [home_view] [MC] [21:10:50] [Client thread/INFO]: Created: 1024x512 textures-atlas
+[2026-03-27 21:10:50] [DEBUG   ] [launcher] [MC] [21:10:50] [Thread-11/INFO]: OpenAL initialized.
+[2026-03-27 21:10:50] [INFO    ] [home_view] [MC] [21:10:50] [Thread-11/INFO]: OpenAL initialized.
+[2026-03-27 21:10:50] [DEBUG   ] [launcher] [MC] [21:10:50] [Client thread/INFO]: Reloading ResourceManager: Default
+[2026-03-27 21:10:50] [INFO    ] [home_view] [MC] [21:10:50] [Client thread/INFO]: Reloading ResourceManager: Default
+[2026-03-27 21:10:50] [DEBUG   ] [launcher] [MC] [21:10:50] [Sound Library Loader/INFO]: Sound engine started
+[2026-03-27 21:10:50] [INFO    ] [home_view] [MC] [21:10:50] [Sound Library Loader/INFO]: Sound engine started
+[2026-03-27 21:10:50] [DEBUG   ] [launcher] [MC] [21:10:50] [Client thread/INFO]: SoundSystem shutting down...
+[2026-03-27 21:10:50] [INFO    ] [home_view] [MC] [21:10:50] [Client thread/INFO]: SoundSystem shutting down...
+[2026-03-27 21:10:50] [DEBUG   ] [launcher] [MC] [21:10:50] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
+[2026-03-27 21:10:50] [INFO    ] [home_view] [MC] [21:10:50] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
+[2026-03-27 21:10:50] [DEBUG   ] [launcher] [MC] [21:10:50] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[2026-03-27 21:10:50] [INFO    ] [home_view] [MC] [21:10:50] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[2026-03-27 21:10:51] [DEBUG   ] [launcher] [MC] [21:10:51] [Client thread/INFO]: Created: 1024x512 textures-atlas
+[2026-03-27 21:10:51] [INFO    ] [home_view] [MC] [21:10:51] [Client thread/INFO]: Created: 1024x512 textures-atlas
+[2026-03-27 21:10:51] [DEBUG   ] [launcher] [MC] [21:10:51] [Thread-13/INFO]: Initializing LWJGL OpenAL
+[2026-03-27 21:10:51] [INFO    ] [home_view] [MC] [21:10:51] [Thread-13/INFO]: Initializing LWJGL OpenAL
+[2026-03-27 21:10:51] [DEBUG   ] [launcher] [MC] [21:10:51] [Thread-13/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[2026-03-27 21:10:51] [INFO    ] [home_view] [MC] [21:10:51] [Thread-13/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[2026-03-27 21:10:51] [DEBUG   ] [launcher] [MC] [21:10:51] [Thread-13/INFO]: OpenAL initialized.
+[2026-03-27 21:10:51] [INFO    ] [home_view] [MC] [21:10:51] [Thread-13/INFO]: OpenAL initialized.
+[2026-03-27 21:10:51] [DEBUG   ] [launcher] [MC] [21:10:51] [Sound Library Loader/INFO]: Sound engine started
+[2026-03-27 21:10:51] [INFO    ] [home_view] [MC] [21:10:51] [Sound Library Loader/INFO]: Sound engine started
+[2026-03-27 21:10:53] [DEBUG   ] [launcher] [MC] [21:10:53] [Realms Notification Availability checker #1/ERROR]: Could not parse RealmsError: com.google.gson.stream.MalformedJsonException: Use JsonReader.setLenient(true) to accept malformed JSON at line 1 column 12
+[2026-03-27 21:10:53] [INFO    ] [home_view] [MC] [21:10:53] [Realms Notification Availability checker #1/ERROR]: Could not parse RealmsError: com.google.gson.stream.MalformedJsonException: Use JsonReader.setLenient(true) to accept malformed JSON at line 1 column 12
+[2026-03-27 21:10:53] [DEBUG   ] [launcher] [MC] [21:10:53] [Realms Notification Availability checker #1/ERROR]: The error was: <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+[2026-03-27 21:10:53] [INFO    ] [home_view] [MC] [21:10:53] [Realms Notification Availability checker #1/ERROR]: The error was: <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+[2026-03-27 21:10:53] [DEBUG   ] [launcher] [MC] <html><head>
+[2026-03-27 21:10:53] [INFO    ] [home_view] [MC] <html><head>
+[2026-03-27 21:10:53] [DEBUG   ] [launcher] [MC] <title>404 Not Found</title>
+[2026-03-27 21:10:53] [INFO    ] [home_view] [MC] <title>404 Not Found</title>
+[2026-03-27 21:10:53] [DEBUG   ] [launcher] [MC] </head><body>
+[2026-03-27 21:10:53] [INFO    ] [home_view] [MC] </head><body>
+[2026-03-27 21:10:53] [DEBUG   ] [launcher] [MC] <h1>Not Found</h1>
+[2026-03-27 21:10:53] [INFO    ] [home_view] [MC] <h1>Not Found</h1>
+[2026-03-27 21:10:53] [DEBUG   ] [launcher] [MC] <p>The requested URL was not found on this server.</p>
+[2026-03-27 21:10:53] [INFO    ] [home_view] [MC] <p>The requested URL was not found on this server.</p>
+[2026-03-27 21:10:53] [DEBUG   ] [launcher] [MC] <hr>
+[2026-03-27 21:10:53] [INFO    ] [home_view] [MC] <hr>
+[2026-03-27 21:10:53] [DEBUG   ] [launcher] [MC] <address>Apache Server at mcoapi.minecraft.net Port 443</address>
+[2026-03-27 21:10:53] [INFO    ] [home_view] [MC] <address>Apache Server at mcoapi.minecraft.net Port 443</address>
+[2026-03-27 21:10:53] [DEBUG   ] [launcher] [MC] </body></html>
+[2026-03-27 21:10:53] [INFO    ] [home_view] [MC] </body></html>
+[2026-03-27 21:10:53] [DEBUG   ] [launcher] [MC] [21:10:53] [Realms Notification Availability checker #1/ERROR]: Realms http code: 404 -  error code: 0 -  message: null - raw body: <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+[2026-03-27 21:10:53] [INFO    ] [home_view] [MC] [21:10:53] [Realms Notification Availability checker #1/ERROR]: Realms http code: 404 -  error code: 0 -  message: null - raw body: <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+[2026-03-27 21:10:53] [DEBUG   ] [launcher] [MC] <html><head>
+[2026-03-27 21:10:53] [INFO    ] [home_view] [MC] <html><head>
+[2026-03-27 21:10:53] [DEBUG   ] [launcher] [MC] <title>404 Not Found</title>
+[2026-03-27 21:10:53] [INFO    ] [home_view] [MC] <title>404 Not Found</title>
+[2026-03-27 21:10:53] [DEBUG   ] [launcher] [MC] </head><body>
+[2026-03-27 21:10:53] [INFO    ] [home_view] [MC] </head><body>
+[2026-03-27 21:10:53] [DEBUG   ] [launcher] [MC] <h1>Not Found</h1>
+[2026-03-27 21:10:53] [INFO    ] [home_view] [MC] <h1>Not Found</h1>
+[2026-03-27 21:10:53] [DEBUG   ] [launcher] [MC] <p>The requested URL was not found on this server.</p>
+[2026-03-27 21:10:53] [INFO    ] [home_view] [MC] <p>The requested URL was not found on this server.</p>
+[2026-03-27 21:10:53] [DEBUG   ] [launcher] [MC] <hr>
+[2026-03-27 21:10:53] [INFO    ] [home_view] [MC] <hr>
+[2026-03-27 21:10:53] [DEBUG   ] [launcher] [MC] <address>Apache Server at mcoapi.minecraft.net Port 443</address>
+[2026-03-27 21:10:53] [INFO    ] [home_view] [MC] <address>Apache Server at mcoapi.minecraft.net Port 443</address>
+[2026-03-27 21:10:53] [DEBUG   ] [launcher] [MC] </body></html>
+[2026-03-27 21:10:53] [INFO    ] [home_view] [MC] </body></html>
+[2026-03-27 21:10:55] [DEBUG   ] [launcher] [MC] [21:10:55] [Realms Notification Availability checker #1/ERROR]: Could not parse RealmsError: com.google.gson.stream.MalformedJsonException: Use JsonReader.setLenient(true) to accept malformed JSON at line 1 column 12
+[2026-03-27 21:10:55] [INFO    ] [home_view] [MC] [21:10:55] [Realms Notification Availability checker #1/ERROR]: Could not parse RealmsError: com.google.gson.stream.MalformedJsonException: Use JsonReader.setLenient(true) to accept malformed JSON at line 1 column 12
+[2026-03-27 21:10:55] [DEBUG   ] [launcher] [MC] [21:10:55] [Realms Notification Availability checker #1/ERROR]: The error was: <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+[2026-03-27 21:10:55] [INFO    ] [home_view] [MC] [21:10:55] [Realms Notification Availability checker #1/ERROR]: The error was: <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+[2026-03-27 21:10:55] [DEBUG   ] [launcher] [MC] <html><head>
+[2026-03-27 21:10:55] [INFO    ] [home_view] [MC] <html><head>
+[2026-03-27 21:10:55] [DEBUG   ] [launcher] [MC] <title>404 Not Found</title>
+[2026-03-27 21:10:55] [INFO    ] [home_view] [MC] <title>404 Not Found</title>
+[2026-03-27 21:10:55] [DEBUG   ] [launcher] [MC] </head><body>
+[2026-03-27 21:10:55] [INFO    ] [home_view] [MC] </head><body>
+[2026-03-27 21:10:55] [DEBUG   ] [launcher] [MC] <h1>Not Found</h1>
+[2026-03-27 21:10:55] [INFO    ] [home_view] [MC] <h1>Not Found</h1>
+[2026-03-27 21:10:55] [DEBUG   ] [launcher] [MC] <p>The requested URL was not found on this server.</p>
+[2026-03-27 21:10:55] [INFO    ] [home_view] [MC] <p>The requested URL was not found on this server.</p>
+[2026-03-27 21:10:55] [DEBUG   ] [launcher] [MC] <hr>
+[2026-03-27 21:10:55] [INFO    ] [home_view] [MC] <hr>
+[2026-03-27 21:10:55] [DEBUG   ] [launcher] [MC] <address>Apache Server at mcoapi.minecraft.net Port 443</address>
+[2026-03-27 21:10:55] [INFO    ] [home_view] [MC] <address>Apache Server at mcoapi.minecraft.net Port 443</address>
+[2026-03-27 21:10:55] [DEBUG   ] [launcher] [MC] </body></html>
+[2026-03-27 21:10:55] [INFO    ] [home_view] [MC] </body></html>
+[2026-03-27 21:10:55] [DEBUG   ] [launcher] [MC] [21:10:55] [Realms Notification Availability checker #1/ERROR]: Realms http code: 404 -  error code: 0 -  message: null - raw body: <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+[2026-03-27 21:10:55] [INFO    ] [home_view] [MC] [21:10:55] [Realms Notification Availability checker #1/ERROR]: Realms http code: 404 -  error code: 0 -  message: null - raw body: <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+[2026-03-27 21:10:55] [DEBUG   ] [launcher] [MC] <html><head>
+[2026-03-27 21:10:55] [INFO    ] [home_view] [MC] <html><head>
+[2026-03-27 21:10:55] [DEBUG   ] [launcher] [MC] <title>404 Not Found</title>
+[2026-03-27 21:10:55] [INFO    ] [home_view] [MC] <title>404 Not Found</title>
+[2026-03-27 21:10:55] [DEBUG   ] [launcher] [MC] </head><body>
+[2026-03-27 21:10:55] [INFO    ] [home_view] [MC] </head><body>
+[2026-03-27 21:10:55] [DEBUG   ] [launcher] [MC] <h1>Not Found</h1>
+[2026-03-27 21:10:55] [INFO    ] [home_view] [MC] <h1>Not Found</h1>
+[2026-03-27 21:10:55] [DEBUG   ] [launcher] [MC] <p>The requested URL was not found on this server.</p>
+[2026-03-27 21:10:55] [INFO    ] [home_view] [MC] <p>The requested URL was not found on this server.</p>
+[2026-03-27 21:10:55] [DEBUG   ] [launcher] [MC] <hr>
+[2026-03-27 21:10:55] [INFO    ] [home_view] [MC] <hr>
+[2026-03-27 21:10:55] [DEBUG   ] [launcher] [MC] <address>Apache Server at mcoapi.minecraft.net Port 443</address>
+[2026-03-27 21:10:55] [INFO    ] [home_view] [MC] <address>Apache Server at mcoapi.minecraft.net Port 443</address>
+[2026-03-27 21:10:55] [DEBUG   ] [launcher] [MC] </body></html>
+[2026-03-27 21:10:55] [INFO    ] [home_view] [MC] </body></html>
+[2026-03-27 21:10:56] [DEBUG   ] [launcher] [MC] [21:10:56] [Client thread/INFO]: Connecting to Old-Building-SDG.aternos.me, 24744
+[2026-03-27 21:10:56] [INFO    ] [home_view] [MC] [21:10:56] [Client thread/INFO]: Connecting to Old-Building-SDG.aternos.me, 24744
+[2026-03-27 21:10:56] [DEBUG   ] [launcher] [MC] [21:10:56] [Client thread/INFO]: [CHAT] Geronimin joined the game
+[2026-03-27 21:10:56] [INFO    ] [home_view] [MC] [21:10:56] [Client thread/INFO]: [CHAT] Geronimin joined the game
+[2026-03-27 21:23:21] [DEBUG   ] [launcher] [MC] [21:23:21] [Client thread/INFO]: Connecting to Old-Building-SDG.aternos.me, 24744
+[2026-03-27 21:23:21] [INFO    ] [home_view] [MC] [21:23:21] [Client thread/INFO]: Connecting to Old-Building-SDG.aternos.me, 24744
+[2026-03-27 21:23:22] [DEBUG   ] [launcher] [MC] [21:23:22] [Client thread/INFO]: [CHAT] Geronimin joined the game
+[2026-03-27 21:23:22] [INFO    ] [home_view] [MC] [21:23:22] [Client thread/INFO]: [CHAT] Geronimin joined the game
+[2026-03-27 21:27:54] [DEBUG   ] [launcher] [MC] [21:27:54] [Client thread/INFO]: Reloading ResourceManager: Default
+[2026-03-27 21:27:54] [INFO    ] [home_view] [MC] [21:27:54] [Client thread/INFO]: Reloading ResourceManager: Default
+[2026-03-27 21:27:55] [DEBUG   ] [launcher] [MC] [21:27:55] [Client thread/INFO]: SoundSystem shutting down...
+[2026-03-27 21:27:55] [INFO    ] [home_view] [MC] [21:27:55] [Client thread/INFO]: SoundSystem shutting down...
+[2026-03-27 21:27:55] [DEBUG   ] [launcher] [MC] [21:27:55] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
+[2026-03-27 21:27:55] [INFO    ] [home_view] [MC] [21:27:55] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
+[2026-03-27 21:27:55] [DEBUG   ] [launcher] [MC] [21:27:55] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[2026-03-27 21:27:55] [INFO    ] [home_view] [MC] [21:27:55] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[2026-03-27 21:27:55] [DEBUG   ] [launcher] [MC] [21:27:55] [Thread-15/INFO]: Initializing LWJGL OpenAL
+[2026-03-27 21:27:55] [INFO    ] [home_view] [MC] [21:27:55] [Thread-15/INFO]: Initializing LWJGL OpenAL
+[2026-03-27 21:27:55] [DEBUG   ] [launcher] [MC] [21:27:55] [Thread-15/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[2026-03-27 21:27:55] [INFO    ] [home_view] [MC] [21:27:55] [Thread-15/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[2026-03-27 21:27:55] [DEBUG   ] [launcher] [MC] [21:27:55] [Client thread/INFO]: Created: 1024x512 textures-atlas
+[2026-03-27 21:27:55] [INFO    ] [home_view] [MC] [21:27:55] [Client thread/INFO]: Created: 1024x512 textures-atlas
+[2026-03-27 21:27:55] [DEBUG   ] [launcher] [MC] [21:27:55] [Thread-15/INFO]: OpenAL initialized.
+[2026-03-27 21:27:55] [INFO    ] [home_view] [MC] [21:27:55] [Thread-15/INFO]: OpenAL initialized.
+[2026-03-27 21:27:55] [DEBUG   ] [launcher] [MC] [21:27:55] [Client thread/INFO]: [CHAT] [Debug]: Reloaded resourcepacks
+[2026-03-27 21:27:55] [INFO    ] [home_view] [MC] [21:27:55] [Client thread/INFO]: [CHAT] [Debug]: Reloaded resourcepacks
+[2026-03-27 21:27:55] [DEBUG   ] [launcher] [MC] [21:27:55] [Sound Library Loader/INFO]: Sound engine started
+[2026-03-27 21:27:55] [INFO    ] [home_view] [MC] [21:27:55] [Sound Library Loader/INFO]: Sound engine started
+[2026-03-27 21:27:58] [DEBUG   ] [launcher] [MC] [21:27:58] [Client thread/INFO]: [CHAT] [Debug]: Advanced tooltips: shown
+[2026-03-27 21:27:58] [INFO    ] [home_view] [MC] [21:27:58] [Client thread/INFO]: [CHAT] [Debug]: Advanced tooltips: shown
+[2026-03-27 21:36:23] [DEBUG   ] [launcher] [MC] [21:36:23] [Client thread/INFO]: [CHAT] Geronimin ha conseguido el logro [Monster Hunter]
+[2026-03-27 21:36:23] [INFO    ] [home_view] [MC] [21:36:23] [Client thread/INFO]: [CHAT] Geronimin ha conseguido el logro [Monster Hunter]
+[2026-03-27 21:37:49] [DEBUG   ] [launcher] [MC] [21:37:49] [Client thread/INFO]: [CHAT] Danul___ ha conseguido el logro [Manos a la obra]
+[2026-03-27 21:37:49] [INFO    ] [home_view] [MC] [21:37:49] [Client thread/INFO]: [CHAT] Danul___ ha conseguido el logro [Manos a la obra]
+[2026-03-27 21:37:57] [DEBUG   ] [launcher] [MC] [21:37:57] [Client thread/INFO]: [CHAT] Player joined the game
+[2026-03-27 21:37:57] [INFO    ] [home_view] [MC] [21:37:57] [Client thread/INFO]: [CHAT] Player joined the game
+[2026-03-27 21:38:49] [DEBUG   ] [launcher] [MC] [21:38:49] [Client thread/INFO]: Connecting to Old-Building-SDG.aternos.me, 24744
+[2026-03-27 21:38:49] [INFO    ] [home_view] [MC] [21:38:49] [Client thread/INFO]: Connecting to Old-Building-SDG.aternos.me, 24744
+[2026-03-27 21:38:50] [DEBUG   ] [launcher] [MC] [21:38:50] [Client thread/INFO]: [CHAT] Geronimin joined the game
+[2026-03-27 21:38:50] [INFO    ] [home_view] [MC] [21:38:50] [Client thread/INFO]: [CHAT] Geronimin joined the game
+[2026-03-27 21:39:07] [DEBUG   ] [launcher] [MC] [21:39:07] [Client thread/INFO]: Connecting to Old-Building-SDG.aternos.me, 24744
+[2026-03-27 21:39:07] [INFO    ] [home_view] [MC] [21:39:07] [Client thread/INFO]: Connecting to Old-Building-SDG.aternos.me, 24744
+[2026-03-27 21:39:08] [DEBUG   ] [launcher] [MC] [21:39:08] [Client thread/INFO]: [CHAT] Geronimin joined the game
+[2026-03-27 21:39:08] [INFO    ] [home_view] [MC] [21:39:08] [Client thread/INFO]: [CHAT] Geronimin joined the game
+[2026-03-27 21:39:16] [DEBUG   ] [launcher] [MC] [21:39:16] [Client thread/INFO]: [CHAT] Danul___ joined the game
+[2026-03-27 21:39:16] [INFO    ] [home_view] [MC] [21:39:16] [Client thread/INFO]: [CHAT] Danul___ joined the game
+[2026-03-27 21:40:49] [DEBUG   ] [launcher] [MC] [21:40:49] [Client thread/INFO]: [CHAT] Player ha conseguido el logro [Haciendo el inventario]
+[2026-03-27 21:40:49] [INFO    ] [home_view] [MC] [21:40:49] [Client thread/INFO]: [CHAT] Player ha conseguido el logro [Haciendo el inventario]
+[2026-03-27 21:43:37] [DEBUG   ] [launcher] [MC] [21:43:37] [Client thread/INFO]: [CHAT] Player ha conseguido el logro [Madera de leñador]
+[2026-03-27 21:43:37] [INFO    ] [home_view] [MC] [21:43:37] [Client thread/INFO]: [CHAT] Player ha conseguido el logro [Madera de leñador]
+[2026-03-27 21:43:49] [DEBUG   ] [launcher] [MC] [21:43:49] [Client thread/INFO]: [CHAT] * Player was slain by zombie
+[2026-03-27 21:43:49] [INFO    ] [home_view] [MC] [21:43:49] [Client thread/INFO]: [CHAT] * Player was slain by zombie
+[2026-03-27 21:44:16] [DEBUG   ] [launcher] [MC] [21:44:16] [Client thread/INFO]: [CHAT] * Player was slain by zombie
+[2026-03-27 21:44:16] [INFO    ] [home_view] [MC] [21:44:16] [Client thread/INFO]: [CHAT] * Player was slain by zombie
+[2026-03-27 21:44:41] [DEBUG   ] [launcher] [MC] [21:44:41] [Client thread/INFO]: [CHAT] * Player was slain by enderdragon
+[2026-03-27 21:44:41] [INFO    ] [home_view] [MC] [21:44:41] [Client thread/INFO]: [CHAT] * Player was slain by enderdragon
+[2026-03-27 21:44:58] [DEBUG   ] [launcher] [MC] [21:44:58] [Client thread/INFO]: [CHAT] <Player> MM,,,/me}
+[2026-03-27 21:44:58] [INFO    ] [home_view] [MC] [21:44:58] [Client thread/INFO]: [CHAT] <Player> MM,,,/me}
+[2026-03-27 21:45:07] [DEBUG   ] [launcher] [MC] [21:45:07] [Client thread/INFO]: [CHAT] <Player> ./me
+[2026-03-27 21:45:07] [INFO    ] [home_view] [MC] [21:45:07] [Client thread/INFO]: [CHAT] <Player> ./me
+[2026-03-27 21:45:10] [DEBUG   ] [launcher] [MC] [21:45:10] [Client thread/INFO]: [CHAT] * Danul___ doed
+[2026-03-27 21:45:10] [INFO    ] [home_view] [MC] [21:45:10] [Client thread/INFO]: [CHAT] * Danul___ doed
+[2026-03-27 21:45:55] [DEBUG   ] [launcher] [MC] [21:45:55] [Client thread/INFO]: [CHAT] * Player was slain by creeper while ts nga
+[2026-03-27 21:45:55] [INFO    ] [home_view] [MC] [21:45:55] [Client thread/INFO]: [CHAT] * Player was slain by creeper while ts nga
+[2026-03-27 21:46:07] [DEBUG   ] [launcher] [MC] [21:46:07] [Client thread/INFO]: [CHAT] * Geronimin had died while having sex with chicken
+[2026-03-27 21:46:07] [INFO    ] [home_view] [MC] [21:46:07] [Client thread/INFO]: [CHAT] * Geronimin had died while having sex with chicken
+[2026-03-27 21:46:38] [DEBUG   ] [launcher] [MC] [21:46:38] [Client thread/INFO]: [CHAT] * Player was slain beauce lil bro died at 98% in slauterhos
+[2026-03-27 21:46:38] [INFO    ] [home_view] [MC] [21:46:38] [Client thread/INFO]: [CHAT] * Player was slain beauce lil bro died at 98% in slauterhos
+[2026-03-27 21:47:12] [DEBUG   ] [launcher] [MC] [21:47:12] [Client thread/INFO]: [CHAT] Unknown command. Type "/help" for help.
+[2026-03-27 21:47:12] [INFO    ] [home_view] [MC] [21:47:12] [Client thread/INFO]: [CHAT] Unknown command. Type "/help" for help.
+[2026-03-27 21:47:13] [DEBUG   ] [launcher] [MC] [21:47:13] [Client thread/INFO]: [CHAT] * Player was slain by was slain
+[2026-03-27 21:47:13] [INFO    ] [home_view] [MC] [21:47:13] [Client thread/INFO]: [CHAT] * Player was slain by was slain
+[2026-03-27 21:47:19] [DEBUG   ] [launcher] [MC] [21:47:19] [Client thread/INFO]: [CHAT] * Geronimin died while jorking it
+[2026-03-27 21:47:19] [INFO    ] [home_view] [MC] [21:47:19] [Client thread/INFO]: [CHAT] * Geronimin died while jorking it
+[2026-03-27 21:47:46] [DEBUG   ] [launcher] [MC] [21:47:46] [Client thread/INFO]: [CHAT] <Player> -241 -938
+[2026-03-27 21:47:46] [INFO    ] [home_view] [MC] [21:47:46] [Client thread/INFO]: [CHAT] <Player> -241 -938
+[2026-03-27 21:47:50] [DEBUG   ] [launcher] [MC] [21:47:50] [Client thread/INFO]: [CHAT] <Geronimin> -200 -900
+[2026-03-27 21:47:50] [INFO    ] [home_view] [MC] [21:47:50] [Client thread/INFO]: [CHAT] <Geronimin> -200 -900
+[2026-03-27 21:48:06] [DEBUG   ] [launcher] [MC] [21:48:06] [Client thread/INFO]: [CHAT] Player ha conseguido el logro [Manos a la obra]
+[2026-03-27 21:48:06] [INFO    ] [home_view] [MC] [21:48:06] [Client thread/INFO]: [CHAT] Player ha conseguido el logro [Manos a la obra]
+[2026-03-27 21:49:29] [DEBUG   ] [launcher] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [INFO    ] [home_view] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [DEBUG   ] [launcher] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [INFO    ] [home_view] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [DEBUG   ] [launcher] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [INFO    ] [home_view] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [DEBUG   ] [launcher] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [INFO    ] [home_view] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [DEBUG   ] [launcher] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [INFO    ] [home_view] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [DEBUG   ] [launcher] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [INFO    ] [home_view] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [DEBUG   ] [launcher] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [INFO    ] [home_view] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [DEBUG   ] [launcher] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [INFO    ] [home_view] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [DEBUG   ] [launcher] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [INFO    ] [home_view] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [DEBUG   ] [launcher] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [INFO    ] [home_view] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [DEBUG   ] [launcher] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [INFO    ] [home_view] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [DEBUG   ] [launcher] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [INFO    ] [home_view] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [DEBUG   ] [launcher] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [INFO    ] [home_view] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [DEBUG   ] [launcher] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [INFO    ] [home_view] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [DEBUG   ] [launcher] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [INFO    ] [home_view] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [DEBUG   ] [launcher] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [INFO    ] [home_view] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [DEBUG   ] [launcher] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [INFO    ] [home_view] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [DEBUG   ] [launcher] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [INFO    ] [home_view] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [DEBUG   ] [launcher] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [INFO    ] [home_view] [MC] [21:49:29] [Client thread/ERROR]: Item entity 11795 has no item?!
+[2026-03-27 21:49:29] [DEBUG   ] [launcher] [MC] [21:49:29] [Client thread/INFO]: [CHAT] Geronimin ha caído desde muy alto
+[2026-03-27 21:49:29] [INFO    ] [home_view] [MC] [21:49:29] [Client thread/INFO]: [CHAT] Geronimin ha caído desde muy alto
+[2026-03-27 21:51:36] [DEBUG   ] [launcher] [MC] [21:51:36] [Client thread/INFO]: [CHAT] Geronimin ha asesinado a Danul___
+[2026-03-27 21:51:36] [INFO    ] [home_view] [MC] [21:51:36] [Client thread/INFO]: [CHAT] Geronimin ha asesinado a Danul___
+[2026-03-27 21:53:26] [DEBUG   ] [launcher] [MC] [21:53:26] [Client thread/INFO]: Stopping!
+[2026-03-27 21:53:26] [INFO    ] [home_view] [MC] [21:53:26] [Client thread/INFO]: Stopping!
+[2026-03-27 21:53:26] [DEBUG   ] [launcher] [MC] [21:53:26] [Client thread/INFO]: SoundSystem shutting down...
+[2026-03-27 21:53:26] [INFO    ] [home_view] [MC] [21:53:26] [Client thread/INFO]: SoundSystem shutting down...
+[2026-03-27 21:53:26] [DEBUG   ] [launcher] [MC] [21:53:26] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
+[2026-03-27 21:53:26] [INFO    ] [home_view] [MC] [21:53:26] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
+[2026-03-27 21:53:27] [INFO    ] [home_view] Minecraft cerrado con código: 0
+[2026-03-27 21:53:32] [INFO    ] [installer] === Iniciando instalación de Minecraft 26.1 ===
+[2026-03-27 21:53:32] [INFO    ] [installer] Descargando JSON de versión 26.1...
+[2026-03-27 21:53:32] [ERROR   ] [installer] Error durante la instalación de 26.1: '>' not supported between instances of 'str' and 'int'
