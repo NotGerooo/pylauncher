@@ -3,3 +3,7 @@
 [2026-03-28 18:05:23] [INFO    ] [profile_manager] Perfiles cargados: 1
 [2026-03-28 18:05:23] [INFO    ] [account_manager] Cuentas cargadas: 1
 [2026-03-28 18:05:23] [INFO    ] [app] Interfaz Flet iniciada
+[2026-03-28 18:05:26] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-28 18:05:30] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=resourcepack, sort=relevance, offset=0)
+[2026-03-28 18:05:36] [INFO    ] [modrinth_service] Modrinth: 1 versiones para 'RRxvWKNC'
+[2026-03-28 18:05:36] [INFO    ] [modrinth_service] Mod descargado: LowOnFire v26.1§8.zip → C:\Users\geron\.minecraft\profiles\Survival_Pro\resourcepacks
