@@ -80,22 +80,11 @@ def get_neoforge_versions(mc_version: str) -> list[str]:
         log.warning(f"NeoForge versions: {e}")
         return []
 
-
-def get_optifine_versions(mc_version: str) -> list[str]:
-    known = {
-        "1.21.1": ["HD_U_J1"], "1.20.4": ["HD_U_I7"], "1.20.1": ["HD_U_I6"],
-        "1.19.4": ["HD_U_H9"], "1.19.2": ["HD_U_H8"], "1.18.2": ["HD_U_H7"],
-        "1.17.1": ["HD_U_G9"], "1.16.5": ["HD_U_G8"], "1.12.2": ["HD_U_F5"],
-    }
-    return known.get(mc_version, ["(instala manualmente)"])
-
-
 def get_loader_versions(loader: str, mc_version: str) -> list[str]:
     if loader == "fabric":   return get_fabric_versions(mc_version)
     if loader == "quilt":    return get_quilt_versions(mc_version)
     if loader == "forge":    return get_forge_versions(mc_version)
     if loader == "neoforge": return get_neoforge_versions(mc_version)
-    if loader == "optifine": return get_optifine_versions(mc_version)
     return []
 
 
