@@ -5,6 +5,7 @@ Selector de perfil, lanzamiento del juego e instalación de versiones.
 import threading
 import flet as ft
 
+from managers.profile_manager import Profile
 from gui.theme import (
     BG, CARD_BG, CARD2_BG, INPUT_BG, BORDER, BORDER_BRIGHT,
     GREEN, GREEN_DIM, TEXT_PRI, TEXT_SEC, TEXT_DIM, TEXT_INV,
