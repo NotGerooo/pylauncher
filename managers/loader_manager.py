@@ -104,6 +104,8 @@ def get_loader_versions(loader: str, mc_version: str) -> list[str]:
 class LoaderInstallError(Exception):
     pass
 
+def get_profiles(self):
+    return self._profiles
 
 def install_loader(
     loader: str,
