@@ -202,9 +202,12 @@ class ProfileManager:
 
     def _create_profile_dirs(self, profile: Profile):
         for folder in [
-            profile.game_dir, profile.mods_dir,
-            profile.saves_dir, profile.config_dir,
-            os.path.join(profile.game_dir, "resourcepacks"),
+            profile.game_dir,
+            profile.mods_dir,
+            profile.saves_dir,
+            profile.config_dir,
+            profile.resourcepacks_dir,   # ← antes era os.path.join(...)
+            profile.shaderpacks_dir,     # ← nueva
             os.path.join(profile.game_dir, "screenshots"),
         ]:
             ensure_dir(folder)
