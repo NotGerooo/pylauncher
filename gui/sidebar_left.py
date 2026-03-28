@@ -136,7 +136,7 @@ class SidebarLeft:
             icon = btn.content
             if isinstance(icon, ft.Icon):
                 icon.color = GREEN if active else TEXT_DIM
-            try: btn.update()
+                try: btn.update()
                 except Exception: pass
 
     # ── Instancias ────────────────────────────────────────────────────────────
