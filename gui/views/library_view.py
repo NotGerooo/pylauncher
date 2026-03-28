@@ -112,7 +112,7 @@ class LibraryView:
     def _build_card(self, profile) -> ft.Control:
         from managers.loader_manager import load_loader_meta
         meta   = load_loader_meta(profile.game_dir)
-        loader = meta.get("loader", "vanilla")
+        loader = meta.get("loader", "vanilla") if isinstance(meta, dict) else "vanilla"
         icon   = LOADER_ICONS.get(loader, "🎮")
         last   = profile.last_used[:10] if profile.last_used else "—"
 
