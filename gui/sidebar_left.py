@@ -3,7 +3,8 @@ gui/sidebar_left.py — Sidebar izquierdo icon-only.
 Iconos de navegación principal + instancias de perfil.
 """
 import flet as ft
-
+_LIBRARY_SVG_DIM   = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236b7280'><path d='M2 3h4v18H2zm6 0h3v18H8zm5 0h2.5L18 21h-2.5zm4.2 0H20l1.8 18h-2z'/></svg>"
+_LIBRARY_SVG_GREEN = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231bd96a'><path d='M2 3h4v18H2zm6 0h3v18H8zm5 0h2.5L18 21h-2.5zm4.2 0H20l1.8 18h-2z'/></svg>"
 from gui.theme import (
     SIDEBAR_BG, CARD2_BG, BORDER,
     GREEN, TEXT_INV, TEXT_SEC, TEXT_DIM,
