@@ -3,3 +3,4 @@
 [2026-03-28 17:33:17] [INFO    ] [profile_manager] Perfiles cargados: 0
 [2026-03-28 17:33:17] [INFO    ] [account_manager] Cuentas cargadas: 1
 [2026-03-28 17:33:17] [INFO    ] [app] Interfaz Flet iniciada
+[2026-03-28 17:33:22] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
