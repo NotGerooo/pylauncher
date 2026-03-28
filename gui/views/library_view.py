@@ -655,8 +655,7 @@ class _LaunchDialog:
             actions=[
                 ft.TextButton("Cancelar", style=ft.ButtonStyle(color=TEXT_SEC),
                               on_click=lambda e: self.page.close(self._dlg)),
-                play_btn,
-            ],
+                play_btn,]
         )
 
     def open(self):
