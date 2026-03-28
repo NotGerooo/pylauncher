@@ -496,6 +496,16 @@ class DiscoverView:
         title_key = re.sub(r"[-_. ]", "", proj.title.lower())
         return slug_key in self._installed_set or title_key in self._installed_set
 
+    def _target_dir(self, profile) -> str:
+        """Devuelve el directorio de destino según el tipo de contenido del tab activo."""
+        project_type = TAB_PROJECT_TYPES[self._tab_index]
+        if project_type == "resourcepack":
+            return profile.resourcepacks_dir
+        elif project_type == "shader":
+            return profile.shaderpacks_dir
+        else:  # "mod" y "modpack"
+            return profile.mods_dir
+
     # ── Tarjeta de mod ────────────────────────────────────────────────────────
     def _make_card(self, proj, is_installed: bool) -> ft.Container:
         author = getattr(proj, "author", "")
