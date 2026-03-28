@@ -64,7 +64,7 @@ class App:
         self.auth_service     = AuthService()
         self.modrinth_service = ModrinthService()
         self.launcher_engine  = LauncherEngine(self.settings)
-        self.account_manager  = AccountManager(accounts_file="data/accounts.json")
+        self.account_manager  = AccountManager(data_dir="data")
         self.microsoft_auth   = MicrosoftAuth()
 
     # ── Layout principal ──────────────────────────────────────────────────────
