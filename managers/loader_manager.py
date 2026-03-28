@@ -1,6 +1,6 @@
 """
 managers/loader_manager.py — Gero's Launcher
-Instala mod loaders: Fabric, Forge, NeoForge, Quilt, OptiFine, Vanilla.
+Instala mod loaders: Fabric, Forge, NeoForge, Quilt, Vanilla.
 Guarda loader_meta.json dentro del game_dir del perfil.
 """
 import json
@@ -14,7 +14,7 @@ from config.constants import HTTP_TIMEOUT_SECONDS, USER_AGENT
 
 log = get_logger()
 
-LOADERS = ["vanilla", "fabric", "forge", "neoforge", "quilt", "optifine"]
+LOADERS = ["vanilla", "fabric", "forge", "neoforge", "quilt"]
 
 
 # ── Red ───────────────────────────────────────────────────────────────────────
