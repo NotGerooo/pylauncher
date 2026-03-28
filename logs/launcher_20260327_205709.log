@@ -5,3 +5,22 @@
 [2026-03-27 20:57:09] [INFO    ] [version_manager] Actualizando caché de versiones disponibles...
 [2026-03-27 20:57:09] [INFO    ] [app] Interfaz Flet iniciada
 [2026-03-27 20:57:09] [INFO    ] [installer] Descargando manifest de versiones de Mojang...
+[2026-03-27 20:57:10] [INFO    ] [auth_service] Sesion offline creada para: Geronimin (UUID: 53f57021-5ef5-30dd-88a8-b0839da0642a)
+[2026-03-27 20:57:10] [INFO    ] [launcher] === Lanzando Minecraft 1.9.4 para 'Geronimin' ===
+[2026-03-27 20:57:10] [INFO    ] [launcher] Sin install_id en loader_meta — lanzando vanilla
+[2026-03-27 20:57:10] [INFO    ] [launcher] Versión efectiva de lanzamiento: 1.9.4
+[2026-03-27 20:57:10] [INFO    ] [installer] Manifest cargado: 876 versiones disponibles
+[2026-03-27 20:57:10] [INFO    ] [version_manager] Caché actualizado: 876 versiones disponibles
+[2026-03-27 20:57:10] [INFO    ] [java_manager] Usando Java embebido: C:\Users\geron\.minecraft\runtime\java-runtime-delta\bin\java.exe
+[2026-03-27 20:57:10] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl\lwjgl\2.9.2-nightly-20140822\lwjgl-2.9.2-nightly-20140822.jar
+[2026-03-27 20:57:10] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl\lwjgl_util\2.9.2-nightly-20140822\lwjgl_util-2.9.2-nightly-20140822.jar
+[2026-03-27 20:57:10] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\org\lwjgl\lwjgl\lwjgl-platform\2.9.2-nightly-20140822\lwjgl-platform-2.9.2-nightly-20140822.jar
+[2026-03-27 20:57:10] [DEBUG   ] [launcher] Librería no encontrada: C:\Users\geron\.minecraft\libraries\net\java\jinput\jinput-platform\2.0.5\jinput-platform-2.0.5.jar
+[2026-03-27 20:57:10] [DEBUG   ] [launcher] Classpath con 32 entradas
+[2026-03-27 20:57:10] [INFO    ] [launcher] Assets index usado: 1.9
+[2026-03-27 20:57:10] [DEBUG   ] [launcher] Comando construido con 32 partes
+[2026-03-27 20:57:10] [INFO    ] [launcher] Minecraft iniciado con PID: 16036
+[2026-03-27 20:57:11] [DEBUG   ] [launcher] [MC] [20:57:11] [Client thread/INFO]: Setting user: Geronimin
+[2026-03-27 20:57:11] [INFO    ] [home_view] [MC] [20:57:11] [Client thread/INFO]: Setting user: Geronimin
+[2026-03-27 20:57:12] [DEBUG   ] [launcher] [MC] [20:57:12] [Client thread/INFO]: LWJGL Version: 2.9.4
+[2026-03-27 20:57:12] [INFO    ] [home_view] [MC] [20:57:12] [Client thread/INFO]: LWJGL Version: 2.9.4
