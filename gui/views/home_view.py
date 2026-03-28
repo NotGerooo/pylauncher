@@ -22,14 +22,12 @@ class HomeView:
         self._build()
 
     # ── Build ─────────────────────────────────────────────────────────────────
-    # ── Build ─────────────────────────────────────────────────────────────────
     def _build(self):
-        # 1. Obtenemos los perfiles para llenar el selector
+        # 1. Dropdown de Perfiles
         profiles = self.app.profile_manager.get_all_profiles()
 
-        # 2. Creamos el Dropdown de Perfiles (Este reemplaza al campo de username)
         self._profile_dd = ft.Dropdown(
-            label="Seleccionar Perfil de Juego",
+            label="Perfil de juego",
             label_style=ft.TextStyle(color=TEXT_DIM, size=10),
             color=TEXT_PRI,
             bgcolor=INPUT_BG,
@@ -39,6 +37,20 @@ class HomeView:
             content_padding=ft.padding.symmetric(horizontal=12, vertical=10),
             expand=True,
             options=[ft.dropdown.Option(p.name) for p in profiles] if profiles else [],
+        )
+
+        # 2. Dropdown de Cuentas (nombre de Minecraft)
+        self._account_dd = ft.Dropdown(
+            label="Cuenta / Usuario",
+            label_style=ft.TextStyle(color=TEXT_DIM, size=10),
+            color=TEXT_PRI,
+            bgcolor=INPUT_BG,
+            border_color=BORDER,
+            focused_border_color=GREEN,
+            border_radius=8,
+            content_padding=ft.padding.symmetric(horizontal=12, vertical=10),
+            expand=True,
+            options=[],  # Se rellena en on_show → _refresh_accounts
         )
 
         # 3. Botón de jugar
@@ -53,19 +65,22 @@ class HomeView:
             on_click=self._on_launch,
         )
 
-        # 4. El Launch Card ahora solo tiene el Selector de Perfil y el Botón
+        # 4. Launch Card: [Selector Perfil] [Selector Cuenta] [Botón]
         launch_card = ft.Container(
             bgcolor=CARD_BG,
             border_radius=12,
             padding=ft.padding.all(24),
-            content=ft.Row([
-                self._profile_dd,    # Ahora el selector ocupa el espacio principal
-                ft.Container(width=16),
-                self._launch_btn,
-            ], vertical_alignment=ft.CrossAxisAlignment.END),
+            content=ft.Row(
+                [
+                    self._profile_dd,
+                    ft.Container(width=12),
+                    self._account_dd,
+                    ft.Container(width=16),
+                    self._launch_btn,
+                ],
+                vertical_alignment=ft.CrossAxisAlignment.END,
+            ),
         )
-        
-        # ... (el resto de tu código de progress_row y versions_card se mantiene igual)
 
         # ── Progress bar (oculta inicialmente) ────────────────────────────────
         self._progress_label = ft.Text("", color=TEXT_DIM, size=9)
@@ -139,21 +154,63 @@ class HomeView:
     # ── on_show ───────────────────────────────────────────────────────────────
     def on_show(self):
         self._refresh_profiles()
+        self._refresh_accounts()
         self._refresh_installed()
         threading.Thread(target=self._fetch_available_versions, daemon=True).start()
 
+    # ── Refresh perfiles ──────────────────────────────────────────────────────
     def _refresh_profiles(self):
         profiles = self.app.profile_manager.get_all_profiles()
         last     = self.app.settings.last_profile
-        self._profile_dd.options = [
-            ft.dropdown.Option(p.name) for p in profiles
-        ]
+        self._profile_dd.options = [ft.dropdown.Option(p.name) for p in profiles]
         if profiles:
             names = [p.name for p in profiles]
             self._profile_dd.value = last if last in names else names[0]
-        try: self._profile_dd.update()
-        except Exception: pass
+        try:
+            self._profile_dd.update()
+        except Exception:
+            pass
 
+    # ── Refresh cuentas ───────────────────────────────────────────────────────
+    def _refresh_accounts(self):
+        """Rellena el dropdown de cuentas desde account_manager."""
+        try:
+            accounts = self.app.account_manager.get_all_accounts()  # lista de objetos cuenta
+            last_username = getattr(self.app.settings, "last_account", None)
+
+            if accounts:
+                self._account_dd.options = [
+                    ft.dropdown.Option(
+                        key=acc.username,
+                        text=acc.username,
+                    )
+                    for acc in accounts
+                ]
+                usernames = [acc.username for acc in accounts]
+                # Selecciona la última usada, o la primera disponible
+                self._account_dd.value = (
+                    last_username if last_username in usernames else usernames[0]
+                )
+            else:
+                # Sin cuentas: opción placeholder
+                self._account_dd.options = [
+                    ft.dropdown.Option(key="__none__", text="Sin cuentas — ve a Cuentas")
+                ]
+                self._account_dd.value = "__none__"
+
+        except Exception as err:
+            log.warning(f"No se pudieron cargar cuentas: {err}")
+            self._account_dd.options = [
+                ft.dropdown.Option(key="__none__", text="Sin cuentas")
+            ]
+            self._account_dd.value = "__none__"
+
+        try:
+            self._account_dd.update()
+        except Exception:
+            pass
+
+    # ── Refresh versiones instaladas ──────────────────────────────────────────
     def _refresh_installed(self):
         self._installed_col.controls.clear()
         installed = self.app.version_manager.get_installed_version_ids()
@@ -172,8 +229,10 @@ class HomeView:
                         ]),
                     )
                 )
-        try: self._installed_col.update()
-        except Exception: pass
+        try:
+            self._installed_col.update()
+        except Exception:
+            pass
 
     def _fetch_available_versions(self):
         try:
@@ -181,9 +240,12 @@ class HomeView:
             ids = [v.id for v in versions]
             def update():
                 self._version_dd.options = [ft.dropdown.Option(i) for i in ids]
-                if ids: self._version_dd.value = ids[0]
-                try: self._version_dd.update()
-                except Exception: pass
+                if ids:
+                    self._version_dd.value = ids[0]
+                try:
+                    self._version_dd.update()
+                except Exception:
+                    pass
             self.page.run_thread(update)
         except Exception as e:
             log.warning(f"No se pudo cargar versiones: {e}")
@@ -204,7 +266,8 @@ class HomeView:
             self._progress_row.update()
             self._install_btn.update()
             self._launch_btn.update()
-        except Exception: pass
+        except Exception:
+            pass
 
         def install():
             try:
@@ -216,7 +279,8 @@ class HomeView:
                         try:
                             self._progress_bar.update()
                             self._progress_label.update()
-                        except Exception: pass
+                        except Exception:
+                            pass
                     self.page.run_thread(upd)
 
                 self.app.version_manager.install_version(version_id, on_progress)
@@ -236,7 +300,8 @@ class HomeView:
             self._progress_label.update()
             self._install_btn.update()
             self._launch_btn.update()
-        except Exception: pass
+        except Exception:
+            pass
         self._refresh_installed()
         self.app.snack("Versión instalada correctamente.")
 
@@ -248,33 +313,35 @@ class HomeView:
             self._progress_row.update()
             self._install_btn.update()
             self._launch_btn.update()
-        except Exception: pass
+        except Exception:
+            pass
         self.app.snack(f"Error de instalación: {err}", error=True)
 
     # ── Lanzar juego ──────────────────────────────────────────────────────────
     def _on_launch(self, e):
         profile_name = self._profile_dd.value
+        account_key  = self._account_dd.value
 
         if not profile_name:
             self.app.snack("Selecciona un perfil para continuar.", error=True)
             return
 
+        if not account_key or account_key == "__none__":
+            self.app.snack("Selecciona una cuenta antes de jugar.", error=True)
+            return
+
         profile = self.app.profile_manager.get_profile_by_name(profile_name)
-        
-        # Intentamos obtener el usuario de la cuenta activa o del perfil
-        # Si no tienes un account_manager listo, usaremos un nombre genérico por ahora
+
         try:
-            # Opción A: Usar la cuenta cargada en el manager
-            account = self.app.account_manager.get_primary_account() 
-            username = account.username if account else "Player"
-            
-            session = self.app.auth_service.create_offline_session(username)
+            # Obtener la cuenta seleccionada por username
+            account  = self.app.account_manager.get_account_by_username(account_key)
+            username = account.username if account else account_key
+
+            session      = self.app.auth_service.create_offline_session(username)
             version_data = self.app.version_manager.get_version_data(profile.version_id)
         except Exception as err:
             self.app.snack(f"Error de configuración: {err}", error=True)
             return
-
-        # ... (resto de la lógica de launch sin cambios)
 
         def on_output(line: str):
             log.info(f"[MC] {line}")
@@ -282,10 +349,16 @@ class HomeView:
         try:
             process = self.app.launcher_engine.launch(
                 profile, session, version_data, on_output=on_output)
+
+            # Persistir últimas selecciones
             self.app.settings.last_profile = profile_name
+            self.app.settings.last_account = username
+
             self._launch_btn.disabled = True
-            try: self._launch_btn.update()
-            except Exception: pass
+            try:
+                self._launch_btn.update()
+            except Exception:
+                pass
 
             def monitor():
                 process.wait()
@@ -293,8 +366,10 @@ class HomeView:
                 log.info(f"Minecraft cerrado con código: {rc}")
                 def done():
                     self._launch_btn.disabled = False
-                    try: self._launch_btn.update()
-                    except Exception: pass
+                    try:
+                        self._launch_btn.update()
+                    except Exception:
+                        pass
                     if rc != 0:
                         self.app.snack(
                             f"Minecraft cerró con error (código {rc}). "
@@ -302,6 +377,6 @@ class HomeView:
                 self.page.run_thread(done)
 
             threading.Thread(target=monitor, daemon=True).start()
-            self.app.snack(f"Minecraft {profile.version_id} iniciado.")
+            self.app.snack(f"Minecraft {profile.version_id} iniciado como {username}.")
         except Exception as err:
             self.app.snack(f"Error al lanzar: {err}", error=True)
