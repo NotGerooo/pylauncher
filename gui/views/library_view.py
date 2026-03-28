@@ -655,10 +655,7 @@ class _LaunchDialog:
             actions=[
                 ft.TextButton("Cancelar", style=ft.ButtonStyle(color=TEXT_SEC),
                               on_click=lambda e: self.page.close(self._dlg)),
-                ft.ElevatedButton("▶ Jugar", bgcolor=GREEN, color=TEXT_INV,
-                                  style=ft.ButtonStyle(
-                                      shape=ft.RoundedRectangleBorder(radius=8)),
-                                  on_click=self._on_launch),
+                play_btn,
             ],
         )
 
