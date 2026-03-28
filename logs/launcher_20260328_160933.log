@@ -1,0 +1,7 @@
+[2026-03-28 16:09:33] [INFO    ] [logger] Logger iniciado. Archivo de log: logs\launcher_20260328_160933.log
+[2026-03-28 16:09:33] [DEBUG   ] [settings] Configuración cargada desde data\launcher_settings.json
+[2026-03-28 16:09:33] [INFO    ] [profile_manager] Perfiles cargados: 2
+[2026-03-28 16:09:33] [INFO    ] [account_manager] Cuentas cargadas: 1
+[2026-03-28 16:09:33] [INFO    ] [version_manager] Actualizando caché de versiones disponibles...
+[2026-03-28 16:09:33] [INFO    ] [app] Interfaz Flet iniciada
+[2026-03-28 16:09:33] [INFO    ] [installer] Descargando manifest de versiones de Mojang...
