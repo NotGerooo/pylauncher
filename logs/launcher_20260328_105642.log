@@ -34,3 +34,18 @@
 [2026-03-28 10:56:54] [DEBUG   ] [installer] Native JAR descargado: text2speech-1.10.3-natives-windows.jar
 [2026-03-28 10:56:55] [INFO    ] [installer] ✓ 34 librerías descargadas
 [2026-03-28 10:56:55] [INFO    ] [installer] Descargando 1305 assets en paralelo...
+[2026-03-28 10:57:09] [INFO    ] [installer] ✓ 1305 assets descargados
+[2026-03-28 10:57:09] [DEBUG   ] [installer] Extraído: OpenAL32.dll
+[2026-03-28 10:57:09] [DEBUG   ] [installer] Extraído: OpenAL64.dll
+[2026-03-28 10:57:09] [DEBUG   ] [installer] Extraído: lwjgl.dll
+[2026-03-28 10:57:09] [DEBUG   ] [installer] Extraído: lwjgl64.dll
+[2026-03-28 10:57:09] [DEBUG   ] [installer] JAR de natives no encontrado: lwjgl-platform-2.9.2-nightly-20140822-natives-windows.jar
+[2026-03-28 10:57:09] [DEBUG   ] [installer] Extraído: jinput-dx8.dll
+[2026-03-28 10:57:09] [DEBUG   ] [installer] Extraído: jinput-dx8_64.dll
+[2026-03-28 10:57:09] [DEBUG   ] [installer] Extraído: jinput-raw.dll
+[2026-03-28 10:57:09] [DEBUG   ] [installer] Extraído: jinput-raw_64.dll
+[2026-03-28 10:57:09] [DEBUG   ] [installer] Extraído: jinput-wintab.dll
+[2026-03-28 10:57:09] [DEBUG   ] [installer] Extraído: SAPIWrapper_x64.dll
+[2026-03-28 10:57:09] [DEBUG   ] [installer] Extraído: SAPIWrapper_x86.dll
+[2026-03-28 10:57:09] [INFO    ] [installer] Se extrajeron 11 archivos nativos para windows en 1.12.2
+[2026-03-28 10:57:09] [INFO    ] [installer] === Minecraft 1.12.2 instalado correctamente ===
