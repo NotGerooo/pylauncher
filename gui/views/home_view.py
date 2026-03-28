@@ -253,27 +253,28 @@ class HomeView:
 
     # ── Lanzar juego ──────────────────────────────────────────────────────────
     def _on_launch(self, e):
-        username     = self._username_field.value.strip()
         profile_name = self._profile_dd.value
 
-        if not username:
-            self.app.snack("Ingresa tu nombre de usuario.", error=True)
-            return
         if not profile_name:
-            self.app.snack("Selecciona un perfil.", error=True)
+            self.app.snack("Selecciona un perfil para continuar.", error=True)
             return
 
         profile = self.app.profile_manager.get_profile_by_name(profile_name)
-        if not profile:
-            self.app.snack(f"Perfil '{profile_name}' no encontrado.", error=True)
-            return
-
+        
+        # Intentamos obtener el usuario de la cuenta activa o del perfil
+        # Si no tienes un account_manager listo, usaremos un nombre genérico por ahora
         try:
-            session      = self.app.auth_service.create_offline_session(username)
+            # Opción A: Usar la cuenta cargada en el manager
+            account = self.app.account_manager.get_primary_account() 
+            username = account.username if account else "Player"
+            
+            session = self.app.auth_service.create_offline_session(username)
             version_data = self.app.version_manager.get_version_data(profile.version_id)
         except Exception as err:
-            self.app.snack(str(err), error=True)
+            self.app.snack(f"Error de configuración: {err}", error=True)
             return
+
+        # ... (resto de la lógica de launch sin cambios)
 
         def on_output(line: str):
             log.info(f"[MC] {line}")
