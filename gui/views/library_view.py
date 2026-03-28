@@ -2,9 +2,9 @@
 gui/views/library_view.py — Gero's Launcher
 Vista Biblioteca: instancias con diálogo crear/editar estilo Modrinth.
 """
+import os
 import threading
 import flet as ft
-import os
 
 from gui.theme import (
     BG, CARD_BG, CARD2_BG, INPUT_BG, BORDER, BORDER_BRIGHT,
@@ -90,18 +90,6 @@ class LibraryView:
 
     # ── Estado vacío ──────────────────────────────────────────────────────────
     def _empty_state(self) -> ft.Control:
-        play_btn = (ft.ElevatedButton(
-            "⚙ Configurar", bgcolor=CARD2_BG, color=TEXT_SEC, height=34,
-            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=6)),
-            on_click=lambda e, p=profile: self._open_optifine_dialog(p),
-        )
-        if loader == "optifine"
-        else ft.ElevatedButton(
-            "▶ Jugar", bgcolor=GREEN, color=TEXT_INV, height=34,
-            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=6)),
-            on_click=lambda e, p=profile: self._open_launch_dialog(p),
-        )
-    )
         return ft.Container(expand=True, content=ft.Column(
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             alignment=ft.MainAxisAlignment.CENTER,
@@ -137,6 +125,20 @@ class LibraryView:
                             size=8, weight=ft.FontWeight.BOLD),
         )
 
+        play_btn = (
+            ft.ElevatedButton(
+                "⚙ Configurar", bgcolor=CARD2_BG, color=TEXT_SEC, height=34,
+                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=6)),
+                on_click=lambda e, p=profile: self._open_optifine_dialog(p),
+            )
+            if loader == "optifine"
+            else ft.ElevatedButton(
+                "▶ Jugar", bgcolor=GREEN, color=TEXT_INV, height=34,
+                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=6)),
+                on_click=lambda e, p=profile: self._open_launch_dialog(p),
+            )
+        )
+
         return ft.Container(
             bgcolor=CARD_BG, border_radius=12,
             padding=ft.padding.symmetric(horizontal=20, vertical=14),
@@ -159,11 +161,7 @@ class LibraryView:
                         ft.Text(f"Última vez: {last}", color=TEXT_DIM, size=8),
                     ]),
                     ft.Row(spacing=8, controls=[
-                        ft.ElevatedButton(
-                            "▶ Jugar", bgcolor=GREEN, color=TEXT_INV, height=34,
-                            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=6)),
-                            on_click=lambda e, p=profile: self._open_launch_dialog(p),
-                        ),
+                        play_btn,
                         ft.OutlinedButton(
                             "✏ Editar", height=34,
                             style=ft.ButtonStyle(
@@ -182,10 +180,7 @@ class LibraryView:
                 ],
             ),
         )
-    
-def _open_optifine_dialog(self, profile):
-    _OptiFineDialog(self.page, self.app, profile, self._refresh).open()
-    
+
     # ── Acciones ──────────────────────────────────────────────────────────────
     def _on_delete(self, profile):
         def confirm(e):
@@ -221,6 +216,9 @@ def _open_optifine_dialog(self, profile):
     def _open_launch_dialog(self, profile):
         _LaunchDialog(self.page, self.app, profile).open()
 
+    def _open_optifine_dialog(self, profile):
+        _OptiFineDialog(self.page, self.app, profile, self._refresh).open()
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Diálogo crear / editar  (estilo Modrinth)
@@ -232,13 +230,12 @@ class _InstanceDialog:
         self.profile = profile
         self.on_save = on_save
 
-        # Estado seleccionado
         from managers.loader_manager import load_loader_meta
         if profile:
             meta = load_loader_meta(profile.game_dir)
             self._sel_loader = meta.get("loader", "vanilla") if isinstance(meta, dict) else "vanilla"
             self._sel_mc     = profile.version_id
-            self._sel_lv_key = "stable"          # pill
+            self._sel_lv_key = "stable"
             self._sel_lv_val = meta.get("loader_version") if isinstance(meta, dict) else ""
         else:
             self._sel_loader = "vanilla"
@@ -246,7 +243,6 @@ class _InstanceDialog:
             self._sel_lv_key = "stable"
             self._sel_lv_val = ""
 
-        # Controles reutilizables
         self._loader_btns: dict[str, ft.Container] = {}
         self._lv_btns:     dict[str, ft.Container] = {}
 
@@ -292,7 +288,6 @@ class _InstanceDialog:
             on_click=self._on_save,
         )
 
-        # Filas de pills
         loader_row = ft.Row(spacing=8, wrap=True,
                             controls=[self._make_loader_pill(lid, lname)
                                       for lid, lname in LOADER_LIST])
@@ -346,7 +341,6 @@ class _InstanceDialog:
     def open(self):
         self.page.open(self._dlg)
 
-    # ── Pills: loader ─────────────────────────────────────────────────────────
     def _make_loader_pill(self, lid: str, lname: str) -> ft.Container:
         active = (lid == self._sel_loader)
         btn = _pill(lname, active, lambda e, l=lid: self._select_loader(l))
@@ -359,13 +353,9 @@ class _InstanceDialog:
             _set_pill(btn, btn._label, l == lid)
             try: btn.update()
             except Exception: pass
-
-        # Mostrar/ocultar sección loader version
         self._lv_section.visible = lid != "vanilla"
         try: self._lv_section.update()
         except Exception: pass
-
-        # Reset lv pill a "stable"
         self._sel_lv_key = "stable"
         for k, b in self._lv_btns.items():
             _set_pill(b, b._label, k == "stable")
@@ -375,7 +365,6 @@ class _InstanceDialog:
         try: self._lv_dd.update()
         except Exception: pass
 
-    # ── Pills: loader version ─────────────────────────────────────────────────
     def _make_lv_pill(self, key: str, label: str) -> ft.Container:
         active = (key == self._sel_lv_key)
         btn = _pill(label, active, lambda e, k=key: self._select_lv(k))
@@ -388,7 +377,6 @@ class _InstanceDialog:
             _set_pill(b, b._label, k == key)
             try: b.update()
             except Exception: pass
-
         if key == "other":
             self._lv_dd.visible = True
             self._load_lv_dropdown()
@@ -412,18 +400,15 @@ class _InstanceDialog:
             from managers.loader_manager import get_loader_versions
             versions = get_loader_versions(self._sel_loader, self._sel_mc)
             opts = [ft.dropdown.Option(v) for v in versions]
-
             def apply():
                 self._lv_dd.options = opts
                 self._lv_dd.value   = versions[0] if versions else None
                 try: self._lv_dd.update()
                 except Exception: pass
-
             self.page.run_thread(apply)
 
         threading.Thread(target=fetch, daemon=True).start()
 
-    # ── Guardar ───────────────────────────────────────────────────────────────
     def _resolve_lv(self) -> str:
         if self._sel_lv_key == "other" and self._lv_dd.value:
             return self._lv_dd.value
@@ -447,9 +432,9 @@ class _InstanceDialog:
 
         loader_version = self._resolve_lv() if self._sel_loader != "vanilla" else None
 
-        self._save_btn.disabled   = True
-        self._prog_bar.visible    = True
-        self._prog_text.value     = "Iniciando…"
+        self._save_btn.disabled = True
+        self._prog_bar.visible  = True
+        self._prog_text.value   = "Iniciando…"
         try:
             self._save_btn.update()
             self._prog_bar.update()
@@ -514,28 +499,27 @@ class _InstanceDialog:
         threading.Thread(target=worker, daemon=True).start()
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# Diálogo OptiFine
+# ═══════════════════════════════════════════════════════════════════════════════
 class _OptiFineDialog:
-    """
-    Diálogo que guía al usuario para instalar OptiFine manualmente.
-    Monitorea la carpeta mods/ y notifica cuando detecta el jar.
-    """
     def __init__(self, page: ft.Page, app, profile, on_done):
-        self.page    = page
-        self.app     = app
-        self.profile = profile
-        self.on_done = on_done
+        self.page        = page
+        self.app         = app
+        self.profile     = profile
+        self.on_done     = on_done
         self._monitoring = False
- 
+
         from managers.loader_manager import load_loader_meta
         meta     = load_loader_meta(profile.game_dir)
         mods_dir = meta.get("mods_dir") or os.path.join(profile.game_dir, "mods")
         mc_ver   = meta.get("mc_version", profile.version_id)
         lv       = meta.get("loader_version", "")
- 
+
         self._mods_dir   = mods_dir
         self._status_txt = ft.Text("Esperando que descargues el jar…",
                                    color=TEXT_DIM, size=10)
- 
+
         self._dlg = ft.AlertDialog(
             modal=True, bgcolor=CARD_BG,
             title=ft.Text("Instalar OptiFine", color=TEXT_PRI,
@@ -555,7 +539,7 @@ class _OptiFineDialog:
                                     weight=ft.FontWeight.BOLD),
                             ft.Text("1. Haz clic en 'Abrir optifine.net'",
                                     color=TEXT_SEC, size=10),
-                            ft.Text("2. Descarga la versión para Minecraft " + mc_ver,
+                            ft.Text(f"2. Descarga la versión para Minecraft {mc_ver}",
                                     color=TEXT_SEC, size=10),
                             ft.Text("3. Copia el archivo .jar a esta carpeta:",
                                     color=TEXT_SEC, size=10),
@@ -591,28 +575,27 @@ class _OptiFineDialog:
                 ),
             ],
         )
- 
+
     def open(self):
         self.page.open(self._dlg)
         self._start_monitor()
- 
+
     def _open_web(self, e):
         import webbrowser
         webbrowser.open("https://optifine.net/downloads")
- 
+
     def _open_folder(self, e):
         import subprocess
         os.makedirs(self._mods_dir, exist_ok=True)
         subprocess.Popen(["explorer", self._mods_dir])
- 
+
     def _on_close(self, e):
         self._monitoring = False
         self.page.close(self._dlg)
- 
+
     def _start_monitor(self):
-        import threading
         self._monitoring = True
- 
+
         def watch():
             import time
             seen = set(os.listdir(self._mods_dir)) if os.path.isdir(self._mods_dir) else set()
@@ -621,22 +604,25 @@ class _OptiFineDialog:
                 if not os.path.isdir(self._mods_dir):
                     continue
                 current = set(os.listdir(self._mods_dir))
-                new = current - seen
-                for f in new:
-                    if "optifine" in f.lower() and f.endswith(".jar"):
+                new_files = current - seen
+                for fname in new_files:
+                    if "optifine" in fname.lower() and fname.endswith(".jar"):
                         self._monitoring = False
+                        detected = fname
                         def notify():
-                            self._status_txt.value = f"✓ OptiFine detectado: {f}"
+                            self._status_txt.value = f"✓ OptiFine detectado: {detected}"
                             self._status_txt.color = GREEN
                             try: self._status_txt.update()
                             except Exception: pass
-                            self.app.snack(f"✓ OptiFine instalado: {f}")
+                            self.app.snack(f"✓ OptiFine instalado: {detected}")
                             self.on_done()
                         self.page.run_thread(notify)
                         return
                 seen = current
- 
+
         threading.Thread(target=watch, daemon=True).start()
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Diálogo lanzar
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -670,7 +656,11 @@ class _LaunchDialog:
             actions=[
                 ft.TextButton("Cancelar", style=ft.ButtonStyle(color=TEXT_SEC),
                               on_click=lambda e: self.page.close(self._dlg)),
-                play_btn,]
+                ft.ElevatedButton("▶ Jugar", bgcolor=GREEN, color=TEXT_INV,
+                                  style=ft.ButtonStyle(
+                                      shape=ft.RoundedRectangleBorder(radius=8)),
+                                  on_click=self._on_launch),
+            ],
         )
 
     def open(self):
@@ -713,7 +703,7 @@ class _LaunchDialog:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Helpers de pills (fuera de clase para no duplicar código)
+# Helpers de pills
 # ═══════════════════════════════════════════════════════════════════════════════
 def _pill(label: str, active: bool, on_click) -> ft.Container:
     text_ctrl = ft.Text(
@@ -735,7 +725,7 @@ def _pill(label: str, active: bool, on_click) -> ft.Container:
 
 
 def _set_pill(btn: ft.Container, label: str, active: bool):
-    btn.bgcolor               = "#1a2e1a" if active else CARD2_BG
-    btn.border                = ft.border.all(1, GREEN if active else BORDER)
-    btn._text_ctrl.value      = ("✓ " if active else "") + label
-    btn._text_ctrl.color      = GREEN if active else TEXT_SEC
+    btn.bgcolor          = "#1a2e1a" if active else CARD2_BG
+    btn.border           = ft.border.all(1, GREEN if active else BORDER)
+    btn._text_ctrl.value = ("✓ " if active else "") + label
+    btn._text_ctrl.color = GREEN if active else TEXT_SEC
