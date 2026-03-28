@@ -636,10 +636,12 @@ class DiscoverView:
 
     # ── Abrir detalle ─────────────────────────────────────────────────────────
     def _open_detail(self, project):
+        profile = self._active_profile()
         ModDetailDialog(
             self.page, self.app, project,
-            active_profile=self._active_profile(),
+            active_profile=profile,
             active_loader=self._active_loader(),
+            target_dir=self._target_dir(profile) if profile else None,   # ← nuevo
             on_installed=lambda: self._on_mod_installed(project),
         )
 
