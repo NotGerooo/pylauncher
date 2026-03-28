@@ -22,9 +22,9 @@ import threading
 from config.settings import Settings
 from managers.profile_manager import Profile
 from managers.java_manager import JavaManager
-from managers.loader_manager import loader_manager # If it's snake_case
 from services.auth_service import PlayerSession
 from utils.logger import get_logger
+import managers.loader_manager as LoaderManager
 
 log = get_logger()
 
@@ -50,7 +50,7 @@ class LauncherEngine:
     def __init__(self, settings: Settings):
         self._settings       = settings
         self._java_manager   = JavaManager(settings)
-        self._loader_manager = loader_manager(settings)
+        self._loader_manager = LoaderManager(settings)
 
     # ── API Pública ───────────────────────────────────────────────────────────
 
