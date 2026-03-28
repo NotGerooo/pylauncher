@@ -1,0 +1,5 @@
+[2026-03-28 17:50:50] [INFO    ] [logger] Logger iniciado. Archivo de log: logs\launcher_20260328_175050.log
+[2026-03-28 17:50:50] [DEBUG   ] [settings] Configuración cargada desde data\launcher_settings.json
+[2026-03-28 17:50:50] [INFO    ] [profile_manager] Perfiles cargados: 1
+[2026-03-28 17:50:50] [INFO    ] [account_manager] Cuentas cargadas: 1
+[2026-03-28 17:50:50] [INFO    ] [app] Interfaz Flet iniciada
