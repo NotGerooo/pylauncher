@@ -58,54 +58,49 @@ class MinecraftInstaller:
 
     def install_version(self, version_id: str, progress_callback=None) -> bool:
         log.info(f"=== Iniciando instalación de Minecraft {version_id} ===")
+        current_step = 0
+        total_steps = 4
         try:
             version_info = self._get_version_info_from_manifest(version_id)
             if not version_info:
-                raise InstallationError(f"Versión \'{version_id}\' no encontrada en el manifest")
+                raise InstallationError(f"Versión '{version_id}' no encontrada en el manifest")
             version_url = version_info["url"]
             version_data = self._download_version_json(version_id, version_url)
-            
-            total_steps = 4 # JAR, Libraries, Assets, Natives
-            current_step = 0
 
-            # Step 1: Download client JAR
-            current_step += 1
-            if progress_callback:
-                progress_callback(current_step, total_steps, "Descargando cliente JAR...")
+            def prog(msg, cur=None, tot=None):
+                if progress_callback:
+                    progress_callback(msg, cur or current_step, tot or total_steps)
+
+            # Paso 1: JAR
+            current_step = 1
+            prog("Descargando cliente JAR…", 1, 4)
             self._download_client_jar(version_id, version_data)
 
-            # Step 2: Download libraries
-            current_step += 1
-            if progress_callback:
-                progress_callback(current_step, total_steps, "Descargando librerías...")
-            self._download_libraries(version_data, progress_callback)
+            # Paso 2: Librerías
+            current_step = 2
+            prog("Descargando librerías…", 2, 4)
+            self._download_libraries(version_data)
 
-            # Step 3: Download assets
-            current_step += 1
-            if progress_callback:
-                progress_callback(current_step, total_steps, "Descargando assets...")
-            self._download_assets(version_data, progress_callback)
+            # Paso 3: Assets
+            current_step = 3
+            prog("Descargando assets…", 3, 4)
+            self._download_assets(version_data)
 
-            # Step 4: Extract natives
-            current_step += 1
-            if progress_callback:
-                progress_callback(current_step, total_steps, "Extrayendo archivos nativos...")
+            # Paso 4: Natives
+            current_step = 4
+            prog("Extrayendo nativos…", 4, 4)
             self._extract_natives_for_version(version_id, version_data)
 
+            prog("Instalación completada.", 4, 4)
             log.info(f"=== Minecraft {version_id} instalado correctamente ===")
-            if progress_callback:
-                progress_callback(total_steps, total_steps, "Instalación completada.")
             return True
+
         except DownloadError as e:
             log.error(f"Error de descarga durante instalación: {e}")
-            if progress_callback:
-                progress_callback(current_step, total_steps, f"Error de descarga: {e}", error=True)
-            raise InstallationError(f"Error de descarga durante instalación: {e}")
+            raise InstallationError(f"Error de descarga: {e}")
         except Exception as e:
             log.error(f"Error durante la instalación de {version_id}: {e}")
-            if progress_callback:
-                progress_callback(current_step, total_steps, f"Fallo la instalacion: {e}", error=True)
-            raise InstallationError(f"Fallo la instalacion de {version_id}: {e}")
+            raise InstallationError(f"Falló la instalación de {version_id}: {e}")
 
     def get_version_data(self, version_id: str) -> dict:
         json_path = os.path.join(
