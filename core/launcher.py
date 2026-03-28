@@ -22,7 +22,8 @@ import threading
 from config.settings import Settings
 from managers.profile_manager import Profile
 from managers.java_manager import JavaManager
-from managers.loader_manager import LoaderManager
+# Inside core/launcher.py
+from managers.loader_manager import loader_manager # If it's snake_case
 from services.auth_service import PlayerSession
 from utils.logger import get_logger
 
