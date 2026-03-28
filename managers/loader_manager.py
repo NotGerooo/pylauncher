@@ -215,28 +215,63 @@ def _install_quilt(mc_version, loader_version, game_dir, libraries_dir, prog):
 
 
 def _install_forge(mc_version, loader_version, game_dir, libraries_dir, versions_dir, prog):
-    prog(f"Descargando instalador Forge {mc_version}-{loader_version}…")
-    forge_id = f"{mc_version}-{loader_version}"
-    url = (f"https://maven.minecraftforge.net/net/minecraftforge/forge"
-           f"/{forge_id}/forge-{forge_id}-installer.jar")
+    # La API de Forge devuelve versiones en dos formatos posibles:
+    # "1.9.4-12.17.0.1908-1.9.4"  → ya incluye mc_version, usar directo
+    # "12.17.0.1908"               → no incluye mc_version, combinar
+    if loader_version.startswith(mc_version + "-"):
+        forge_id = loader_version
+    else:
+        forge_id = f"{mc_version}-{loader_version}"
+ 
+    prog(f"Descargando instalador Forge {forge_id}…")
+ 
+    # Intentar URL estándar primero, luego URL alternativa sin sufijo de mc_version
+    urls_to_try = [
+        f"https://maven.minecraftforge.net/net/minecraftforge/forge/{forge_id}/forge-{forge_id}-installer.jar",
+        f"https://maven.minecraftforge.net/net/minecraftforge/forge/{forge_id}/forge-{forge_id}-installer.jar".replace(
+            f"-{mc_version}.jar", ".jar"
+        ),
+    ]
+ 
     installer = os.path.join(versions_dir, f"forge-{forge_id}-installer.jar")
-    try:
-        _download_file(url, installer)
-    except Exception as e:
-        raise LoaderInstallError(f"No se pudo descargar instalador Forge: {e}")
-
+    downloaded = False
+    for url in urls_to_try:
+        try:
+            _download_file(url, installer)
+            downloaded = True
+            break
+        except Exception as e:
+            log.warning(f"URL Forge fallida: {url} — {e}")
+ 
+    if not downloaded:
+        raise LoaderInstallError(
+            f"No se pudo descargar el instalador de Forge {forge_id}. "
+            f"Verifica que la versión exista en files.minecraftforge.net"
+        )
+ 
     prog("Ejecutando instalador Forge (puede tardar 1-2 min)…")
     import subprocess, shutil
     java = shutil.which("java") or "java"
-    subprocess.run([java, "-jar", installer, "--installClient", versions_dir],
-                   capture_output=True, timeout=300)
-
-    meta = {"loader": "forge", "mc_version": mc_version,
-            "loader_version": loader_version, "main_class": None,
-            "extra_libs": [], "args": []}
+    result = subprocess.run(
+        [java, "-jar", installer, "--installClient", versions_dir],
+        capture_output=True, timeout=300
+    )
+    if result.returncode != 0:
+        log.warning(f"Instalador Forge salió con código {result.returncode}")
+        log.debug(result.stderr.decode(errors="replace"))
+ 
+    meta = {
+        "loader": "forge",
+        "mc_version": mc_version,
+        "loader_version": forge_id,
+        "main_class": None,
+        "extra_libs": [],
+        "args": [],
+    }
     _save_loader_meta(game_dir, meta)
     prog("Forge instalado.")
     return meta
+ 
 
 
 def _install_neoforge(mc_version, loader_version, game_dir, libraries_dir, versions_dir, prog):
