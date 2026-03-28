@@ -264,15 +264,25 @@ def _install_neoforge(mc_version, loader_version, game_dir, libraries_dir, versi
 
 
 def _install_optifine(mc_version, loader_version, game_dir, versions_dir, prog):
+    import webbrowser
     prog("OptiFine: guardando metadata…")
-    meta = {"loader": "optifine", "mc_version": mc_version,
-            "loader_version": loader_version, "main_class": None,
-            "extra_libs": [], "args": [],
-            "note": "Descarga OptiFine manualmente desde optifine.net y colócalo en mods/."}
+    meta = {
+        "loader": "optifine",
+        "mc_version": mc_version,
+        "loader_version": loader_version,
+        "main_class": None,
+        "extra_libs": [],
+        "args": [],
+        "note": "Descarga OptiFine manualmente desde optifine.net y colócalo en mods/.",
+    }
     _save_loader_meta(game_dir, meta)
-    prog("OptiFine: descarga el jar manualmente desde optifine.net → mods/")
+    prog("Abriendo optifine.net en el navegador…")
+    webbrowser.open("https://optifine.net/adloadx?f=OptiFine.jar")
+    prog(
+        f"OptiFine: descarga el jar para MC {mc_version} "
+        f"y colócalo en:\n{os.path.join(game_dir, 'mods')}"
+    )
     return meta
-
 
 # ── loader_meta.json ──────────────────────────────────────────────────────────
 
