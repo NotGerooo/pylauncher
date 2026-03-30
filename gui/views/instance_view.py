@@ -1,16 +1,17 @@
+# -*- coding: utf-8 -*-
 """
-gui/views/instance_view.py -- Vista de instancia individual
+gui/views/instance_view.py
 Tabs: Content | Files | Worlds | Logs
-Content unifica Mods, Resource Packs y Shaders.
 """
 import os
 import re
 import json
+import hashlib
 import threading
 import flet as ft
 
 from gui.theme import (
-    BG, CARD_BG, CARD2_BG, INPUT_BG, BORDER, BORDER_BRIGHT,
+    BG, CARD_BG, CARD2_BG, INPUT_BG, BORDER,
     GREEN, TEXT_PRI, TEXT_SEC, TEXT_DIM, TEXT_INV, ACCENT_RED,
 )
 from utils.install_detector import build_installed_set, is_installed_in
@@ -32,10 +33,10 @@ LOADER_ICONS = {
 }
 
 
-# ?? Icono con imagen real + fallback de letra ?????????????????????????????????
-def _icon(url: str, title: str, size: int = 40) -> ft.Control:
-    color    = _PALETTE[abs(hash(title)) % len(_PALETTE)]
-    initial  = (title[0] if title else "?").upper()
+# -- Mismo helper de icono que discover_view ----------------------------------
+def _icon(url, title, size=40):
+    color   = _PALETTE[abs(hash(title)) % len(_PALETTE)]
+    initial = (title[0] if title else "?").upper()
     fallback = ft.Container(
         width=size, height=size, border_radius=8,
         bgcolor=color, alignment=ft.alignment.center,
@@ -51,18 +52,26 @@ def _icon(url: str, title: str, size: int = 40) -> ft.Control:
     )
 
 
-def _parse_version(filename: str) -> str:
-    name  = re.sub(r'\.(jar|zip|disabled)$', '', filename, flags=re.IGNORECASE)
-    parts = name.split('-')
-    for part in reversed(parts):
+def _parse_version(filename):
+    name = re.sub(r'\.(jar|zip|disabled)$', '', filename, flags=re.IGNORECASE)
+    for part in reversed(name.split('-')):
         if re.match(r'^\d+\.\d+', part):
             return part
     return ""
 
 
-# ??????????????????????????????????????????????????????????????????????????????
+def _sha1(path):
+    h = hashlib.sha1()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+# =============================================================================
 class InstanceView:
-    def __init__(self, page: ft.Page, app, profile):
+
+    def __init__(self, page, app, profile):
         self.page    = page
         self.app     = app
         self.profile = profile
@@ -71,10 +80,10 @@ class InstanceView:
 
     def _build(self):
         loader = self._read_loader()
-        icon   = LOADER_ICONS.get(loader, "Vanilla")
+        icon_label = LOADER_ICONS.get(loader, "Game")
 
         self._play_btn = ft.ElevatedButton(
-            ">  Play",
+            "> Play",
             bgcolor=GREEN, color=TEXT_INV,
             style=ft.ButtonStyle(
                 shape=ft.RoundedRectangleBorder(radius=8),
@@ -98,15 +107,15 @@ class InstanceView:
                 ft.Container(
                     width=44, height=44, border_radius=10,
                     bgcolor=CARD2_BG, alignment=ft.alignment.center,
-                    content=ft.Text(icon, size=22),
+                    content=ft.Text(icon_label, size=11, color=TEXT_SEC),
                 ),
                 ft.Container(width=14),
                 ft.Column([
                     ft.Text(self.profile.name, color=TEXT_PRI, size=16,
                             weight=ft.FontWeight.BOLD),
                     ft.Text(
-                        f"{loader.capitalize()}  ?  Minecraft {self.profile.version_id}"
-                        f"  ?  {self.profile.ram_mb} MB RAM",
+                        f"{loader.capitalize()}  -  Minecraft {self.profile.version_id}"
+                        f"  -  {self.profile.ram_mb} MB RAM",
                         color=TEXT_DIM, size=9),
                 ], spacing=3),
                 ft.Container(expand=True),
@@ -127,7 +136,7 @@ class InstanceView:
             ("worlds",  "Worlds"),
             ("logs",    "Logs"),
         ]
-        self._tab_btns: dict[str, ft.Container] = {}
+        self._tab_btns = {}
         tab_row = ft.Row(spacing=0)
         for tid, tlabel in tabs_data:
             btn = self._make_tab_btn(tid, tlabel)
@@ -148,14 +157,12 @@ class InstanceView:
             controls=[header, tab_bar, self._tab_area],
         )
 
-    def _make_tab_btn(self, tid: str, label: str) -> ft.Container:
+    def _make_tab_btn(self, tid, label):
         active = tid == self._active_tab
-        text   = ft.Text(label, color=GREEN if active else TEXT_SEC, size=10,
-                         weight=ft.FontWeight.BOLD if active else ft.FontWeight.NORMAL)
-        ind    = ft.Container(
-            height=2, border_radius=1,
-            bgcolor=GREEN if active else "transparent",
-        )
+        text = ft.Text(label, color=GREEN if active else TEXT_SEC, size=10,
+                       weight=ft.FontWeight.BOLD if active else ft.FontWeight.NORMAL)
+        ind = ft.Container(height=2, border_radius=1,
+                           bgcolor=GREEN if active else "transparent")
         btn = ft.Container(
             padding=ft.padding.symmetric(horizontal=18, vertical=12),
             on_click=lambda e, t=tid: self._switch_tab(t),
@@ -165,7 +172,7 @@ class InstanceView:
         btn._ind  = ind
         return btn
 
-    def _switch_tab(self, tid: str):
+    def _switch_tab(self, tid):
         self._active_tab = tid
         for t, btn in self._tab_btns.items():
             active = t == tid
@@ -181,17 +188,13 @@ class InstanceView:
 
     def _render_tab(self):
         if self._active_tab == "content":
-            self._tab_area.content = _ContentTab(
-                self.page, self.app, self.profile).root
+            self._tab_area.content = _ContentTab(self.page, self.app, self.profile).root
         elif self._active_tab == "files":
-            self._tab_area.content = _FilesTab(
-                self.page, self.app, self.profile).root
+            self._tab_area.content = _FilesTab(self.page, self.app, self.profile).root
         elif self._active_tab == "worlds":
-            self._tab_area.content = _WorldsTab(
-                self.page, self.app, self.profile).root
+            self._tab_area.content = _WorldsTab(self.page, self.app, self.profile).root
         elif self._active_tab == "logs":
-            self._tab_area.content = _LogsTab(
-                self.page, self.app, self.profile).root
+            self._tab_area.content = _LogsTab(self.page, self.app, self.profile).root
         try: self._tab_area.update()
         except Exception: pass
 
@@ -205,15 +208,13 @@ class InstanceView:
             acc = None
 
         if not acc:
-            self.app.snack("No hay cuenta seleccionada. Ve a Cuentas.", error=True)
+            self.app.snack("No hay cuenta seleccionada.", error=True)
             return
 
         username = acc.username
-
         try:
             session      = self.app.auth_service.create_offline_session(username)
-            version_data = self.app.version_manager.get_version_data(
-                self.profile.version_id)
+            version_data = self.app.version_manager.get_version_data(self.profile.version_id)
         except Exception as ex:
             self.app.snack(str(ex), error=True)
             return
@@ -228,20 +229,16 @@ class InstanceView:
                     self.profile, session, version_data,
                     on_output=lambda line: log.info(f"[MC] {line}"))
                 self.app.settings.last_profile = self.profile.name
-                log.info(f"Minecraft PID={process.pid}")
                 self.app.profile_manager.mark_as_used(self.profile.id)
                 process.wait()
                 rc = process.returncode
-                log.info(f"Minecraft cerrado c?digo={rc}")
 
                 def done():
                     self._play_btn.disabled = False
                     try: self._play_btn.update()
                     except Exception: pass
                     if rc != 0:
-                        self.app.snack(
-                            f"Minecraft cerr? con error (c?digo {rc}). Revisa logs.",
-                            error=True)
+                        self.app.snack(f"Minecraft cerro con error (codigo {rc}).", error=True)
                 self.page.run_thread(done)
             except Exception as ex:
                 log.error(f"Launch error: {ex}")
@@ -253,8 +250,7 @@ class InstanceView:
                 self.page.run_thread(err)
 
         threading.Thread(target=run, daemon=True).start()
-        self.app.snack(
-            f"Iniciando Minecraft {self.profile.version_id} como {username}?")
+        self.app.snack(f"Iniciando Minecraft {self.profile.version_id} como {username}...")
 
     def _open_edit(self):
         from gui.views.library_view import _CreateInstanceDialog
@@ -265,7 +261,7 @@ class InstanceView:
             self._build()
         _CreateInstanceDialog(self.page, self.app, self.profile, on_done=done)
 
-    def _read_loader(self) -> str:
+    def _read_loader(self):
         meta_path = os.path.join(self.profile.game_dir, "loader_meta.json")
         if os.path.isfile(meta_path):
             try:
@@ -273,47 +269,46 @@ class InstanceView:
                     meta = json.load(f)
                 entries = meta if isinstance(meta, list) else [meta]
                 if entries:
-                    return (entries[0].get("loader_type")
-                            or entries[0].get("loader", "vanilla"))
+                    return entries[0].get("loader_type") or entries[0].get("loader", "vanilla")
             except Exception:
                 pass
         return "vanilla"
 
 
-# ??????????????????????????????????????????????????????????????????????????????
+# =============================================================================
 # Tab: Content
-# ??????????????????????????????????????????????????????????????????????????????
+# =============================================================================
 class _ContentTab:
     FILTERS = ["All", "Mods", "Resource Packs", "Shaders"]
 
     def __init__(self, page, app, profile):
-        self.page         = page
-        self.app          = app
-        self.profile      = profile
-        self._filter      = "All"
-        self._sort        = "name"
-        self._search_q    = ""
+        self.page      = page
+        self.app       = app
+        self.profile   = profile
+        self._filter   = "All"
+        self._sort     = "name"
+        self._search_q = ""
+
         self._file_picker = ft.FilePicker(on_result=self._on_file_picked)
         self.page.overlay.append(self._file_picker)
 
-        # Cache keyed by file path (absoluto) ? icon_url | None
-        # Ausente = pendiente; None = buscado, no encontrado en Modrinth
-        self._icon_cache: dict[str, str | None] = {}
+        # Cache: path_absoluto -> icon_url | None
+        self._icon_cache = {}
         self._fetch_lock = threading.Lock()
 
-        log.info(f'[CONTENT TAB] init profile={profile.name}')
+        log.info(f"[CONTENT TAB] init profile={profile.name}")
         self._build()
 
     def _build(self):
-        self._filter_btns: dict[str, ft.Container] = {}
+        self._filter_btns = {}
         filter_row = ft.Row(spacing=6)
         for f in self.FILTERS:
-            btn = self._make_filter(f)
+            btn = self._make_filter_btn(f)
             self._filter_btns[f] = btn
             filter_row.controls.append(btn)
 
         self._search_field = ft.TextField(
-            hint_text="Buscar proyectos?",
+            hint_text="Buscar proyectos...",
             hint_style=ft.TextStyle(color=TEXT_DIM),
             color=TEXT_PRI, bgcolor=INPUT_BG,
             border_color=BORDER, focused_border_color=GREEN,
@@ -348,7 +343,7 @@ class _ContentTab:
                 self._sort_dd,
                 ft.Container(width=12),
                 ft.ElevatedButton(
-                    "[S] Browse content",
+                    "Browse content",
                     bgcolor=GREEN, color=TEXT_INV,
                     style=ft.ButtonStyle(
                         shape=ft.RoundedRectangleBorder(radius=8),
@@ -358,25 +353,23 @@ class _ContentTab:
                 ),
                 ft.Container(width=8),
                 ft.OutlinedButton(
-                    "[O] Upload files",
+                    "Upload files",
                     style=ft.ButtonStyle(
                         shape=ft.RoundedRectangleBorder(radius=8),
-                        side=ft.BorderSide(1, BORDER),
-                        color=TEXT_SEC,
+                        side=ft.BorderSide(1, BORDER), color=TEXT_SEC,
                         padding=ft.padding.symmetric(horizontal=14, vertical=8),
                     ),
                     on_click=self._on_upload,
                 ),
                 ft.Container(width=8),
                 ft.OutlinedButton(
-                    "^ Update all",
+                    "Update all",
                     style=ft.ButtonStyle(
                         shape=ft.RoundedRectangleBorder(radius=8),
-                        side=ft.BorderSide(1, BORDER),
-                        color=TEXT_SEC,
+                        side=ft.BorderSide(1, BORDER), color=TEXT_SEC,
                         padding=ft.padding.symmetric(horizontal=14, vertical=8),
                     ),
-                    on_click=lambda e: self.app.snack("Update all -- pr?ximamente"),
+                    on_click=lambda e: self.app.snack("Update all - proximamente"),
                 ),
             ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
         )
@@ -395,12 +388,11 @@ class _ContentTab:
 
         self._count_lbl = ft.Text("", color=TEXT_DIM, size=9)
         self._empty_lbl = ft.Text(
-            "Sin contenido en esta categor?a.",
+            "Sin contenido en esta categoria.",
             color=TEXT_DIM, size=11, visible=False,
             text_align=ft.TextAlign.CENTER,
         )
-        self._list_col = ft.Column(
-            spacing=2, scroll=ft.ScrollMode.AUTO, expand=True)
+        self._list_col = ft.Column(spacing=2, scroll=ft.ScrollMode.AUTO, expand=True)
 
         self.root = ft.Column([
             toolbar,
@@ -419,15 +411,12 @@ class _ContentTab:
 
         self._refresh()
 
-    # ?? Filter pills ??????????????????????????????????????????????????????????
-    def _make_filter(self, label: str) -> ft.Container:
+    def _make_filter_btn(self, label):
         active = label == self._filter
-        txt = ft.Text(
-            label, color=TEXT_PRI if active else TEXT_SEC, size=10,
-            weight=ft.FontWeight.BOLD if active else ft.FontWeight.NORMAL)
-        ind = ft.Container(
-            height=2, border_radius=1,
-            bgcolor=GREEN if active else "transparent")
+        txt = ft.Text(label, color=TEXT_PRI if active else TEXT_SEC, size=10,
+                      weight=ft.FontWeight.BOLD if active else ft.FontWeight.NORMAL)
+        ind = ft.Container(height=2, border_radius=1,
+                           bgcolor=GREEN if active else "transparent")
         btn = ft.Container(
             padding=ft.padding.symmetric(horizontal=12, vertical=8),
             on_click=lambda e, l=label: self._set_filter(l),
@@ -437,7 +426,7 @@ class _ContentTab:
         btn._ind = ind
         return btn
 
-    def _set_filter(self, label: str):
+    def _set_filter(self, label):
         self._filter = label
         for l, btn in self._filter_btns.items():
             active = l == label
@@ -456,76 +445,46 @@ class _ContentTab:
         self._sort = e.control.value or "name"
         self._refresh()
 
-    # ?? Recolecci?n de items ??????????????????????????????????????????????????
-    def _collect_items(self) -> list[dict]:
+    def _collect_items(self):
         items = []
 
         if self._filter in ("All", "Mods"):
-            mods_dir = os.path.join(self.profile.game_dir, "mods")
-            if os.path.isdir(mods_dir):
-                for fn in os.listdir(mods_dir):
-                    fp = os.path.join(mods_dir, fn)
-                    if not os.path.isfile(fp):
-                        continue
-                    is_enabled  = fn.endswith(".jar") and not fn.endswith(".jar.disabled")
-                    is_disabled = fn.endswith(".jar.disabled")
-                    if not (is_enabled or is_disabled):
-                        continue
-                    items.append({
-                        "type":       "Mods",
-                        "filename":   fn,
-                        "path":       fp,
-                        "folder":     mods_dir,
-                        "is_enabled": is_enabled,
-                        "size_mb":    round(os.path.getsize(fp) / 1048576, 2),
-                        "version":    _parse_version(fn),
-                    })
+            d = os.path.join(self.profile.game_dir, "mods")
+            if os.path.isdir(d):
+                for fn in os.listdir(d):
+                    fp = os.path.join(d, fn)
+                    if not os.path.isfile(fp): continue
+                    enabled  = fn.endswith(".jar") and not fn.endswith(".jar.disabled")
+                    disabled = fn.endswith(".jar.disabled")
+                    if not (enabled or disabled): continue
+                    items.append({"type": "Mods", "filename": fn, "path": fp,
+                                  "is_enabled": enabled, "version": _parse_version(fn)})
 
         if self._filter in ("All", "Resource Packs"):
-            rp_dir = os.path.join(self.profile.game_dir, "resourcepacks")
-            if os.path.isdir(rp_dir):
-                for fn in os.listdir(rp_dir):
-                    fp = os.path.join(rp_dir, fn)
-                    if not os.path.isfile(fp):
-                        continue
+            d = os.path.join(self.profile.game_dir, "resourcepacks")
+            if os.path.isdir(d):
+                for fn in os.listdir(d):
+                    fp = os.path.join(d, fn)
+                    if not os.path.isfile(fp): continue
                     low = fn.lower()
-                    if not (low.endswith(".zip") or low.endswith(".zip.disabled")):
-                        continue
-                    enabled = not fn.endswith(".disabled")
-                    items.append({
-                        "type":       "Resource Packs",
-                        "filename":   fn,
-                        "path":       fp,
-                        "folder":     rp_dir,
-                        "is_enabled": enabled,
-                        "size_mb":    round(os.path.getsize(fp) / 1048576, 2),
-                        "version":    _parse_version(fn),
-                    })
+                    if not (low.endswith(".zip") or low.endswith(".zip.disabled")): continue
+                    items.append({"type": "Resource Packs", "filename": fn, "path": fp,
+                                  "is_enabled": not fn.endswith(".disabled"),
+                                  "version": _parse_version(fn)})
 
         if self._filter in ("All", "Shaders"):
-            sh_dir = os.path.join(self.profile.game_dir, "shaderpacks")
-            if os.path.isdir(sh_dir):
-                for fn in os.listdir(sh_dir):
-                    fp = os.path.join(sh_dir, fn)
-                    if not os.path.isfile(fp):
-                        continue
+            d = os.path.join(self.profile.game_dir, "shaderpacks")
+            if os.path.isdir(d):
+                for fn in os.listdir(d):
+                    fp = os.path.join(d, fn)
+                    if not os.path.isfile(fp): continue
                     low = fn.lower()
-                    if not (low.endswith(".zip") or low.endswith(".zip.disabled")):
-                        continue
-                    enabled = not fn.endswith(".disabled")
-                    items.append({
-                        "type":       "Shaders",
-                        "filename":   fn,
-                        "path":       fp,
-                        "folder":     sh_dir,
-                        "is_enabled": enabled,
-                        "size_mb":    round(os.path.getsize(fp) / 1048576, 2),
-                        "version":    _parse_version(fn),
-                    })
-
+                    if not (low.endswith(".zip") or low.endswith(".zip.disabled")): continue
+                    items.append({"type": "Shaders", "filename": fn, "path": fp,
+                                  "is_enabled": not fn.endswith(".disabled"),
+                                  "version": _parse_version(fn)})
         return items
 
-    # ?? Refresh lista ?????????????????????????????????????????????????????????
     def _refresh(self):
         items = self._collect_items()
 
@@ -541,9 +500,8 @@ class _ContentTab:
             items.sort(key=lambda i: i["version"].lower())
 
         self._list_col.controls.clear()
-        self._empty_lbl.visible = (len(items) == 0)
-        self._count_lbl.value   = (
-            f"{len(items)} proyecto{'s' if len(items) != 1 else ''}")
+        self._empty_lbl.visible = len(items) == 0
+        self._count_lbl.value = f"{len(items)} proyecto{'s' if len(items) != 1 else ''}"
 
         for item in items:
             self._list_col.controls.append(self._make_row(item))
@@ -555,30 +513,39 @@ class _ContentTab:
         except Exception:
             pass
 
-        # Solo buscar iconos para paths que a?n no est?n en cach?
         missing = [i for i in items if i["path"] not in self._icon_cache]
-        log.info(f'[REFRESH] items={len(items)} missing={len(missing)}')
+        log.info(f"[REFRESH] items={len(items)} missing={len(missing)}")
         if missing:
-            log.info('[REFRESH] lanzando fetch thread')
-            threading.Thread(
-                target=self._fetch_icons_batch,
-                args=(missing,),
-                daemon=True,
-            ).start()
+            log.info("[REFRESH] lanzando fetch thread")
+            threading.Thread(target=self._fetch_icons_batch, args=(missing,), daemon=True).start()
 
-    # ?? Fetch de iconos via SHA1 ? Modrinth /version_file/{hash} ?????????????
-    def _fetch_icons_batch(self, items: list[dict]):
-        """
-        Para cada archivo sin icono en cach?:
-          - Calcula su SHA1
-          - Llama a modrinth_service.get_project_by_file_hash(path)
-            que internamente hace GET /version_file/{sha1} ? GET /project/{id}
-          - Guarda el icon_url (o None) en self._icon_cache keyed por path
+    # -------------------------------------------------------------------------
+    # Fetch de iconos via SHA1 -> Modrinth /version_file/{hash}
+    # -------------------------------------------------------------------------
+    def _fetch_icons_batch(self, items):
+        import urllib.request
+        import urllib.error
+        import json as _json
 
-        Al terminar, si encontr? alguno redibuja la lista.
-        """
-        log.info(f'[FETCH] batch start {len(items)} items')
+        log.info(f"[FETCH] inicio {len(items)} items")
         found_any = False
+
+        try:
+            from config.constants import MODRINTH_API_BASE_URL, HTTP_TIMEOUT_SECONDS, USER_AGENT
+            base    = MODRINTH_API_BASE_URL
+            timeout = HTTP_TIMEOUT_SECONDS
+            ua      = USER_AGENT
+        except Exception as ex:
+            log.info(f"[FETCH] no se pudo importar constants: {ex}")
+            return
+
+        def modrinth_get(url):
+            req = urllib.request.Request(url, headers={
+                "User-Agent": ua,
+                "Accept": "application/json",
+            })
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return _json.loads(r.read().decode("utf-8"))
 
         for item in items:
             path = item["path"]
@@ -587,31 +554,48 @@ class _ContentTab:
                 if path in self._icon_cache:
                     continue
 
-            # El archivo .disabled tiene el mismo contenido que el .jar activo
-            # ? el hash es el mismo, Modrinth lo reconoce igual
+            icon_url = None
             try:
-                project = self.app.modrinth_service.get_project_by_file_hash(path)
-                icon_url = project.icon_url if project else None
-            except Exception as err:
-                log.debug(f"[icon] hash lookup error '{item['filename']}': {err}")
-                icon_url = None
+                sha1 = _sha1(path)
+                log.info(f"[FETCH] {item['filename']} sha1={sha1[:12]}...")
+
+                # Paso 1: lookup por hash
+                project_id = ""
+                try:
+                    version_data = modrinth_get(f"{base}/version_file/{sha1}")
+                    project_id   = version_data.get("project_id", "")
+                    log.info(f"[FETCH] hash hit project_id={project_id}")
+                except urllib.error.HTTPError as he:
+                    log.info(f"[FETCH] hash miss ({he.code})")
+                except Exception as ex:
+                    log.info(f"[FETCH] hash error: {ex}")
+
+                # Paso 2: obtener icon_url del proyecto
+                if project_id:
+                    try:
+                        proj = modrinth_get(f"{base}/project/{project_id}")
+                        icon_url = proj.get("icon_url") or None
+                        log.info(f"[FETCH] icon_url={icon_url}")
+                    except Exception as ex:
+                        log.info(f"[FETCH] project error: {ex}")
+
+            except Exception as ex:
+                log.info(f"[FETCH] error general {item['filename']}: {ex}")
 
             with self._fetch_lock:
                 self._icon_cache[path] = icon_url
 
             if icon_url:
-                log.info(f"[FETCH] OK {item['filename']} url={icon_url[:50]}")
                 found_any = True
+                log.info(f"[FETCH] OK {item['filename']}")
             else:
                 log.info(f"[FETCH] MISS {item['filename']}")
 
         if found_any:
             self.page.run_thread(self._redraw_list)
 
-    # ?? Re-dibujar filas con iconos actualizados ??????????????????????????????
     def _redraw_list(self):
         items = self._collect_items()
-
         q = self._search_q.strip().lower()
         if q:
             items = [i for i in items if q in i["filename"].lower()]
@@ -630,15 +614,12 @@ class _ContentTab:
         except Exception:
             pass
 
-    # ?? Fila de item ??????????????????????????????????????????????????????????
-    def _make_row(self, item: dict) -> ft.Container:
+    def _make_row(self, item):
         fn    = item["filename"]
         path  = item["path"]
         is_en = item["is_enabled"]
-        disp  = re.sub(r'\.(jar|zip)(\.disabled)?$', '', fn,
-                       flags=re.IGNORECASE)
+        disp  = re.sub(r'\.(jar|zip)(\.disabled)?$', '', fn, flags=re.IGNORECASE)
 
-        # icon_url desde cach? (keyed por path absoluto)
         icon_url    = self._icon_cache.get(path)
         icon_widget = _icon(icon_url or "", disp, size=40)
 
@@ -647,14 +628,12 @@ class _ContentTab:
             padding=ft.padding.symmetric(horizontal=5, vertical=2),
             content=ft.Text(item["type"], color=TEXT_DIM, size=7),
         )
-
         status_badge = ft.Container(
             bgcolor="#1a3d2a" if is_en else CARD2_BG,
             border_radius=4,
             padding=ft.padding.symmetric(horizontal=6, vertical=2),
             content=ft.Row([
-                ft.Icon(ft.icons.CIRCLE, size=6,
-                        color=GREEN if is_en else TEXT_DIM),
+                ft.Icon(ft.icons.CIRCLE, size=6, color=GREEN if is_en else TEXT_DIM),
                 ft.Container(width=4),
                 ft.Text("Activo" if is_en else "Desactivado",
                         color=GREEN if is_en else TEXT_DIM, size=7),
@@ -669,12 +648,9 @@ class _ContentTab:
                         CARD2_BG if e.data == "true" else INPUT_BG)
                 or e.control.update()),
             content=ft.Row([
-                ft.Checkbox(
-                    value=False,
-                    fill_color={"selected": GREEN},
-                    check_color=TEXT_INV,
-                    width=20,
-                ),
+                ft.Checkbox(value=False,
+                            fill_color={"selected": GREEN},
+                            check_color=TEXT_INV, width=20),
                 ft.Container(width=10),
                 icon_widget,
                 ft.Container(width=14),
@@ -682,8 +658,7 @@ class _ContentTab:
                     ft.Row([
                         ft.Text(disp, color=TEXT_PRI, size=10,
                                 weight=ft.FontWeight.BOLD,
-                                overflow=ft.TextOverflow.ELLIPSIS,
-                                expand=True),
+                                overflow=ft.TextOverflow.ELLIPSIS, expand=True),
                         type_badge,
                         ft.Container(width=4),
                         status_badge,
@@ -691,12 +666,11 @@ class _ContentTab:
                     ft.Text(fn, color=TEXT_DIM, size=8, italic=True,
                             overflow=ft.TextOverflow.ELLIPSIS),
                 ], spacing=2, expand=True),
-                ft.Text(item["version"] or "--", color=TEXT_SEC, size=9,
+                ft.Text(item["version"] or "-", color=TEXT_SEC, size=9,
                         width=160, text_align=ft.TextAlign.CENTER),
                 ft.Row([
                     ft.IconButton(
-                        icon=(ft.icons.TOGGLE_ON if is_en
-                              else ft.icons.TOGGLE_OFF),
+                        icon=ft.icons.TOGGLE_ON if is_en else ft.icons.TOGGLE_OFF,
                         icon_color=GREEN if is_en else TEXT_DIM,
                         icon_size=22,
                         tooltip="Deshabilitar" if is_en else "Habilitar",
@@ -712,14 +686,12 @@ class _ContentTab:
             ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
         )
 
-    # ?? Acciones ??????????????????????????????????????????????????????????????
-    def _toggle(self, item: dict):
+    def _toggle(self, item):
         path = item["path"]
         try:
             if item["is_enabled"]:
                 new_path = path + ".disabled"
                 os.rename(path, new_path)
-                # Transferir cach? al nuevo path
                 with self._fetch_lock:
                     if path in self._icon_cache:
                         self._icon_cache[new_path] = self._icon_cache[path]
@@ -733,7 +705,7 @@ class _ContentTab:
         except OSError as ex:
             self.app.snack(str(ex), error=True)
 
-    def _delete(self, item: dict):
+    def _delete(self, item):
         def confirm(e):
             self.page.close(dlg)
             if e.control.text == "Eliminar":
@@ -749,14 +721,12 @@ class _ContentTab:
         dlg = ft.AlertDialog(
             modal=True, bgcolor=CARD_BG,
             title=ft.Text("Eliminar", color=TEXT_PRI),
-            content=ft.Text(f"?Eliminar '{item['filename']}'?", color=TEXT_SEC),
+            content=ft.Text(f"Eliminar '{item['filename']}'?", color=TEXT_SEC),
             actions=[
                 ft.TextButton("Cancelar", on_click=confirm),
-                ft.TextButton(
-                    "Eliminar",
-                    style=ft.ButtonStyle(color=ACCENT_RED),
-                    on_click=confirm,
-                ),
+                ft.TextButton("Eliminar",
+                              style=ft.ButtonStyle(color=ACCENT_RED),
+                              on_click=confirm),
             ],
         )
         self.page.open(dlg)
@@ -767,12 +737,12 @@ class _ContentTab:
             allowed_extensions=["jar", "zip"],
         )
 
-    def _on_file_picked(self, e: ft.FilePickerResultEvent):
+    def _on_file_picked(self, e):
         if not e.files:
             return
-        src  = e.files[0].path
-        fn   = os.path.basename(src)
-        low  = fn.lower()
+        src = e.files[0].path
+        fn  = os.path.basename(src)
+        low = fn.lower()
 
         if low.endswith(".jar"):
             dest_dir = os.path.join(self.profile.game_dir, "mods")
@@ -802,7 +772,7 @@ class _ContentTab:
             on_install=self._refresh,
         )
 
-    def _read_loader(self) -> str:
+    def _read_loader(self):
         meta_path = os.path.join(self.profile.game_dir, "loader_meta.json")
         if os.path.isfile(meta_path):
             try:
@@ -810,27 +780,22 @@ class _ContentTab:
                     meta = json.load(f)
                 entries = meta if isinstance(meta, list) else [meta]
                 if entries:
-                    return (entries[0].get("loader_type")
-                            or entries[0].get("loader", "vanilla"))
+                    return entries[0].get("loader_type") or entries[0].get("loader", "vanilla")
             except Exception:
                 pass
         return "vanilla"
 
 
-# ??????????????????????????????????????????????????????????????????????????????
+# =============================================================================
 # Browse Content Dialog
-# ??????????????????????????????????????????????????????????????????????????????
+# =============================================================================
 class _BrowseContentDialog:
     _TYPE_MAP = {
-        "All":            "mod",
-        "Mods":           "mod",
-        "Resource Packs": "resourcepack",
-        "Shaders":        "shader",
+        "All": "mod", "Mods": "mod",
+        "Resource Packs": "resourcepack", "Shaders": "shader",
     }
     _DEST_FOLDER = {
-        "mod":          "mods",
-        "resourcepack": "resourcepacks",
-        "shader":       "shaderpacks",
+        "mod": "mods", "resourcepack": "resourcepacks", "shader": "shaderpacks",
     }
 
     def __init__(self, page, app, profile, content_type, loader, on_install):
@@ -853,23 +818,22 @@ class _BrowseContentDialog:
         project_type = self._TYPE_MAP.get(self.content_type, "mod")
 
         self._search_field = ft.TextField(
-            label=f"Buscar {self.content_type.lower()}?",
+            label=f"Buscar {self.content_type.lower()}...",
             color=TEXT_PRI, bgcolor=INPUT_BG,
             border_color=BORDER, focused_border_color=GREEN,
             border_radius=8, expand=True,
             label_style=ft.TextStyle(color=TEXT_DIM, size=10),
             on_submit=lambda e: self._do_search(project_type),
         )
-        self._status_lbl  = ft.Text(
+        self._status_lbl = ft.Text(
             f"Busca {self.content_type.lower()} compatibles con "
             f"Minecraft {self.profile.version_id}"
             + (f" + {self.loader}" if self.loader else ""),
             color=TEXT_DIM, size=9,
         )
-        self._results_col = ft.Column(
-            spacing=6, scroll=ft.ScrollMode.AUTO, height=380)
+        self._results_col = ft.Column(spacing=6, scroll=ft.ScrollMode.AUTO, height=380)
         self._install_btn = ft.ElevatedButton(
-            "v Instalar seleccionado",
+            "Instalar seleccionado",
             bgcolor=GREEN, color=TEXT_INV,
             style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
             disabled=True, on_click=self._do_install,
@@ -878,7 +842,7 @@ class _BrowseContentDialog:
         self._dlg = ft.AlertDialog(
             modal=True, bgcolor=CARD_BG,
             title=ft.Text(
-                f"Browse {self.content_type}  --  {self.profile.name}",
+                f"Browse {self.content_type}  -  {self.profile.name}",
                 color=TEXT_PRI, size=14),
             content=ft.Container(width=720, content=ft.Column([
                 ft.Row([
@@ -886,8 +850,7 @@ class _BrowseContentDialog:
                     ft.Container(width=10),
                     ft.ElevatedButton(
                         "Buscar", bgcolor=CARD2_BG, color=TEXT_PRI,
-                        style=ft.ButtonStyle(
-                            shape=ft.RoundedRectangleBorder(radius=8)),
+                        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
                         on_click=lambda e: self._do_search(project_type),
                     ),
                 ]),
@@ -896,18 +859,17 @@ class _BrowseContentDialog:
                 self._results_col,
             ], spacing=8)),
             actions=[
-                ft.TextButton("Cerrar",
-                              on_click=lambda e: self.page.close(self._dlg)),
+                ft.TextButton("Cerrar", on_click=lambda e: self.page.close(self._dlg)),
                 self._install_btn,
             ],
         )
         self.page.open(self._dlg)
 
-    def _do_search(self, project_type: str):
+    def _do_search(self, project_type):
         query = self._search_field.value.strip()
         if not query:
             return
-        self._status_lbl.value     = "Buscando?"
+        self._status_lbl.value     = "Buscando..."
         self._results_col.controls.clear()
         self._selected_id          = None
         self._install_btn.disabled = True
@@ -923,20 +885,11 @@ class _BrowseContentDialog:
         def search():
             try:
                 results = self.app.modrinth_service.search_mods(
-                    query,
-                    mc_version=mc_ver,
+                    query, mc_version=mc_ver,
                     loader=loader if project_type == "mod" else None,
                     project_type=project_type,
                 )
                 self.page.run_thread(lambda: self._show_results(results))
-            except TypeError:
-                try:
-                    results = self.app.modrinth_service.search_mods(
-                        query, mc_version=mc_ver, loader=loader)
-                    self.page.run_thread(lambda: self._show_results(results))
-                except Exception as err:
-                    self.page.run_thread(
-                        lambda: self._set_status(f"Error: {err}"))
             except Exception as err:
                 self.page.run_thread(lambda: self._set_status(f"Error: {err}"))
 
@@ -947,7 +900,7 @@ class _BrowseContentDialog:
         self._results_col.controls.clear()
 
         for r in results:
-            mc_v      = ", ".join(r.game_versions[-3:]) if r.game_versions else "--"
+            mc_v      = ", ".join(r.game_versions[-3:]) if r.game_versions else "-"
             author    = getattr(r, "author", "")
             installed = is_installed_in(r.slug, r.title, self._installed_set)
 
@@ -956,8 +909,7 @@ class _BrowseContentDialog:
                     bgcolor="#1a3d2a", border_radius=4,
                     padding=ft.padding.symmetric(horizontal=8, vertical=3),
                     content=ft.Row([
-                        ft.Icon(ft.icons.CHECK_CIRCLE_ROUNDED,
-                                size=10, color=GREEN),
+                        ft.Icon(ft.icons.CHECK_CIRCLE_ROUNDED, size=10, color=GREEN),
                         ft.Container(width=4),
                         ft.Text("Instalado", color=GREEN, size=8,
                                 weight=ft.FontWeight.BOLD),
@@ -974,15 +926,12 @@ class _BrowseContentDialog:
                 bgcolor=INPUT_BG, border_radius=8,
                 padding=ft.padding.symmetric(horizontal=14, vertical=10),
                 data=r.project_id,
-                on_click=(
-                    (lambda e, pid=r.project_id: self._select(pid))
-                    if not installed else None
-                ),
-                on_hover=(
-                    lambda e: (
-                        setattr(e.control, "bgcolor",
-                                CARD2_BG if e.data == "true" else INPUT_BG)
-                        or e.control.update())
+                on_click=((lambda e, pid=r.project_id: self._select(pid))
+                          if not installed else None),
+                on_hover=(lambda e: (
+                    setattr(e.control, "bgcolor",
+                            CARD2_BG if e.data == "true" else INPUT_BG)
+                    or e.control.update())
                 ) if not installed else None,
                 opacity=0.6 if installed else 1.0,
                 content=ft.Row([
@@ -994,9 +943,8 @@ class _BrowseContentDialog:
                                 overflow=ft.TextOverflow.ELLIPSIS),
                         ft.Text(
                             f"por {author}" if author
-                            else (r.description[:60] + "?"
-                                  if len(r.description) > 60
-                                  else r.description),
+                            else (r.description[:60] + "..."
+                                  if len(r.description) > 60 else r.description),
                             color=TEXT_SEC, size=9,
                             overflow=ft.TextOverflow.ELLIPSIS),
                     ], spacing=2, expand=True),
@@ -1019,21 +967,19 @@ class _BrowseContentDialog:
         )
         self._status_lbl.value = (
             f"{len(results)} resultados"
-            + (f" ? {installed_count} ya instalados" if installed_count else "")
+            + (f" - {installed_count} ya instalados" if installed_count else "")
         )
         try:
             self._results_col.update()
             self._status_lbl.update()
         except Exception: pass
 
-    def _select(self, pid: str):
+    def _select(self, pid):
         self._selected_id          = pid
         self._install_btn.disabled = False
         for c in self._results_col.controls:
-            if not getattr(c, "data", None):
-                continue
-            if c.opacity == 0.6:
-                continue
+            if not getattr(c, "data", None): continue
+            if c.opacity == 0.6: continue
             c.bgcolor = "#1a2520" if c.data == pid else INPUT_BG
             try: c.update()
             except Exception: pass
@@ -1046,7 +992,7 @@ class _BrowseContentDialog:
         if not proj:
             return
 
-        self._status_lbl.value     = f"Descargando {proj.title}?"
+        self._status_lbl.value     = f"Descargando {proj.title}..."
         self._install_btn.disabled = True
         try:
             self._status_lbl.update()
@@ -1066,14 +1012,13 @@ class _BrowseContentDialog:
                     loader=self.loader,
                 )
                 if not version:
-                    self.page.run_thread(lambda: self._set_status(
-                        "Sin versi?n compatible."))
+                    self.page.run_thread(lambda: self._set_status("Sin version compatible."))
                     return
                 self.app.modrinth_service.download_mod_version(version, dest_dir)
                 self._installed_set = build_installed_set(dest_dir)
 
                 def done():
-                    self._status_lbl.value     = f"? {proj.title} instalado"
+                    self._status_lbl.value     = f"OK {proj.title} instalado"
                     self._install_btn.disabled = False
                     try:
                         self._status_lbl.update()
@@ -1081,16 +1026,14 @@ class _BrowseContentDialog:
                     except Exception: pass
                     self.on_install()
                     self.app.snack(f"{proj.title} instalado.")
-                    self.page.run_thread(
-                        lambda: self._show_results(self._results))
+                    self.page.run_thread(lambda: self._show_results(self._results))
                 self.page.run_thread(done)
             except Exception as err:
-                self.page.run_thread(
-                    lambda: self._set_status(f"Error: {err}"))
+                self.page.run_thread(lambda: self._set_status(f"Error: {err}"))
 
         threading.Thread(target=download, daemon=True).start()
 
-    def _set_status(self, msg: str):
+    def _set_status(self, msg):
         self._status_lbl.value     = msg
         self._install_btn.disabled = False
         try:
@@ -1099,9 +1042,9 @@ class _BrowseContentDialog:
         except Exception: pass
 
 
-# ??????????????????????????????????????????????????????????????????????????????
+# =============================================================================
 # Tab: Files
-# ??????????????????????????????????????????????????????????????????????????????
+# =============================================================================
 class _FilesTab:
     def __init__(self, page, app, profile):
         self.page    = page
@@ -1112,7 +1055,7 @@ class _FilesTab:
     def _build(self):
         game_dir = self.profile.game_dir
 
-        def folder_row(name: str, path: str) -> ft.Container:
+        def folder_row(name, path):
             exists = os.path.isdir(path)
             size   = self._folder_size(path) if exists else 0
             return ft.Container(
@@ -1128,7 +1071,7 @@ class _FilesTab:
                         ft.Text(path, color=TEXT_DIM, size=8,
                                 overflow=ft.TextOverflow.ELLIPSIS),
                     ], spacing=2, expand=True),
-                    ft.Text(f"{size:.1f} MB" if exists else "Vac?a",
+                    ft.Text(f"{size:.1f} MB" if exists else "Vacia",
                             color=TEXT_SEC, size=9),
                     ft.Container(width=12),
                     ft.OutlinedButton(
@@ -1136,8 +1079,7 @@ class _FilesTab:
                         style=ft.ButtonStyle(
                             shape=ft.RoundedRectangleBorder(radius=6),
                             side=ft.BorderSide(1, BORDER), color=TEXT_SEC,
-                            padding=ft.padding.symmetric(
-                                horizontal=12, vertical=6),
+                            padding=ft.padding.symmetric(horizontal=12, vertical=6),
                         ),
                         on_click=lambda e, p=path: self._open_folder(p),
                     ),
@@ -1153,8 +1095,6 @@ class _FilesTab:
             ("Screenshots",    os.path.join(game_dir, "screenshots")),
         ]
 
-        rows = [folder_row(name, path) for name, path in folders]
-
         self.root = ft.Container(
             expand=True, padding=ft.padding.all(28),
             content=ft.Column([
@@ -1162,24 +1102,22 @@ class _FilesTab:
                         weight=ft.FontWeight.BOLD),
                 ft.Text("Carpetas de la instancia", color=TEXT_DIM, size=9),
                 ft.Container(height=16),
-                ft.Column(rows, spacing=8, scroll=ft.ScrollMode.AUTO,
-                          expand=True),
+                ft.Column([folder_row(n, p) for n, p in folders],
+                          spacing=8, scroll=ft.ScrollMode.AUTO, expand=True),
             ], spacing=0, expand=True),
         )
 
     @staticmethod
-    def _folder_size(path: str) -> float:
+    def _folder_size(path):
         total = 0
-        for dirpath, _, filenames in os.walk(path):
-            for fn in filenames:
-                try:
-                    total += os.path.getsize(os.path.join(dirpath, fn))
-                except OSError:
-                    pass
+        for dp, _, files in os.walk(path):
+            for fn in files:
+                try: total += os.path.getsize(os.path.join(dp, fn))
+                except OSError: pass
         return total / 1048576
 
     @staticmethod
-    def _open_folder(path: str):
+    def _open_folder(path):
         os.makedirs(path, exist_ok=True)
         import subprocess, sys
         if sys.platform == "win32":
@@ -1190,9 +1128,9 @@ class _FilesTab:
             subprocess.Popen(["xdg-open", path])
 
 
-# ??????????????????????????????????????????????????????????????????????????????
+# =============================================================================
 # Tab: Worlds
-# ??????????????????????????????????????????????????????????????????????????????
+# =============================================================================
 class _WorldsTab:
     def __init__(self, page, app, profile):
         self.page    = page
@@ -1202,7 +1140,7 @@ class _WorldsTab:
 
     def _build(self):
         saves_dir = os.path.join(self.profile.game_dir, "saves")
-        worlds    = []
+        worlds = []
         if os.path.isdir(saves_dir):
             worlds = [d for d in os.listdir(saves_dir)
                       if os.path.isdir(os.path.join(saves_dir, d))]
@@ -1213,7 +1151,7 @@ class _WorldsTab:
                     bgcolor=INPUT_BG, border_radius=8,
                     padding=ft.padding.symmetric(horizontal=16, vertical=12),
                     content=ft.Row([
-                        ft.Text("[W]", size=22),
+                        ft.Text("W", color=TEXT_DIM, size=22),
                         ft.Container(width=14),
                         ft.Text(w, color=TEXT_PRI, size=11,
                                 weight=ft.FontWeight.BOLD, expand=True),
@@ -1221,28 +1159,23 @@ class _WorldsTab:
                 )
                 for w in sorted(worlds)
             ]
-            content = ft.Column(
-                rows, spacing=8, scroll=ft.ScrollMode.AUTO, expand=True)
+            content = ft.Column(rows, spacing=8, scroll=ft.ScrollMode.AUTO, expand=True)
         else:
             content = ft.Container(
                 expand=True, alignment=ft.alignment.center,
                 content=ft.Column([
-                    ft.Text("[W]", size=48, text_align=ft.TextAlign.CENTER),
-                    ft.Container(height=8),
                     ft.Text("Sin mundos guardados", color=TEXT_SEC, size=14,
                             text_align=ft.TextAlign.CENTER,
                             weight=ft.FontWeight.BOLD),
-                    ft.Text("Los mundos aparecer?n aqu? despu?s de jugar.",
-                            color=TEXT_DIM, size=10,
-                            text_align=ft.TextAlign.CENTER),
+                    ft.Text("Los mundos apareceran aqui despues de jugar.",
+                            color=TEXT_DIM, size=10, text_align=ft.TextAlign.CENTER),
                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
             )
 
         self.root = ft.Container(
             expand=True, padding=ft.padding.all(28),
             content=ft.Column([
-                ft.Text("Mundos", color=TEXT_PRI, size=16,
-                        weight=ft.FontWeight.BOLD),
+                ft.Text("Mundos", color=TEXT_PRI, size=16, weight=ft.FontWeight.BOLD),
                 ft.Text(
                     f"{len(worlds)} mundo{'s' if len(worlds) != 1 else ''} "
                     f"guardado{'s' if len(worlds) != 1 else ''}",
@@ -1253,9 +1186,9 @@ class _WorldsTab:
         )
 
 
-# ??????????????????????????????????????????????????????????????????????????????
+# =============================================================================
 # Tab: Logs
-# ??????????????????????????????????????????????????????????????????????????????
+# =============================================================================
 class _LogsTab:
     def __init__(self, page, app, profile):
         self.page    = page
@@ -1265,17 +1198,14 @@ class _LogsTab:
         self.root = ft.Container(
             expand=True, padding=ft.padding.all(28),
             content=ft.Column([
-                ft.Text("Logs", color=TEXT_PRI, size=16,
-                        weight=ft.FontWeight.BOLD),
-                ft.Text("Registros del juego en tiempo real",
-                        color=TEXT_DIM, size=9),
+                ft.Text("Logs", color=TEXT_PRI, size=16, weight=ft.FontWeight.BOLD),
+                ft.Text("Registros del juego en tiempo real", color=TEXT_DIM, size=9),
                 ft.Container(height=16),
                 ft.Container(
-                    expand=True,
-                    bgcolor=INPUT_BG, border_radius=8,
+                    expand=True, bgcolor=INPUT_BG, border_radius=8,
                     padding=ft.padding.all(16),
                     content=ft.Text(
-                        "Los logs aparecer?n aqu? durante la ejecuci?n del juego.",
+                        "Los logs apareceran aqui durante la ejecucion del juego.",
                         color=TEXT_DIM, size=10,
                     ),
                 ),
