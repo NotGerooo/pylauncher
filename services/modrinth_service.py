@@ -1,4 +1,5 @@
 import json
+import hashlib
 import urllib.request
 import urllib.parse
 import urllib.error
@@ -100,18 +101,6 @@ class ModrinthService:
         sort_by: str = "relevance",
         project_type: str = "mod",
     ) -> list[ModrinthProject]:
-        """
-        Busca proyectos en Modrinth.
-
-        Args:
-            query:        Texto de búsqueda (puede estar vacío → carga populares).
-            mc_version:   Filtrar por versión MC, ej. "1.21.1".
-            loader:       Filtrar por loader, ej. "fabric".
-            limit:        Resultados por página.
-            offset:       Paginación.
-            sort_by:      "relevance" | "downloads" | "follows" | "newest" | "updated".
-            project_type: "mod" | "resourcepack" | "shader" | "modpack".
-        """
         facets = [[f"project_type:{project_type}"]]
 
         if mc_version:
@@ -140,6 +129,37 @@ class ModrinthService:
         url  = f"{self._base_url}/project/{id_or_slug}"
         data = self._get(url)
         return ModrinthProject(data)
+
+    # ── Lookup por hash SHA1 del archivo ─────────────────────────────────────
+    def get_project_by_file_hash(self, file_path: str) -> ModrinthProject | None:
+        """
+        Dado el path de un archivo local (.jar / .zip), calcula su SHA1
+        y consulta GET /version_file/{hash} para obtener el proyecto exacto.
+
+        Devuelve ModrinthProject con icon_url, o None si no está en Modrinth.
+        Este método es 100% preciso: no hay ambigüedad de nombre de archivo.
+        """
+        try:
+            sha1 = self._sha1(file_path)
+        except OSError:
+            return None
+
+        url = f"{self._base_url}/version_file/{sha1}"
+        try:
+            version_data = self._get(url)
+        except ModrinthError:
+            # 404 = archivo no registrado en Modrinth (mod manual, fork, etc.)
+            return None
+
+        # /version_file devuelve un objeto Version; necesitamos el proyecto
+        project_id = version_data.get("project_id", "")
+        if not project_id:
+            return None
+
+        try:
+            return self.get_project(project_id)
+        except ModrinthError:
+            return None
 
     # ── Versiones de un proyecto ──────────────────────────────────────────────
     def get_project_versions(
@@ -228,3 +248,12 @@ class ModrinthService:
             raise ModrinthError(f"Error de red con Modrinth: {e.reason}")
         except json.JSONDecodeError as e:
             raise ModrinthError(f"Respuesta invalida de Modrinth: {e}")
+
+    # ── SHA1 helper ───────────────────────────────────────────────────────────
+    @staticmethod
+    def _sha1(file_path: str) -> str:
+        h = hashlib.sha1()
+        with open(file_path, "rb") as f:
+            for chunk in iter(lambda: f.read(65536), b""):
+                h.update(chunk)
+        return h.hexdigest()
