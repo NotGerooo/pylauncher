@@ -7,15 +7,18 @@ ssl._create_default_https_context = ssl._create_unverified_context
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import traceback
 import flet as ft
-from utils.logger import setup_logger
-
 
 def main(page: ft.Page):
-    setup_logger()
-    from gui.app import App
-    App(page)
+    try:
+        from gui.app import App
+        App(page)
+    except Exception as e:
+        traceback.print_exc()
+        # También mostrarlo en pantalla
+        page.add(ft.Text(str(e), color="red", size=12))
+        page.add(ft.Text(traceback.format_exc(), color="red", size=10))
+        page.update()
 
-
-if __name__ == "__main__":
-    ft.app(target=main)
+ft.app(target=main)
