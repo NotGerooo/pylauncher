@@ -18,6 +18,11 @@ from utils.logger import setup_logger
 import flet as ft
 
 def main(page: ft.Page):
+    page.title = "Gero's Launcher"
+    
+    # 👇 AGREGA ESTO
+    page.window.icon = "icon.ico"
+    
     from gui.app import App
     App(page)
 
