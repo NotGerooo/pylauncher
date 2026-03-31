@@ -1,8 +1,0 @@
-[2026-03-28 18:51:53] [INFO    ] [logger] Logger iniciado. Archivo de log: logs\launcher_20260328_185153.log
-[2026-03-28 18:51:53] [DEBUG   ] [settings] Configuración cargada desde data\launcher_settings.json
-[2026-03-28 18:51:53] [INFO    ] [profile_manager] Perfiles cargados: 1
-[2026-03-28 18:51:53] [INFO    ] [account_manager] Cuentas cargadas: 1
-[2026-03-28 18:51:53] [INFO    ] [app] Interfaz Flet iniciada
-[2026-03-28 18:51:55] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
-[2026-03-28 18:51:57] [INFO    ] [modrinth_service] Modrinth: 1 versiones para 'AANobbMI'
-[2026-03-28 18:51:57] [INFO    ] [modrinth_service] Mod descargado: sodium-fabric-0.8.7+mc26.1.jar → C:\Users\geron\.minecraft\profiles\Survival_Pro\mods

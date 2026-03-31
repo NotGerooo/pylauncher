@@ -1,4 +1,0 @@
-[2026-03-30 19:39:41] [INFO    ] [logger] Logger iniciado. Archivo de log: logs\launcher_20260330_193941.log
-[2026-03-30 19:39:42] [DEBUG   ] [settings] Configuración cargada desde data\launcher_settings.json
-[2026-03-30 19:39:42] [INFO    ] [profile_manager] Perfiles cargados: 1
-[2026-03-30 19:39:42] [INFO    ] [account_manager] Cuentas cargadas: 1
