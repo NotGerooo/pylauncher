@@ -2,11 +2,9 @@
 build/
 dist/
 *.spec
-
 # Registros y temporales
 logs/
 *.log
-
 # Entorno y VS Code
 .vscode/
 __pycache__/
