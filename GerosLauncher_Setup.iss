@@ -13,7 +13,7 @@
 #define AppName      "Gero's Launcher"
 #define AppVersion   "1.0.0"
 #define AppPublisher "NotGero"
-#define AppExeName   "GerosLauncher.exe"
+#define AppExeName   "Geros_Launcher.exe"
 #define AppURL       "https://github.com/NotGerooo/pylauncher"
 
 [Setup]
