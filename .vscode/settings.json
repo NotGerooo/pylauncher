@@ -7,7 +7,7 @@
     "git.decorations.enabled": false,
     "gitdoc.excludedGlobs": [
          "**/build/**",
-        "**/dist/**",
+         "**/dist/**",
          "**/logs/**",
          "**/data/**",
          "**/*.spec"         // excluye PyLauncher.spec
