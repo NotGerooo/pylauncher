@@ -1,22 +1,21 @@
+# Editor
+.vscode/
+
+# Build
+build/
+dist/
+
+# Datos
+data/
+
 # Python
 __pycache__/
 *.pyc
 
+# Logs
+logs/
+*.log
+
 # Entornos
 venv/
 .env
-
-# Logs
-logs/
-**/logs/
-*.log
-
-# Minecraft launcher
-instances/
-assets/
-libraries/
-versions/
-
-# Sistema
-.DS_Store
-Thumbs.db
