@@ -4,19 +4,21 @@ logger.py
 Sistema de logging centralizado para todo el launcher.
 Una sola instancia compartida. Escribe a consola y a archivo .log
 """
+import sys
 import logging
 import os
 from datetime import datetime
 
 
-def setup_logger(log_dir: str = "logs") -> logging.Logger:
-    """
-    Crea y configura el logger principal del launcher.
-    Se llama UNA sola vez desde main.py al arrancar la app.
-    """
-    os.makedirs(log_dir, exist_ok=True)
+def setup_logger() -> logging.Logger:
+    if getattr(sys, "frozen", False):
+        base = os.path.join(os.environ.get("APPDATA", ""), "GerosLauncher", "logs")
+    else:
+        base = "logs"
+
+    os.makedirs(base, exist_ok=True)
     log_filename = os.path.join(
-        log_dir,
+        base,
         f"launcher_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
     )
     logger = logging.getLogger("MinecraftLauncher")
