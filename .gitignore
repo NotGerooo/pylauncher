@@ -22,3 +22,11 @@ venv/
 
 # PyInstaller
 *.spec
+
+# Executables
+*.exe
+
+# PyInstaller extra
+*.toc
+*.pyz
+*.pkg
