@@ -21,7 +21,7 @@ def main(page: ft.Page):
     page.title = "Gero's Launcher"
     
     # 👇 AGREGA ESTO
-    page.window.icon = "icon.ico"
+    page.window.icon = "Gero´s Launcher.ico"
     
     from gui.app import App
     App(page)
