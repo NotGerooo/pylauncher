@@ -30,3 +30,8 @@ venv/
 *.toc
 *.pyz
 *.pkg
+
+
+#PARA CREAR EJECUTABLE
+
+#pyinstaller --onefile --windowed --icon=Gero´s Launcher.ico main.py
