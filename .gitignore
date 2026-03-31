@@ -34,5 +34,4 @@ venv/
 
 #PARA CREAR EJECUTABLE
 
-"""python -m PyInstaller --onefile --windowed --icon=Gero´s Launcher.ico" --name "Geros_Launcher" main.py"""
-"C:\Users\geron\Downloads\Minecraft launcher\Gero´s Launcher.ico"
+"""python -m PyInstaller --onefile --windowed --icon=icon.ico" --name "Geros_Launcher" main.py"""
