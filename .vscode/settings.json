@@ -4,5 +4,12 @@
     "git.postCommitCommand": "push",
     "gitdoc.enabled": true,
     "gitdoc.autoCommitDelay": 3000,
-    "git.decorations.enabled": false
+    "git.decorations.enabled": false,
+    "gitdoc.excludedGlobs": [
+         "**/build/**",
+        "**/dist/**",
+         "**/logs/**",
+         "**/data/**",
+         "**/*.spec"         // excluye PyLauncher.spec
+]
 }
