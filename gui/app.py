@@ -243,80 +243,80 @@ class App:
         bar.open = True
         self.page.update()
 
-def _check_updates(self):
-    """Lanza la verificación de actualizaciones en background."""
-    def on_update_available(info):
-        # Flet necesita que los cambios de UI vengan del hilo correcto
-        self.page.run_thread(self._show_update_dialog, info)
- 
-    run_update_check_async(on_update_available)
- 
- 
-def _show_update_dialog(self, info: dict):
-    """Muestra el diálogo de actualización en la UI de Flet."""
-    new_version = info.get("version", "?")
-    url = info.get("url", "")
- 
-    progress_bar = ft.ProgressBar(width=400, value=0, visible=False)
-    status_text = ft.Text("", size=12, color=ft.Colors.GREY_400)
- 
-    def on_update_click(e):
-        btn_update.disabled = True
-        btn_skip.disabled = True
-        progress_bar.visible = True
-        status_text.value = "Descargando actualización..."
-        dlg.update()
- 
-        def do_download():
-            try:
-                def on_progress(pct):
-                    progress_bar.value = pct / 100
-                    status_text.value = f"Descargando... {pct:.0f}%"
+    def _check_updates(self):
+        """Lanza la verificación de actualizaciones en background."""
+        def on_update_available(info):
+            # Flet necesita que los cambios de UI vengan del hilo correcto
+            self.page.run_thread(self._show_update_dialog, info)
+    
+        run_update_check_async(on_update_available)
+    
+    
+    def _show_update_dialog(self, info: dict):
+        """Muestra el diálogo de actualización en la UI de Flet."""
+        new_version = info.get("version", "?")
+        url = info.get("url", "")
+    
+        progress_bar = ft.ProgressBar(width=400, value=0, visible=False)
+        status_text = ft.Text("", size=12, color=ft.Colors.GREY_400)
+    
+        def on_update_click(e):
+            btn_update.disabled = True
+            btn_skip.disabled = True
+            progress_bar.visible = True
+            status_text.value = "Descargando actualización..."
+            dlg.update()
+    
+            def do_download():
+                try:
+                    def on_progress(pct):
+                        progress_bar.value = pct / 100
+                        status_text.value = f"Descargando... {pct:.0f}%"
+                        dlg.update()
+    
+                    new_exe = download_update(url, on_progress)
+                    status_text.value = "Instalando y reiniciando..."
                     dlg.update()
- 
-                new_exe = download_update(url, on_progress)
-                status_text.value = "Instalando y reiniciando..."
-                dlg.update()
-                apply_update(new_exe)
-            except Exception as ex:
-                status_text.value = f"Error: {ex}"
-                btn_skip.disabled = False
-                dlg.update()
- 
-        self.page.run_thread(do_download)
- 
-    def on_skip_click(e):
-        self.page.close(dlg)
- 
-    btn_update = ft.ElevatedButton(
-        "Actualizar ahora",
-        on_click=on_update_click,
-        bgcolor=ft.Colors.GREEN_700,
-        color=ft.Colors.WHITE,
-    )
-    btn_skip = ft.TextButton("Más tarde", on_click=on_skip_click)
- 
-    dlg = ft.AlertDialog(
-        modal=True,
-        title=ft.Text(f"Actualización disponible — v{new_version}"),
-        content=ft.Column(
-            [
-                ft.Text(
-                    f"Hay una nueva versión de Gero's Launcher disponible.\n"
-                    f"¿Deseas actualizar ahora?",
-                    size=13,
-                ),
-                progress_bar,
-                status_text,
-            ],
-            tight=True,
-            spacing=10,
-        ),
-        actions=[btn_update, btn_skip],
-        actions_alignment=ft.MainAxisAlignment.END,
-    )
- 
-    self.page.open(dlg)
+                    apply_update(new_exe)
+                except Exception as ex:
+                    status_text.value = f"Error: {ex}"
+                    btn_skip.disabled = False
+                    dlg.update()
+    
+            self.page.run_thread(do_download)
+    
+        def on_skip_click(e):
+            self.page.close(dlg)
+    
+        btn_update = ft.ElevatedButton(
+            "Actualizar ahora",
+            on_click=on_update_click,
+            bgcolor=ft.Colors.GREEN_700,
+            color=ft.Colors.WHITE,
+        )
+        btn_skip = ft.TextButton("Más tarde", on_click=on_skip_click)
+    
+        dlg = ft.AlertDialog(
+            modal=True,
+            title=ft.Text(f"Actualización disponible — v{new_version}"),
+            content=ft.Column(
+                [
+                    ft.Text(
+                        f"Hay una nueva versión de Gero's Launcher disponible.\n"
+                        f"¿Deseas actualizar ahora?",
+                        size=13,
+                    ),
+                    progress_bar,
+                    status_text,
+                ],
+                tight=True,
+                spacing=10,
+            ),
+            actions=[btn_update, btn_skip],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+    
+        self.page.open(dlg)
 
 class _PlaceholderView:
     def __init__(self, page, app, name):
