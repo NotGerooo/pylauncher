@@ -1,0 +1,20 @@
+# Python (Archivos compilados y caché)
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Entorno de VS Code
+.vscode/
+
+# Distribución / Build
+dist/
+build/
+*.egg-info/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
