@@ -4,6 +4,7 @@ Shell principal: titlebar, sidebar izquierdo, área de contenido, sidebar derech
 """
 import threading
 import flet as ft
+from services.updater import run_update_check_async, download_update, apply_update
 
 from config.settings import Settings
 from managers.version_manager import VersionManager
