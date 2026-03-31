@@ -35,7 +35,7 @@ OutputDir=installer_output
 OutputBaseFilename=GerosLauncher_Setup_v{#AppVersion}
 
 ; Icono del instalador (el mismo del launcher)
-SetupIconFile=assets\icon.ico
+SetupIconFile=Gero´s Launcher.ico
 
 ; Compresión
 Compression=lzma2/ultra64
@@ -74,7 +74,7 @@ Name: "startmenuicon"; Description: "Crear acceso directo en el Menú Inicio"; G
 Source: "dist\{#AppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Icono por separado (para accesos directos)
-Source: "assets\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "Gero´s Launcher.ico"; DestDir: "{app}"; DestName: "icon.ico"; Flags: ignoreversion
 
 ; Si tienes otros archivos junto al .exe (datos, dlls extra), agrégalos aquí:
 ; Source: "dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
