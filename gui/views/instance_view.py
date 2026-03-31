@@ -8,6 +8,8 @@ import re
 import json
 import hashlib
 import threading
+import urllib.request
+import urllib.error
 import flet as ft
 
 from gui.theme import (
@@ -16,7 +18,10 @@ from gui.theme import (
 )
 from utils.install_detector import build_installed_set, is_installed_in
 from utils.logger import get_logger
-
+from utils.icon_cache import (
+    get as cache_get, set as cache_set, has as cache_has,
+    get_author as cache_get_author, set_author as cache_set_author,
+)
 log = get_logger()
 
 _PALETTE = [
@@ -33,21 +38,24 @@ LOADER_ICONS = {
 }
 
 
-# -- Mismo helper de icono que discover_view ----------------------------------
-def _icon(url, title, size=40):
-    color   = _PALETTE[abs(hash(title)) % len(_PALETTE)]
-    initial = (title[0] if title else "?").upper()
+# ---------------------------------------------------------------------------
+# Widget de icono — IGUAL que discover_view: ft.Image(src=url) directo
+# Fallback: icono generico (sin letra)
+# ---------------------------------------------------------------------------
+def _icon(url: str, title: str, size: int = 40) -> ft.Control:
     fallback = ft.Container(
         width=size, height=size, border_radius=8,
-        bgcolor=color, alignment=ft.alignment.center,
-        content=ft.Text(initial, color="#ffffff",
-                        size=int(size * 0.40), weight=ft.FontWeight.BOLD),
+        bgcolor=CARD2_BG, alignment=ft.alignment.center,
+        content=ft.Icon(ft.icons.EXTENSION_ROUNDED,
+                        color=TEXT_DIM, size=int(size * 0.50)),
     )
     if not url:
         return fallback
     return ft.Image(
-        src=url, width=size, height=size,
-        border_radius=8, fit=ft.ImageFit.COVER,
+        src=url,
+        width=size, height=size,
+        border_radius=8,
+        fit=ft.ImageFit.COVER,
         error_content=fallback,
     )
 
@@ -288,15 +296,16 @@ class _ContentTab:
         self._filter   = "All"
         self._sort     = "name"
         self._search_q = ""
+        self._alive    = True
 
         self._file_picker = ft.FilePicker(on_result=self._on_file_picked)
         self.page.overlay.append(self._file_picker)
 
-        # Cache: path_absoluto -> icon_url | None
-        self._icon_cache = {}
+        self._icon_cache:   dict[str, str | None]  = {}
+        self._author_cache: dict[str, dict | None] = {}
+        self._pid_cache:    dict[str, str]          = {}
         self._fetch_lock = threading.Lock()
 
-        log.info(f"[CONTENT TAB] init profile={profile.name}")
         self._build()
 
     def _build(self):
@@ -447,7 +456,6 @@ class _ContentTab:
 
     def _collect_items(self):
         items = []
-
         if self._filter in ("All", "Mods"):
             d = os.path.join(self.profile.game_dir, "mods")
             if os.path.isdir(d):
@@ -485,27 +493,26 @@ class _ContentTab:
                                   "version": _parse_version(fn)})
         return items
 
-    def _refresh(self):
-        items = self._collect_items()
-
+    def _sorted(self, items):
         q = self._search_q.strip().lower()
         if q:
             items = [i for i in items if q in i["filename"].lower()]
-
         if self._sort == "name":
             items.sort(key=lambda i: i["filename"].lower())
         elif self._sort == "status":
             items.sort(key=lambda i: (not i["is_enabled"], i["filename"].lower()))
         elif self._sort == "version":
             items.sort(key=lambda i: i["version"].lower())
+        return items
+
+    def _refresh(self):
+        items = self._sorted(self._collect_items())
 
         self._list_col.controls.clear()
         self._empty_lbl.visible = len(items) == 0
-        self._count_lbl.value = f"{len(items)} proyecto{'s' if len(items) != 1 else ''}"
-
+        self._count_lbl.value  = f"{len(items)} proyecto{'s' if len(items) != 1 else ''}"
         for item in items:
             self._list_col.controls.append(self._make_row(item))
-
         try:
             self._list_col.update()
             self._empty_lbl.update()
@@ -513,115 +520,294 @@ class _ContentTab:
         except Exception:
             pass
 
-        missing = [i for i in items if i["path"] not in self._icon_cache]
-        log.info(f"[REFRESH] items={len(items)} missing={len(missing)}")
-        if missing:
-            log.info("[REFRESH] lanzando fetch thread")
-            threading.Thread(target=self._fetch_icons_batch, args=(missing,), daemon=True).start()
+        # paths que aún no tienen entrada en icon_cache
+        with self._fetch_lock:
+            missing_icons = [i for i in items if i["path"] not in self._icon_cache]
 
-    # -------------------------------------------------------------------------
-    # Fetch de iconos via SHA1 -> Modrinth /version_file/{hash}
-    # -------------------------------------------------------------------------
-    def _fetch_icons_batch(self, items):
-        import urllib.request
-        import urllib.error
-        import json as _json
+        if missing_icons:
+            threading.Thread(
+                target=self._fetch_icons_batch,
+                args=(missing_icons,), daemon=True
+            ).start()
+        else:
+            # iconos ya listos → buscar autores que falten
+            self._launch_author_fetch(items)
 
-        log.info(f"[FETCH] inicio {len(items)} items")
-        found_any = False
+    def _launch_author_fetch(self, items):
+        with self._fetch_lock:
+            need = [
+                (i["path"], self._pid_cache[i["path"]])
+                for i in items
+                if i["path"] not in self._author_cache
+                and i["path"] in self._pid_cache
+            ]
+            for path, _ in need:
+                self._author_cache[path] = None   # marcar pendiente
 
-        try:
-            from config.constants import MODRINTH_API_BASE_URL, HTTP_TIMEOUT_SECONDS, USER_AGENT
-            base    = MODRINTH_API_BASE_URL
-            timeout = HTTP_TIMEOUT_SECONDS
-            ua      = USER_AGENT
-        except Exception as ex:
-            log.info(f"[FETCH] no se pudo importar constants: {ex}")
-            return
-
-        def modrinth_get(url):
-            req = urllib.request.Request(url, headers={
-                "User-Agent": ua,
-                "Accept": "application/json",
-            })
-            with urllib.request.urlopen(req, timeout=timeout) as r:
-                return _json.loads(r.read().decode("utf-8"))
-
-        for item in items:
-            path = item["path"]
-
-            with self._fetch_lock:
-                if path in self._icon_cache:
-                    continue
-
-            icon_url = None
-            try:
-                sha1 = _sha1(path)
-                log.info(f"[FETCH] {item['filename']} sha1={sha1[:12]}...")
-
-                # Paso 1: lookup por hash
-                project_id = ""
-                try:
-                    version_data = modrinth_get(f"{base}/version_file/{sha1}")
-                    project_id   = version_data.get("project_id", "")
-                    log.info(f"[FETCH] hash hit project_id={project_id}")
-                except urllib.error.HTTPError as he:
-                    log.info(f"[FETCH] hash miss ({he.code})")
-                except Exception as ex:
-                    log.info(f"[FETCH] hash error: {ex}")
-
-                # Paso 2: obtener icon_url del proyecto
-                if project_id:
-                    try:
-                        proj = modrinth_get(f"{base}/project/{project_id}")
-                        icon_url = proj.get("icon_url") or None
-                        log.info(f"[FETCH] icon_url={icon_url}")
-                    except Exception as ex:
-                        log.info(f"[FETCH] project error: {ex}")
-
-            except Exception as ex:
-                log.info(f"[FETCH] error general {item['filename']}: {ex}")
-
-            with self._fetch_lock:
-                self._icon_cache[path] = icon_url
-
-            if icon_url:
-                found_any = True
-                log.info(f"[FETCH] OK {item['filename']}")
-            else:
-                log.info(f"[FETCH] MISS {item['filename']}")
-
-        if found_any:
-            self.page.run_thread(self._redraw_list)
+        if need:
+            threading.Thread(
+                target=self._fetch_authors_for_projects,
+                args=(need,), daemon=True
+            ).start()
 
     def _redraw_list(self):
-        items = self._collect_items()
-        q = self._search_q.strip().lower()
-        if q:
-            items = [i for i in items if q in i["filename"].lower()]
-        if self._sort == "name":
-            items.sort(key=lambda i: i["filename"].lower())
-        elif self._sort == "status":
-            items.sort(key=lambda i: (not i["is_enabled"], i["filename"].lower()))
-        elif self._sort == "version":
-            items.sort(key=lambda i: i["version"].lower())
-
-        self._list_col.controls.clear()
-        for item in items:
-            self._list_col.controls.append(self._make_row(item))
+        if not self._alive:
+            return
         try:
+            items = self._sorted(self._collect_items())
+            self._list_col.controls.clear()
+            for item in items:
+                self._list_col.controls.append(self._make_row(item))
             self._list_col.update()
         except Exception:
             pass
 
+    # ── Fetch iconos ──────────────────────────────────────────────────────────
+    def _fetch_icons_batch(self, items):
+        if not self._alive:
+            return
+        try:
+            from config.constants import MODRINTH_API_BASE_URL, HTTP_TIMEOUT_SECONDS, USER_AGENT
+            base = MODRINTH_API_BASE_URL; timeout = HTTP_TIMEOUT_SECONDS; ua = USER_AGENT
+        except Exception:
+            base = "https://api.modrinth.com/v2"; timeout = 15; ua = "PyLauncher/1.0"
+
+        def post(url, payload):
+            data = json.dumps(payload).encode()
+            req  = urllib.request.Request(url, data=data, headers={
+                "User-Agent": ua, "Accept": "application/json",
+                "Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return json.loads(r.read())
+
+        def get(url):
+            req = urllib.request.Request(url, headers={
+                "User-Agent": ua, "Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return json.loads(r.read())
+
+        from concurrent.futures import ThreadPoolExecutor
+
+        # 1. SHA1 en paralelo
+        def sha1_of(item):
+            try:    return item["path"], _sha1(item["path"])
+            except: return item["path"], None
+
+        path_to_sha1 = {}
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            for path, sha1 in ex.map(sha1_of, items):
+                if sha1:
+                    path_to_sha1[path] = sha1
+
+        # 2. Hits del caché de disco
+        hits     = {}
+        need_api = {}   # sha1 -> path
+        for path, sha1 in path_to_sha1.items():
+            cached = cache_get(sha1)
+            if cached is not None:
+                hits[path] = cached.get("icon_url")
+                pid = cached.get("project_id", "")
+                if pid:
+                    with self._fetch_lock:
+                        self._pid_cache[path] = pid
+            else:
+                need_api[sha1] = path
+
+        if hits:
+            with self._fetch_lock:
+                self._icon_cache.update(hits)
+            if self._alive:
+                self.page.run_thread(self._redraw_list)
+
+        # 3. Autores para hits de caché
+        self._launch_author_fetch_paths(list(hits.keys()))
+
+        if not need_api:
+            return
+
+        # 4. Batch hashes → project_ids
+        try:
+            ver_results = post(f"{base}/version_files", {
+                "hashes": list(need_api.keys()), "algorithm": "sha1"})
+        except Exception as ex:
+            log.debug(f"[ICON] version_files: {ex}")
+            for sha1 in need_api:
+                cache_set(sha1, None)
+            return
+
+        sha1_to_pid = {}
+        project_ids = {}
+        for sha1, vdata in ver_results.items():
+            pid  = vdata.get("project_id", "")
+            path = need_api.get(sha1)
+            if pid and path:
+                sha1_to_pid[sha1] = pid
+                project_ids[pid]  = path
+
+        for sha1 in need_api:
+            if sha1 not in sha1_to_pid:
+                cache_set(sha1, None)
+                with self._fetch_lock:
+                    self._icon_cache[need_api[sha1]] = None
+
+        if not project_ids:
+            return
+
+        # 5. Batch proyectos → icon_url
+        try:
+            projects = get(f"{base}/projects?ids=" +
+                           urllib.request.quote(json.dumps(list(project_ids.keys()))))
+        except Exception as ex:
+            log.debug(f"[ICON] projects: {ex}")
+            return
+
+        pid_to_icon = {p.get("id", ""): p.get("icon_url") or None for p in projects}
+        found_any   = False
+
+        with self._fetch_lock:
+            for sha1, pid in sha1_to_pid.items():
+                path     = need_api[sha1]
+                icon_url = pid_to_icon.get(pid)
+                self._icon_cache[path] = icon_url
+                self._pid_cache[path]  = pid
+                cache_set(sha1, icon_url, pid)
+                if icon_url:
+                    found_any = True
+
+        if found_any and self._alive:
+            self.page.run_thread(self._redraw_list)
+
+        # 6. Autores para los recién descubiertos
+        self._launch_author_fetch_paths([need_api[s] for s in sha1_to_pid])
+
+    def _launch_author_fetch_paths(self, paths):
+        """Lanza fetch de autores para una lista de paths ya con pid conocido."""
+        with self._fetch_lock:
+            need = [
+                (path, self._pid_cache[path])
+                for path in paths
+                if path in self._pid_cache
+                and path not in self._author_cache
+            ]
+            for path, _ in need:
+                self._author_cache[path] = None
+
+        if need:
+            threading.Thread(
+                target=self._fetch_authors_for_projects,
+                args=(need,), daemon=True
+            ).start()
+
+    # ── Fetch autores ─────────────────────────────────────────────────────────
+    def _fetch_authors_for_projects(self, path_pid_list):
+        if not self._alive:
+            return
+        try:
+            from config.constants import MODRINTH_API_BASE_URL, HTTP_TIMEOUT_SECONDS, USER_AGENT
+            base = MODRINTH_API_BASE_URL; timeout = HTTP_TIMEOUT_SECONDS; ua = USER_AGENT
+        except Exception:
+            base = "https://api.modrinth.com/v2"; timeout = 15; ua = "PyLauncher/1.0"
+
+        def get(url):
+            req = urllib.request.Request(url, headers={
+                "User-Agent": ua, "Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return json.loads(r.read())
+
+        # 1. Resolver caché de disco
+        need_fetch = []
+        for path, pid in path_pid_list:
+            cached = cache_get_author(f"pid:{pid}")
+            if cached is not None:
+                with self._fetch_lock:
+                    self._author_cache[path] = cached
+            else:
+                need_fetch.append((path, pid))
+
+        if len(need_fetch) < len(path_pid_list) and self._alive:
+            self.page.run_thread(self._redraw_list)
+
+        if not need_fetch:
+            return
+
+        # 2. Fetch en paralelo
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        def fetch_one(path_pid):
+            path, pid = path_pid
+            try:
+                members = get(f"{base}/project/{pid}/members")
+                owner   = next(
+                    (m for m in members if m.get("role") == "Owner"),
+                    members[0] if members else None,
+                )
+                if owner:
+                    user = owner.get("user", {})
+                    return path, pid, {
+                        "username":   user.get("username", ""),
+                        "avatar_url": user.get("avatar_url") or None,
+                    }
+            except Exception as ex:
+                log.debug(f"[AUTHOR] {pid}: {ex}")
+            return path, pid, {"username": "", "avatar_url": None}
+
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            futures = [ex.submit(fetch_one, item) for item in need_fetch]
+            for future in as_completed(futures):
+                if not self._alive:
+                    break
+                path, pid, result = future.result()
+                cache_set_author(f"pid:{pid}", result.get("avatar_url"), extra=result)
+                # También guardar por username para que discover_view lo encuentre
+                if result.get("username"):
+                    cache_set_author(result["username"], result.get("avatar_url"), extra=result)
+                with self._fetch_lock:
+                    self._author_cache[path] = result
+                if result.get("username") and self._alive:
+                    self.page.run_thread(self._redraw_list)
+
+    # ── Fila de mod ───────────────────────────────────────────────────────────
     def _make_row(self, item):
         fn    = item["filename"]
         path  = item["path"]
         is_en = item["is_enabled"]
         disp  = re.sub(r'\.(jar|zip)(\.disabled)?$', '', fn, flags=re.IGNORECASE)
 
-        icon_url    = self._icon_cache.get(path)
+        with self._fetch_lock:
+            icon_url    = self._icon_cache.get(path)
+            author_data = self._author_cache.get(path)
+
         icon_widget = _icon(icon_url or "", disp, size=40)
+
+        # Autor
+        if author_data and author_data.get("username"):
+            username     = author_data["username"]
+            avatar_url   = author_data.get("avatar_url")
+            modrinth_url = f"https://modrinth.com/user/{username}"
+
+            avatar_widget = (
+                ft.Image(src=avatar_url, width=14, height=14,
+                         border_radius=7, fit=ft.ImageFit.COVER)
+                if avatar_url else
+                ft.Container(
+                    width=14, height=14, border_radius=7, bgcolor=CARD2_BG,
+                    alignment=ft.alignment.center,
+                    content=ft.Text(username[0].upper(), size=7, color=TEXT_DIM,
+                                    text_align=ft.TextAlign.CENTER),
+                )
+            )
+            author_widget = ft.GestureDetector(
+                mouse_cursor=ft.MouseCursor.CLICK,
+                on_tap=lambda e, u=modrinth_url: self.page.launch_url(u),
+                content=ft.Row([
+                    avatar_widget,
+                    ft.Container(width=4),
+                    ft.Text(username, color=GREEN, size=8,
+                            weight=ft.FontWeight.W_500),
+                ], spacing=0, tight=True),
+            )
+        else:
+            author_widget = ft.Container(height=0)
 
         type_badge = ft.Container(
             bgcolor=CARD2_BG, border_radius=4,
@@ -629,8 +815,7 @@ class _ContentTab:
             content=ft.Text(item["type"], color=TEXT_DIM, size=7),
         )
         status_badge = ft.Container(
-            bgcolor="#1a3d2a" if is_en else CARD2_BG,
-            border_radius=4,
+            bgcolor="#1a3d2a" if is_en else CARD2_BG, border_radius=4,
             padding=ft.padding.symmetric(horizontal=6, vertical=2),
             content=ft.Row([
                 ft.Icon(ft.icons.CIRCLE, size=6, color=GREEN if is_en else TEXT_DIM),
@@ -648,8 +833,7 @@ class _ContentTab:
                         CARD2_BG if e.data == "true" else INPUT_BG)
                 or e.control.update()),
             content=ft.Row([
-                ft.Checkbox(value=False,
-                            fill_color={"selected": GREEN},
+                ft.Checkbox(value=False, fill_color={"selected": GREEN},
                             check_color=TEXT_INV, width=20),
                 ft.Container(width=10),
                 icon_widget,
@@ -663,16 +847,14 @@ class _ContentTab:
                         ft.Container(width=4),
                         status_badge,
                     ], spacing=4),
-                    ft.Text(fn, color=TEXT_DIM, size=8, italic=True,
-                            overflow=ft.TextOverflow.ELLIPSIS),
-                ], spacing=2, expand=True),
+                    author_widget,
+                ], spacing=3, expand=True),
                 ft.Text(item["version"] or "-", color=TEXT_SEC, size=9,
                         width=160, text_align=ft.TextAlign.CENTER),
                 ft.Row([
                     ft.IconButton(
                         icon=ft.icons.TOGGLE_ON if is_en else ft.icons.TOGGLE_OFF,
-                        icon_color=GREEN if is_en else TEXT_DIM,
-                        icon_size=22,
+                        icon_color=GREEN if is_en else TEXT_DIM, icon_size=22,
                         tooltip="Deshabilitar" if is_en else "Habilitar",
                         on_click=lambda e, i=item: self._toggle(i),
                     ),
@@ -691,16 +873,13 @@ class _ContentTab:
         try:
             if item["is_enabled"]:
                 new_path = path + ".disabled"
-                os.rename(path, new_path)
-                with self._fetch_lock:
-                    if path in self._icon_cache:
-                        self._icon_cache[new_path] = self._icon_cache[path]
             else:
                 new_path = path.removesuffix(".disabled")
-                os.rename(path, new_path)
-                with self._fetch_lock:
-                    if path in self._icon_cache:
-                        self._icon_cache[new_path] = self._icon_cache[path]
+            os.rename(path, new_path)
+            with self._fetch_lock:
+                for cache in (self._icon_cache, self._author_cache, self._pid_cache):
+                    if path in cache:
+                        cache[new_path] = cache.pop(path)
             self._refresh()
         except OSError as ex:
             self.app.snack(str(ex), error=True)
@@ -712,7 +891,8 @@ class _ContentTab:
                 try:
                     os.remove(item["path"])
                     with self._fetch_lock:
-                        self._icon_cache.pop(item["path"], None)
+                        for cache in (self._icon_cache, self._author_cache, self._pid_cache):
+                            cache.pop(item["path"], None)
                     self._refresh()
                     self.app.snack("Eliminado.")
                 except OSError as ex:
@@ -742,16 +922,12 @@ class _ContentTab:
             return
         src = e.files[0].path
         fn  = os.path.basename(src)
-        low = fn.lower()
-
-        if low.endswith(".jar"):
-            dest_dir = os.path.join(self.profile.game_dir, "mods")
-        else:
-            dest_dir = os.path.join(self.profile.game_dir, "resourcepacks")
-
+        dest_dir = os.path.join(
+            self.profile.game_dir,
+            "mods" if fn.lower().endswith(".jar") else "resourcepacks"
+        )
         os.makedirs(dest_dir, exist_ok=True)
         dest = os.path.join(dest_dir, fn)
-
         if os.path.exists(dest):
             self.app.snack(f"'{fn}' ya existe.", error=True)
             return
@@ -784,7 +960,6 @@ class _ContentTab:
             except Exception:
                 pass
         return "vanilla"
-
 
 # =============================================================================
 # Browse Content Dialog
@@ -904,6 +1079,9 @@ class _BrowseContentDialog:
             author    = getattr(r, "author", "")
             installed = is_installed_in(r.slug, r.title, self._installed_set)
 
+            # URL directa, igual que discover_view
+            icon_w = _icon(getattr(r, "icon_url", None) or "", r.title, size=42)
+
             badge = (
                 ft.Container(
                     bgcolor="#1a3d2a", border_radius=4,
@@ -935,7 +1113,7 @@ class _BrowseContentDialog:
                 ) if not installed else None,
                 opacity=0.6 if installed else 1.0,
                 content=ft.Row([
-                    _icon(getattr(r, "icon_url", None) or "", r.title, size=42),
+                    icon_w,
                     ft.Container(width=14),
                     ft.Column([
                         ft.Text(r.title, color=TEXT_PRI, size=10,

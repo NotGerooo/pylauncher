@@ -98,14 +98,26 @@ class App:
 
     # ── Titlebar ──────────────────────────────────────────────────────────────
     def _build_titlebar(self) -> ft.Control:
-        def wbtn(color, hover, cmd):
+        def wbtn(color, hover, cmd, icon, circle):
+            lbl = ft.Text(
+                icon,
+                color=ft.colors.with_opacity(0.6, "#000000"),
+                size=9,
+                weight=ft.FontWeight.BOLD,
+                text_align=ft.TextAlign.CENTER,
+            )
             return ft.Container(
-                width=14, height=14, border_radius=7, bgcolor=color,
+                width=16, height=16,
+                border_radius=8 if circle else 3,
+                bgcolor=color,
+                alignment=ft.alignment.center,
+                content=lbl,
                 on_click=lambda e: cmd(),
                 on_hover=lambda e, nc=color, hc=hover: (
                     setattr(e.control, "bgcolor",
                             hc if e.data == "true" else nc)
-                    or e.control.update()),
+                    or e.control.update()
+                ),
             )
 
         return ft.WindowDragArea(
@@ -126,15 +138,16 @@ class App:
                     ),
                     ft.Container(width=16),
                     ft.Row([
-                        wbtn("#ff5f57", "#ff3b30",
-                             lambda: self.page.window.close()),
-                        wbtn("#febc2e", "#f0a500", self._minimize),
-                        wbtn("#28c840", "#1da831", self._toggle_maximize),
+                        wbtn("#cc4a44", "#ff3b30",
+                            lambda: self.page.window.close(), "✕", True),
+                        wbtn("#c9941a", "#f0a500",
+                            self._minimize, "−", True),
+                        wbtn("#1fa832", "#1da831",
+                            self._toggle_maximize, "🔲", False),
                     ], spacing=8),
                 ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
             )
         )
-
     def _minimize(self):
         self.page.window.minimized = True
         self.page.update()

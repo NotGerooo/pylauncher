@@ -19,6 +19,7 @@ from gui.theme import (
     BG, CARD_BG, CARD2_BG, INPUT_BG, BORDER,
     GREEN, TEXT_PRI, TEXT_SEC, TEXT_DIM, TEXT_INV, ACCENT_RED,
 )
+from utils.icon_cache import get_author as cache_get_author, set_author as cache_set_author
 from utils.install_detector import build_installed_set, is_installed_in
 from utils.logger import get_logger
 
@@ -475,19 +476,19 @@ class DiscoverView:
 
     # ── Tarjeta de mod ─────────────────────────────────────────────────────────
     def _make_card(self, proj, is_installed: bool) -> ft.Container:
-        author = getattr(proj, "author", "")
+        author            = getattr(proj, "author", "")
+        modrinth_user_url = f"https://modrinth.com/user/{author}" if author else ""
 
         if is_installed:
             action_btn = ft.Container(
-                bgcolor="#1a3d2a", border_radius=6,
-                opacity=0.65,
+                bgcolor="#1a3d2a", border_radius=6, opacity=0.65,
                 padding=ft.padding.symmetric(horizontal=12, vertical=6),
                 tooltip="Ya instalado en este perfil",
                 content=ft.Row([
                     ft.Icon(ft.icons.CHECK_CIRCLE_ROUNDED, size=13, color=GREEN),
                     ft.Container(width=5),
                     ft.Text("Instalado", color=GREEN, size=9,
-                             weight=ft.FontWeight.BOLD),
+                            weight=ft.FontWeight.BOLD),
                 ], spacing=0, tight=True),
             )
         else:
@@ -501,48 +502,89 @@ class DiscoverView:
                     or e.control.update()
                 ),
                 content=ft.Row([
-                    ft.Icon(ft.icons.DOWNLOAD_FOR_OFFLINE, size=13,
-                             color=TEXT_INV),
+                    ft.Icon(ft.icons.DOWNLOAD_FOR_OFFLINE, size=13, color=TEXT_INV),
                     ft.Container(width=5),
                     ft.Text("Instalar", color=TEXT_INV, size=9,
-                             weight=ft.FontWeight.BOLD),
+                            weight=ft.FontWeight.BOLD),
                 ], spacing=0, tight=True),
             )
 
-        meta_controls = []
+        # ── Avatar del autor desde caché ──────────────────────────────────────
         if author:
-            meta_controls += [
-                ft.Text(f"por {author}", color=GREEN, size=9),
+            # En discover, author ES el username — buscar por username directo
+            cached_author = cache_get_author(author) or cache_get_author(f"pid:{author}")
+            avatar_url    = cached_author.get("avatar_url") if cached_author else None
+            avatar_widget = (
+                ft.Image(src=avatar_url, width=14, height=14,
+                         border_radius=7, fit=ft.ImageFit.COVER)
+                if avatar_url else
+                ft.Container(
+                    width=14, height=14, border_radius=7,
+                    bgcolor=CARD2_BG, alignment=ft.alignment.center,
+                    content=ft.Text(author[0].upper(), size=7, color=TEXT_DIM,
+                                    text_align=ft.TextAlign.CENTER),
+                )
+            )
+
+            author_txt = ft.Text(author, color=GREEN, size=9)
+            author_widget = ft.GestureDetector(
+                mouse_cursor=ft.MouseCursor.CLICK,
+                on_tap=lambda e, u=modrinth_user_url: self.page.launch_url(u),
+                on_enter=lambda e, t=author_txt: (
+                    setattr(t, "decoration", ft.TextDecoration.UNDERLINE)
+                    or t.update()
+                ),
+                on_exit=lambda e, t=author_txt: (
+                    setattr(t, "decoration", ft.TextDecoration.NONE)
+                    or t.update()
+                ),
+                content=ft.Row([
+                    avatar_widget,
+                    ft.Container(width=4),
+                    author_txt,
+                ], spacing=0, tight=True),
+            )
+            meta_controls = [
+                ft.Text("por ", color=TEXT_DIM, size=9),
+                author_widget,
                 ft.Text("  ·  ", color=TEXT_DIM, size=9),
+                ft.Text(f"⬇ {proj.downloads:,}", color=TEXT_DIM, size=9),
             ]
-        meta_controls.append(
-            ft.Text(f"⬇ {proj.downloads:,}", color=TEXT_DIM, size=9)
-        )
+        else:
+            meta_controls = [
+                ft.Text(f"⬇ {proj.downloads:,}", color=TEXT_DIM, size=9),
+            ]
 
         chips = ft.Row(
             [_chip(c) for c in proj.categories[:4]],
             spacing=5, wrap=True,
         ) if proj.categories else ft.Container(height=0)
 
+        title_txt = ft.Text(
+            proj.title, color=TEXT_PRI, size=12,
+            weight=ft.FontWeight.BOLD, expand=True,
+            overflow=ft.TextOverflow.ELLIPSIS,
+        )
+
         card = ft.Container(
             bgcolor=CARD_BG, border_radius=12,
             padding=ft.padding.symmetric(horizontal=16, vertical=14),
             on_click=lambda e, p=proj: self._open_detail(p),
-            on_hover=lambda e: (
+            on_hover=lambda e, t=title_txt: (
                 setattr(e.control, "bgcolor",
                         "#1e2029" if e.data == "true" else CARD_BG)
+                or setattr(t, "decoration",
+                           ft.TextDecoration.UNDERLINE if e.data == "true"
+                           else ft.TextDecoration.NONE)
                 or e.control.update()
+                or t.update()
             ),
             content=ft.Row([
                 _icon(proj.icon_url, proj.title, size=54),
                 ft.Container(width=16),
                 ft.Column([
-                    ft.Row([
-                        ft.Text(proj.title, color=TEXT_PRI, size=12,
-                                weight=ft.FontWeight.BOLD, expand=True,
-                                overflow=ft.TextOverflow.ELLIPSIS),
-                        action_btn,
-                    ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                    ft.Row([title_txt, action_btn],
+                           alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                     ft.Row(meta_controls, spacing=0),
                     ft.Text(
                         proj.description[:120] + "…"

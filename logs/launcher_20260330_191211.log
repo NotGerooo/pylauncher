@@ -1,0 +1,8 @@
+[2026-03-30 19:12:11] [INFO    ] [logger] Logger iniciado. Archivo de log: logs\launcher_20260330_191211.log
+[2026-03-30 19:12:12] [DEBUG   ] [settings] Configuración cargada desde data\launcher_settings.json
+[2026-03-30 19:12:12] [INFO    ] [profile_manager] Perfiles cargados: 1
+[2026-03-30 19:12:12] [INFO    ] [account_manager] Cuentas cargadas: 1
+[2026-03-30 19:12:12] [INFO    ] [app] Interfaz Flet iniciada
+[2026-03-30 19:12:14] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
+[2026-03-30 19:13:30] [INFO    ] [modrinth_service] Modrinth: 1094 versiones para 'P7dR8mSH'
+[2026-03-30 19:13:34] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)

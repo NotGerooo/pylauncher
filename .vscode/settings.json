@@ -3,5 +3,6 @@
     "git.enableSmartCommit": true,
     "git.postCommitCommand": "push",
     "gitdoc.enabled": true,
-    "gitdoc.autoCommitDelay": 3000
+    "gitdoc.autoCommitDelay": 3000,
+    "git.decorations.enabled": false
 }

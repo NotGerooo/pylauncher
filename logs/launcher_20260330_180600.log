@@ -1,0 +1,6 @@
+[2026-03-30 18:06:00] [INFO    ] [logger] Logger iniciado. Archivo de log: logs\launcher_20260330_180600.log
+[2026-03-30 18:06:01] [DEBUG   ] [settings] Configuración cargada desde data\launcher_settings.json
+[2026-03-30 18:06:01] [INFO    ] [profile_manager] Perfiles cargados: 1
+[2026-03-30 18:06:01] [INFO    ] [account_manager] Cuentas cargadas: 1
+[2026-03-30 18:06:01] [INFO    ] [app] Interfaz Flet iniciada
+[2026-03-30 18:06:03] [INFO    ] [modrinth_service] Modrinth: 20 resultados (type=mod, sort=relevance, offset=0)
