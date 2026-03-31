@@ -1,11 +1,22 @@
-# Compilación (PyInstaller)
-build/
-dist/
-*.spec
-# Registros y temporales
-logs/
-*.log
-# Entorno y VS Code
-.vscode/
+# Python
 __pycache__/
-.venv/
+*.pyc
+
+# Entornos
+venv/
+.env
+
+# Logs
+logs/
+**/logs/
+*.log
+
+# Minecraft launcher
+instances/
+assets/
+libraries/
+versions/
+
+# Sistema
+.DS_Store
+Thumbs.db
