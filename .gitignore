@@ -34,4 +34,4 @@ venv/
 
 #PARA CREAR EJECUTABLE
 
-"""python -m PyInstaller --onefile --windowed --icon=icon.ico" --name "Geros_Launcher" main.py"""
+"""python -m PyInstaller --onefile --windowed --icon="Gero´s Launcher.ico" --name "Geros_Launcher" main.py"""
