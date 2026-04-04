@@ -366,7 +366,7 @@ class DiscoverView:
                 ),
             ], spacing=0, expand=True),
         )
-
+        self._main_lv = self.root.content.controls[0].content
     # ── Lifecycle ──────────────────────────────────────────────────────────────
     def on_show(self):
         self._loading = False        # ← reset flag por si quedó colgado
