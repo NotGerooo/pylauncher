@@ -896,6 +896,10 @@ class DiscoverView:
             overflow=ft.TextOverflow.ELLIPSIS,
         )
 
+        author_row_controls: list = [ft.Container(width=0)]
+        if meta_controls:
+            author_row_controls = meta_controls
+
         card = ft.Container(
             bgcolor=CARD_BG,
             border=ft.border.all(1, BORDER),
@@ -908,14 +912,16 @@ class DiscoverView:
                 ft.Column([
                     ft.Row([
                         ft.Column([
-                            ft.Row([title_txt] + meta_controls,
+                            title_txt,
+                            ft.Container(height=3),
+                            ft.Row(author_row_controls,
                                    spacing=0, wrap=False,
                                    vertical_alignment=ft.CrossAxisAlignment.CENTER),
                         ], expand=True, spacing=0),
                         install_btn,
                     ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                        vertical_alignment=ft.CrossAxisAlignment.START),
-                    ft.Container(height=6),
+                    ft.Container(height=8),
                     ft.Text(
                         (proj.description[:180] + "…"
                          if len(proj.description) > 180 else proj.description),
