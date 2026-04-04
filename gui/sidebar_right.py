@@ -619,7 +619,8 @@ class SidebarRight:
                 l.update(); r.update()
             except Exception:
                 pass
-            self._fire_filter_change()
+            if callable(self._on_filter_change):
+                self._on_filter_change()
 
         def _block_click(e, c=cat, d=check, bb=block_btn,
                         ic=ico_ctrl, l=lbl, r=row):
@@ -636,7 +637,8 @@ class SidebarRight:
                 l.update(); r.update()
             except Exception:
                 pass
-            self._fire_filter_change()
+            if callable(self._on_filter_change):
+                self._on_filter_change()
 
         block_btn.on_click = _block_click
         row.on_click = _click
