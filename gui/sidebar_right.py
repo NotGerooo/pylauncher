@@ -110,8 +110,8 @@ class SidebarRight:
     def __init__(self, app):
         self.app  = app
         self.page = app.page
+        
         self._excluded_cats: set = set()
-
         self._discover_mode      = False
         self._on_filter_change   = None
         self._selected_cats: set = set()
