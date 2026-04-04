@@ -2,12 +2,13 @@
 """
 gui/views/discover_view.py
 Diseño inspirado en Modrinth App:
- - Header con nombre de instancia (si viene de una) + Back
+ - Header de instancia (nombre, loader, versión) + Back to instance
  - Tabs pill: Mods / Resource Packs / Data Packs / Shaders / Modpacks
  - Barra de búsqueda full-width
- - Sort by + View (page size) + paginación numérica a la derecha
+ - Sort by + View (page size) + paginación numérica
  - Chips de versión MC + loader activo
- - Cards grandes estilo Modrinth: icon izq, stats der, chips abajo
+ - Cards grandes estilo Modrinth
+ - Panel de filtros en sidebar_right (categorías, loader, hide installed)
  - Diálogo de detalle con lista de versiones
 """
 
@@ -28,7 +29,6 @@ from utils.logger import get_logger
 log = get_logger()
 
 # ── Constantes ─────────────────────────────────────────────────────────────────
-LOADERS      = ["fabric", "forge", "neoforge", "quilt"]
 SORT_OPTIONS = {
     "relevance": "Relevance",
     "downloads": "Downloads",
@@ -40,17 +40,21 @@ VIEW_SIZES   = [10, 20, 40]
 
 TAB_PROJECT_TYPES = ["mod", "resourcepack", "datapack", "shader", "modpack"]
 TAB_LABELS        = ["Mods", "Resource Packs", "Data Packs", "Shaders", "Modpacks"]
+TAB_HINTS         = [
+    "Search mods...",
+    "Search resource packs...",
+    "Search data packs...",
+    "Search shaders...",
+    "Search modpacks...",
+]
 
 _PALETTE = [
     "#2d6a4f", "#1e3a5f", "#5c2a2a", "#3a3a1e",
     "#2a1e5c", "#1e5c4a", "#4a3a1e", "#5c3a4a",
 ]
 
-_HUMAN_NUM_CACHE: dict = {}
-
 
 def _human(n: int) -> str:
-    """152790000 → '152.79M'"""
     if n >= 1_000_000:
         return f"{n / 1_000_000:.2f}M"
     if n >= 1_000:
@@ -59,14 +63,13 @@ def _human(n: int) -> str:
 
 
 def _rel_date(iso: str) -> str:
-    """'2024-01-15T...' → '2 days ago'"""
     if not iso:
         return ""
     try:
         from datetime import datetime, timezone
-        dt = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+        dt   = datetime.fromisoformat(iso.replace("Z", "+00:00"))
         diff = datetime.now(timezone.utc) - dt
-        d = diff.days
+        d    = diff.days
         if d == 0:
             h = diff.seconds // 3600
             return "Today" if h == 0 else f"{h}h ago"
@@ -81,7 +84,7 @@ def _rel_date(iso: str) -> str:
         return ""
 
 
-# ── Widget de ícono ─────────────────────────────────────────────────────────────
+# ── Icon widget ────────────────────────────────────────────────────────────────
 def _icon_widget(url: str, title: str, size: int = 80) -> ft.Control:
     color    = _PALETTE[abs(hash(title)) % len(_PALETTE)]
     initial  = (title[0] if title else "?").upper()
@@ -100,69 +103,66 @@ def _icon_widget(url: str, title: str, size: int = 80) -> ft.Control:
     )
 
 
-# ── Chip de categoría ───────────────────────────────────────────────────────────
+# ── Category chip ──────────────────────────────────────────────────────────────
 def _cat_chip(label: str) -> ft.Container:
-    icons = {
-        "client":        ft.icons.COMPUTER_ROUNDED,
-        "server":        ft.icons.DNS_ROUNDED,
-        "library":       ft.icons.BOOK_ROUNDED,
-        "optimization":  ft.icons.SPEED_ROUNDED,
-        "utility":       ft.icons.BUILD_ROUNDED,
-        "decoration":    ft.icons.PALETTE_ROUNDED,
-        "adventure":     ft.icons.EXPLORE_ROUNDED,
-        "magic":         ft.icons.AUTO_AWESOME_ROUNDED,
-        "technology":    ft.icons.SETTINGS_ROUNDED,
-        "food":          ft.icons.RESTAURANT_ROUNDED,
-        "mobs":          ft.icons.PETS_ROUNDED,
-        "worldgen":      ft.icons.TERRAIN_ROUNDED,
-        "storage":       ft.icons.INVENTORY_ROUNDED,
-        "transportation":ft.icons.TRAIN_ROUNDED,
+    _icons = {
+        "client":         ft.icons.COMPUTER_ROUNDED,
+        "server":         ft.icons.DNS_ROUNDED,
+        "library":        ft.icons.BOOK_ROUNDED,
+        "optimization":   ft.icons.SPEED_ROUNDED,
+        "utility":        ft.icons.BUILD_ROUNDED,
+        "decoration":     ft.icons.PALETTE_ROUNDED,
+        "adventure":      ft.icons.EXPLORE_ROUNDED,
+        "magic":          ft.icons.AUTO_AWESOME_ROUNDED,
+        "technology":     ft.icons.SETTINGS_ROUNDED,
+        "food":           ft.icons.RESTAURANT_ROUNDED,
+        "mobs":           ft.icons.PETS_ROUNDED,
+        "worldgen":       ft.icons.TERRAIN_ROUNDED,
+        "storage":        ft.icons.INVENTORY_ROUNDED,
+        "transportation": ft.icons.TRAIN_ROUNDED,
+        "social":         ft.icons.PEOPLE_ROUNDED,
+        "management":     ft.icons.MANAGE_ACCOUNTS_ROUNDED,
+        "economy":        ft.icons.ATTACH_MONEY_ROUNDED,
+        "equipment":      ft.icons.SHIELD_ROUNDED,
+        "game mechanics": ft.icons.GAMEPAD_ROUNDED,
     }
-    ico = icons.get(label.lower())
-    children: list = []
+    ico = _icons.get(label.lower())
+    row_children: list = []
     if ico:
-        children.append(ft.Icon(ico, size=10, color=TEXT_DIM))
-        children.append(ft.Container(width=4))
-    children.append(ft.Text(
-        label.replace("-", " ").title(),
-        color=TEXT_DIM, size=9,
-    ))
+        row_children.append(ft.Icon(ico, size=10, color=TEXT_DIM))
+        row_children.append(ft.Container(width=4))
+    row_children.append(ft.Text(
+        label.replace("-", " ").title(), color=TEXT_DIM, size=9))
     return ft.Container(
         bgcolor="#1f2937", border_radius=5,
         padding=ft.padding.symmetric(horizontal=8, vertical=4),
-        content=ft.Row(children, spacing=0, tight=True),
+        content=ft.Row(row_children, spacing=0, tight=True),
     )
 
 
-# ── Skeleton ────────────────────────────────────────────────────────────────────
+# ── Skeleton card ──────────────────────────────────────────────────────────────
 def _skeleton_card() -> ft.Container:
-    def _bar(w, h=10, opacity=0.14):
+    def _bar(w, h=10, op=0.13):
         return ft.Container(width=w, height=h, border_radius=4,
-                            bgcolor="#ffffff", opacity=opacity)
+                            bgcolor="#ffffff", opacity=op)
     return ft.Container(
-        bgcolor=CARD_BG, border_radius=14,
-        padding=ft.padding.all(20),
+        bgcolor=CARD_BG, border=ft.border.all(1, BORDER),
+        border_radius=14, padding=ft.padding.all(20),
         content=ft.Row([
             ft.Container(width=80, height=80, border_radius=12,
-                         bgcolor="#ffffff", opacity=0.10),
+                         bgcolor="#ffffff", opacity=0.09),
             ft.Container(width=20),
             ft.Column([
-                _bar(220, 14, 0.20),
-                ft.Container(height=6),
-                _bar(100, 9),
-                ft.Container(height=6),
-                _bar(380, 9),
-                _bar(300, 9),
+                _bar(220, 14, 0.18), ft.Container(height=6),
+                _bar(100, 9),        ft.Container(height=6),
+                _bar(380, 9),        _bar(300, 9),
                 ft.Container(height=10),
                 ft.Row([_bar(70, 8), ft.Container(width=6),
                         _bar(80, 8), ft.Container(width=6), _bar(55, 8)]),
             ], spacing=4, expand=True),
             ft.Column([
-                _bar(80, 9),
-                ft.Container(height=6),
-                _bar(70, 9),
-                ft.Container(height=6),
-                _bar(60, 9),
+                _bar(80, 9), ft.Container(height=6),
+                _bar(70, 9), ft.Container(height=6), _bar(60, 9),
             ], horizontal_alignment=ft.CrossAxisAlignment.END),
         ], vertical_alignment=ft.CrossAxisAlignment.START),
     )
@@ -177,24 +177,63 @@ class DiscoverView:
         self.app  = app
 
         self._results    : list = []
-        self._page_index : int  = 0   # 0-based
+        self._page_index : int  = 0
         self._page_size  : int  = 20
         self._total_hits : int  = 0
         self._loading    : bool = False
         self._tab_index  : int  = 0
         self._debounce_timer     = None
         self._installed_set: set = set()
-
-        # Optional: si viene desde una instancia, se puede pasar profile
-        self._source_profile = None
+        self._source_profile     = None   # set by instance_view before on_show
 
         self._build()
 
-    # ── LAYOUT ──────────────────────────────────────────────────────────────
+    # ── Build ──────────────────────────────────────────────────────────────────
     def _build(self):
-        # ── TABS ─────────────────────────────────────────────────────────────
+        # ── Instance header (visible only when source_profile is set) ─────────
+        self._inst_icon   = ft.Container(
+            width=40, height=40, border_radius=8,
+            bgcolor=CARD2_BG, alignment=ft.alignment.center,
+            content=ft.Icon(ft.icons.WIDGETS_ROUNDED, size=20, color=TEXT_DIM),
+        )
+        self._inst_name   = ft.Text("", color=TEXT_PRI, size=14,
+                                    weight=ft.FontWeight.BOLD)
+        self._inst_meta   = ft.Text("", color=TEXT_SEC, size=11)
+        self._back_btn    = ft.Container(
+            bgcolor=INPUT_BG,
+            border=ft.border.all(1, BORDER),
+            border_radius=8,
+            padding=ft.padding.symmetric(horizontal=14, vertical=8),
+            on_click=lambda e: self._go_back(),
+            on_hover=lambda e, b=None: None,  # set below
+            content=ft.Row([
+                ft.Icon(ft.icons.ARROW_BACK_ROUNDED, size=14, color=TEXT_SEC),
+                ft.Container(width=6),
+                ft.Text("Back to instance", color=TEXT_SEC, size=11,
+                        weight=ft.FontWeight.W_500),
+            ], spacing=0, tight=True),
+        )
+        self._back_btn.on_hover = lambda e, b=self._back_btn: (
+            setattr(b, "bgcolor", CARD2_BG if e.data == "true" else INPUT_BG)
+            or b.update()
+        )
+        self._inst_header = ft.Container(
+            visible=False,
+            padding=ft.padding.only(bottom=20),
+            content=ft.Row([
+                self._inst_icon,
+                ft.Container(width=14),
+                ft.Column([
+                    self._inst_name,
+                    self._inst_meta,
+                ], spacing=2, expand=True),
+                self._back_btn,
+            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+        )
+
+        # ── Tabs ──────────────────────────────────────────────────────────────
         self._tab_buttons: list[ft.Container] = []
-        tab_row_controls = []
+        tab_controls = []
         for i, label in enumerate(TAB_LABELS):
             lbl = ft.Text(
                 label, size=12, weight=ft.FontWeight.W_600,
@@ -211,35 +250,28 @@ class DiscoverView:
                 data=i,
             )
             self._tab_buttons.append(btn)
-            tab_row_controls.append(btn)
+            tab_controls.append(btn)
 
-        self._tabs_row = ft.Row(
-            tab_row_controls,
-            spacing=4,
-        )
-
-        # ── SEARCH ───────────────────────────────────────────────────────────
+        # ── Search ────────────────────────────────────────────────────────────
         self._search_field = ft.TextField(
             hint_text="Search mods...",
             hint_style=ft.TextStyle(color=TEXT_DIM, size=13),
             color=TEXT_PRI, bgcolor=INPUT_BG,
             border_color=BORDER, focused_border_color=GREEN,
-            border_radius=8, expand=True,
-            height=44,
+            border_radius=8, expand=True, height=44,
             content_padding=ft.padding.symmetric(horizontal=16, vertical=10),
             prefix_icon=ft.icons.SEARCH_ROUNDED,
             text_size=13,
             on_change=self._on_search_change,
         )
 
-        # ── SORT + VIEW ───────────────────────────────────────────────────────
+        # ── Sort + View dropdowns ─────────────────────────────────────────────
         self._sort_dd = ft.Dropdown(
             prefix_text="Sort by: ",
             prefix_style=ft.TextStyle(color=TEXT_SEC, size=12),
-            width=220,
-            color=TEXT_PRI, bgcolor=INPUT_BG,
+            width=225, height=44, color=TEXT_PRI, bgcolor=INPUT_BG,
             border_color=BORDER, focused_border_color=GREEN,
-            border_radius=8, height=44,
+            border_radius=8,
             content_padding=ft.padding.symmetric(horizontal=14, vertical=10),
             options=[ft.dropdown.Option(key=k, text=v)
                      for k, v in SORT_OPTIONS.items()],
@@ -247,14 +279,12 @@ class DiscoverView:
             text_style=ft.TextStyle(size=12),
             on_change=self._on_filter_change,
         )
-
         self._view_dd = ft.Dropdown(
             prefix_text="View: ",
             prefix_style=ft.TextStyle(color=TEXT_SEC, size=12),
-            width=130,
-            color=TEXT_PRI, bgcolor=INPUT_BG,
+            width=130, height=44, color=TEXT_PRI, bgcolor=INPUT_BG,
             border_color=BORDER, focused_border_color=GREEN,
-            border_radius=8, height=44,
+            border_radius=8,
             content_padding=ft.padding.symmetric(horizontal=14, vertical=10),
             options=[ft.dropdown.Option(str(s)) for s in VIEW_SIZES],
             value="20",
@@ -262,61 +292,48 @@ class DiscoverView:
             on_change=self._on_view_change,
         )
 
-        # ── PAGINACIÓN ────────────────────────────────────────────────────────
-        self._pagination_row = ft.Row([], spacing=4)
+        # ── Pagination ────────────────────────────────────────────────────────
+        self._pagination_row       = ft.Row([], spacing=4)
         self._pagination_container = ft.Container(
-            content=self._pagination_row,
-            visible=False,
-        )
+            content=self._pagination_row, visible=False)
 
-        # ── CHIPS de versión/loader ───────────────────────────────────────────
+        # ── Version/loader filter chips ───────────────────────────────────────
         self._filter_chips_row = ft.Row([], spacing=8, visible=False)
 
-        # ── LISTA ─────────────────────────────────────────────────────────────
+        # ── Results list ──────────────────────────────────────────────────────
         self._list_col = ft.Column(
-            [], spacing=8,
-            scroll=ft.ScrollMode.AUTO,
-            expand=True,
-        )
+            [], spacing=8, scroll=ft.ScrollMode.AUTO, expand=True)
 
         self._empty_state = ft.Container(
-            visible=False,
-            alignment=ft.alignment.center,
-            expand=True,
+            visible=False, alignment=ft.alignment.center, expand=True,
             content=ft.Column([
                 ft.Icon(ft.icons.SEARCH_OFF_ROUNDED, size=56, color=TEXT_DIM),
                 ft.Container(height=12),
                 ft.Text("No results found", color=TEXT_SEC, size=16,
                         weight=ft.FontWeight.BOLD),
-                ft.Text("Try a different search term or adjust your filters.",
+                ft.Text("Try a different search or adjust your filters.",
                         color=TEXT_DIM, size=11),
-            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-               spacing=4),
+            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4),
         )
 
         self._count_lbl = ft.Text("", color=TEXT_DIM, size=11)
-
-        # ── HEADER (título de sección) ────────────────────────────────────────
-        self._header_title = ft.Text(
-            "Install content to instance",
-            color=TEXT_PRI, size=22,
-            weight=ft.FontWeight.BOLD,
-        )
 
         self.root = ft.Container(
             expand=True, bgcolor=BG,
             padding=ft.padding.only(left=36, right=36, top=28, bottom=0),
             content=ft.Column([
+                self._inst_header,
                 # Title
-                self._header_title,
+                ft.Text("Install content to instance",
+                        color=TEXT_PRI, size=22, weight=ft.FontWeight.BOLD),
                 ft.Container(height=18),
-                # Tabs
-                ft.Row([self._tabs_row]),
+                # Tabs row
+                ft.Row(tab_controls, spacing=4),
                 ft.Container(height=16),
                 # Search
                 ft.Row([self._search_field]),
                 ft.Container(height=12),
-                # Filters row: sort + view | pagination
+                # Sort/View + Pagination
                 ft.Row([
                     self._sort_dd,
                     ft.Container(width=8),
@@ -325,37 +342,66 @@ class DiscoverView:
                     self._pagination_container,
                 ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
                 ft.Container(height=10),
-                # Chips de versión/loader
+                # Version/loader chips
                 self._filter_chips_row,
-                ft.Container(height=4, visible=False, ref=ft.Ref()),
-                # Content area
+                ft.Container(height=4),
+                # List
                 ft.Stack([
                     self._list_col,
                     self._empty_state,
                 ], expand=True),
-                ft.Container(height=8),
-                # Bottom pagination
-                ft.Row([
-                    self._count_lbl,
-                    ft.Container(expand=True),
-                ]),
+                ft.Container(height=6),
+                ft.Row([self._count_lbl]),
                 ft.Container(height=16),
             ], spacing=0, expand=True),
         )
 
-        self._highlight_tab(0)
-
-    # ── Ciclo de vida ──────────────────────────────────────────────────────────
+    # ── Lifecycle ──────────────────────────────────────────────────────────────
     def on_show(self):
+        self._update_instance_header()
         self._refresh_chips()
+        # Activate sidebar filter panel
+        if hasattr(self.app, "sidebar_right"):
+            self.app.sidebar_right.set_discover_mode(
+                True,
+                profile=self._source_profile,
+                tab_type=TAB_PROJECT_TYPES[self._tab_index],
+                on_change=self._on_sidebar_filter_change,
+            )
         self._do_search(reset=True)
 
+    def on_hide(self):
+        # Restore normal sidebar when leaving discover
+        if hasattr(self.app, "sidebar_right"):
+            self.app.sidebar_right.set_discover_mode(False)
+
     def set_source_profile(self, profile):
-        """Llamar desde instance_view antes de on_show para dar contexto."""
+        """Call from instance_view before navigating here."""
         self._source_profile = profile
 
+    def _update_instance_header(self):
+        profile = self._source_profile
+        if not profile:
+            self._inst_header.visible = False
+            try: self._inst_header.update()
+            except Exception: pass
+            return
+
+        self._inst_name.value = getattr(profile, "name", "Instance")
+        loader = self._detect_loader(profile)
+        mc_ver = getattr(profile, "version_id", "")
+        meta_parts = []
+        if loader:
+            meta_parts.append(loader.capitalize())
+        if mc_ver:
+            meta_parts.append(mc_ver)
+        self._inst_meta.value = "  ".join(meta_parts)
+        self._inst_header.visible = True
+        try: self._inst_header.update()
+        except Exception: pass
+
     def _refresh_chips(self):
-        profile = self._active_profile()
+        profile = self._source_profile
         if not profile:
             self._filter_chips_row.visible = False
             try: self._filter_chips_row.update()
@@ -364,22 +410,19 @@ class DiscoverView:
 
         mc_ver = getattr(profile, "version_id", None)
         loader = self._detect_loader(profile)
-
-        chips = []
+        chips  = []
         if mc_ver:
-            chips.append(self._make_filter_chip(
-                ft.icons.LOCK_OUTLINE_ROUNDED, mc_ver))
+            chips.append(self._filter_chip(ft.icons.LOCK_OUTLINE_ROUNDED, mc_ver))
         if loader:
-            chips.append(self._make_filter_chip(
-                ft.icons.LOCK_OUTLINE_ROUNDED, loader.capitalize()))
-
+            chips.append(self._filter_chip(ft.icons.LOCK_OUTLINE_ROUNDED,
+                                           loader.capitalize()))
         self._filter_chips_row.controls.clear()
         self._filter_chips_row.controls.extend(chips)
         self._filter_chips_row.visible = bool(chips)
         try: self._filter_chips_row.update()
         except Exception: pass
 
-    def _make_filter_chip(self, icon, label: str) -> ft.Container:
+    def _filter_chip(self, icon, label: str) -> ft.Container:
         return ft.Container(
             bgcolor=INPUT_BG,
             border=ft.border.all(1, BORDER),
@@ -392,23 +435,22 @@ class DiscoverView:
             ], spacing=0, tight=True),
         )
 
+    def _go_back(self):
+        self.on_hide()
+        self.app._show_view("instance")
+
     # ── Tabs ───────────────────────────────────────────────────────────────────
     def _switch_tab(self, idx: int):
         if self._loading:
             return
         self._tab_index = idx
         self._highlight_tab(idx)
-        # Actualizar hint text
-        hints = {
-            0: "Search mods...",
-            1: "Search resource packs...",
-            2: "Search data packs...",
-            3: "Search shaders...",
-            4: "Search modpacks...",
-        }
-        self._search_field.hint_text = hints.get(idx, "Search...")
+        self._search_field.hint_text = TAB_HINTS[idx]
         try: self._search_field.update()
         except Exception: pass
+        # Update sidebar categories
+        if hasattr(self.app, "sidebar_right"):
+            self.app.sidebar_right.update_tab_filters(TAB_PROJECT_TYPES[idx])
         self._do_search(reset=True)
 
     def _highlight_tab(self, active: int):
@@ -416,25 +458,23 @@ class DiscoverView:
             is_active = (i == active)
             btn.bgcolor = GREEN if is_active else "transparent"
             lbl: ft.Text = btn.content
-            lbl.color = TEXT_INV if is_active else TEXT_SEC
-            lbl.weight = ft.FontWeight.W_700 if is_active else ft.FontWeight.W_600
-            try:
-                btn.update()
-            except Exception:
-                pass
+            lbl.color  = TEXT_INV if is_active else TEXT_SEC
+            lbl.weight = (ft.FontWeight.W_700 if is_active
+                          else ft.FontWeight.W_600)
+            try: btn.update()
+            except Exception: pass
 
     def _tab_hover(self, e, idx: int):
-        btn = self._tab_buttons[idx]
-        is_active = (idx == self._tab_index)
-        if is_active:
+        if idx == self._tab_index:
             return
+        btn = self._tab_buttons[idx]
         btn.bgcolor = CARD2_BG if e.data == "true" else "transparent"
         lbl: ft.Text = btn.content
         lbl.color = TEXT_PRI if e.data == "true" else TEXT_SEC
         try: btn.update()
         except Exception: pass
 
-    # ── Eventos ────────────────────────────────────────────────────────────────
+    # ── Events ─────────────────────────────────────────────────────────────────
     def _on_search_change(self, e):
         if self._debounce_timer:
             self._debounce_timer.cancel()
@@ -452,7 +492,11 @@ class DiscoverView:
             self._page_size = 20
         self._do_search(reset=True)
 
-    # ── Búsqueda ───────────────────────────────────────────────────────────────
+    def _on_sidebar_filter_change(self):
+        """Called by sidebar_right when any filter checkbox changes."""
+        self._do_search(reset=True)
+
+    # ── Search ─────────────────────────────────────────────────────────────────
     def _do_search(self, reset: bool = True):
         if self._loading:
             return
@@ -472,27 +516,38 @@ class DiscoverView:
         self._loading = True
         threading.Thread(target=self._fetch, daemon=True).start()
 
-    # ── Fetch (hilo secundario) ────────────────────────────────────────────────
+    # ── Fetch (background thread) ──────────────────────────────────────────────
     def _fetch(self):
         self.page.run_thread(self._show_skeleton)
 
         query        = (self._search_field.value or "").strip()
-        profile      = self._active_profile()
+        profile      = self._source_profile
         mc_ver       = getattr(profile, "version_id", None) if profile else None
         project_type = TAB_PROJECT_TYPES[self._tab_index]
-        loader       = (self._detect_loader(profile)
-                        if project_type in ("mod", "modpack") else None)
         sort_by      = self._sort_dd.value or "relevance"
         offset       = self._page_index * self._page_size
 
-        # Instalar detector
-        target_dir = self._target_dir(profile) if profile else None
+        # Get filters from sidebar
+        sidebar_filters: dict = {}
+        if hasattr(self.app, "sidebar_right") and self.app.sidebar_right._discover_mode:
+            sidebar_filters = self.app.sidebar_right.get_discover_filters()
+
+        categories     = sidebar_filters.get("categories", [])
+        hide_installed = sidebar_filters.get("hide_installed", False)
+        loader_override= sidebar_filters.get("loader")  # None = auto
+
+        loader = loader_override if loader_override else (
+            self._detect_loader(profile)
+            if project_type in ("mod", "modpack") else None
+        )
+
+        target_dir          = self._target_dir(profile) if profile else None
         self._installed_set = build_installed_set(target_dir)
 
         try:
-            # Intentar obtener total_hits si el servicio lo expone
             service = self.app.modrinth_service
-            results = service.search_mods(
+            # Pass categories if the service supports it
+            kwargs = dict(
                 query        = query,
                 mc_version   = mc_ver,
                 loader       = loader,
@@ -501,14 +556,25 @@ class DiscoverView:
                 sort_by      = sort_by,
                 project_type = project_type,
             )
-            # Intentar leer total_hits del servicio si lo cachea
+            try:
+                results = service.search_mods(**kwargs, categories=categories)
+            except TypeError:
+                # Service doesn't support categories yet — call without it
+                results = service.search_mods(**kwargs)
+
+            # Read total_hits if service exposes it
             total = getattr(service, "_last_total_hits", None)
             if total is None:
-                # Estimación: si tuvimos hits previos o calcular por resultados
                 if len(results) < self._page_size:
                     total = offset + len(results)
                 else:
                     total = max(self._total_hits, offset + len(results) + 1)
+
+            # Filter installed if requested
+            if hide_installed:
+                results = [r for r in results
+                           if not is_installed_in(r.slug, r.title,
+                                                  self._installed_set)]
 
             self._results    = results
             self._total_hits = total
@@ -529,7 +595,6 @@ class DiscoverView:
                 try: self._count_lbl.update()
                 except Exception: pass
             self.page.run_thread(_err)
-
         finally:
             self._loading = False
 
@@ -543,7 +608,6 @@ class DiscoverView:
                 proj.slug, proj.title, self._installed_set)
             self._list_col.controls.append(self._make_card(proj, installed))
 
-        # Count label
         start = self._page_index * self._page_size + 1
         end   = start + len(results) - 1
         self._count_lbl.value = (
@@ -551,9 +615,9 @@ class DiscoverView:
             if self._total_hits > 0 else f"{len(results)} results"
         )
 
-        # Paginación
         self._rebuild_pagination()
-        self._pagination_container.visible = self._total_hits > self._page_size
+        self._pagination_container.visible = (
+            self._total_hits > self._page_size)
 
         try:
             self._list_col.update()
@@ -571,34 +635,26 @@ class DiscoverView:
 
         def _page_btn(label, page_idx, active=False, disabled=False):
             if active:
-                bg  = GREEN
-                fg  = TEXT_INV
-                brd = None
+                bg, fg, brd = GREEN, TEXT_INV, None
             elif disabled:
-                bg  = "transparent"
-                fg  = TEXT_DIM
-                brd = None
+                bg, fg, brd = "transparent", TEXT_DIM, None
             else:
                 bg  = INPUT_BG
                 fg  = TEXT_PRI
                 brd = ft.border.all(1, BORDER)
-
             btn = ft.Container(
                 width=36, height=36,
-                bgcolor=bg,
-                border=brd,
-                border_radius=8,
+                bgcolor=bg, border=brd, border_radius=8,
                 alignment=ft.alignment.center,
-                animate=ft.animation.Animation(120, ft.AnimationCurve.EASE_OUT),
-                content=ft.Text(
-                    str(label), color=fg, size=12,
-                    weight=ft.FontWeight.BOLD if active else ft.FontWeight.W_500,
-                    text_align=ft.TextAlign.CENTER,
-                ),
+                animate=ft.animation.Animation(100, ft.AnimationCurve.EASE_OUT),
+                content=ft.Text(str(label), color=fg, size=12,
+                                weight=ft.FontWeight.BOLD if active
+                                else ft.FontWeight.W_500,
+                                text_align=ft.TextAlign.CENTER),
             )
             if not active and not disabled:
-                target = page_idx
-                btn.on_click = lambda e, p=target: self._go_to_page(p)
+                t = page_idx
+                btn.on_click = lambda e, p=t: self._go_to_page(p)
                 btn.on_hover = lambda e, b=btn: (
                     setattr(b, "bgcolor",
                             CARD2_BG if e.data == "true" else INPUT_BG)
@@ -608,35 +664,30 @@ class DiscoverView:
 
         def _ellipsis():
             return ft.Container(
-                width=36, height=36,
+                width=36, height=36, alignment=ft.alignment.center,
+                content=ft.Text("…", color=TEXT_DIM, size=12))
+
+        def _arrow(icon, target, enabled):
+            btn = ft.Container(
+                width=36, height=36, border_radius=8,
+                bgcolor=INPUT_BG if enabled else "transparent",
+                border=ft.border.all(1, BORDER) if enabled else None,
                 alignment=ft.alignment.center,
-                content=ft.Text("…", color=TEXT_DIM, size=12),
+                content=ft.Icon(icon, size=18,
+                                color=TEXT_PRI if enabled else TEXT_DIM),
             )
+            if enabled:
+                btn.on_click = lambda e, t=target: self._go_to_page(t)
+                btn.on_hover = lambda e, b=btn: (
+                    setattr(b, "bgcolor",
+                            CARD2_BG if e.data == "true" else INPUT_BG)
+                    or b.update()
+                )
+            return btn
 
-        # Prev arrow
-        prev_arrow = ft.Container(
-            width=36, height=36,
-            bgcolor=INPUT_BG if cur > 0 else "transparent",
-            border=ft.border.all(1, BORDER) if cur > 0 else None,
-            border_radius=8,
-            alignment=ft.alignment.center,
-            content=ft.Icon(
-                ft.icons.CHEVRON_LEFT_ROUNDED,
-                size=18,
-                color=TEXT_PRI if cur > 0 else TEXT_DIM,
-            ),
-        )
-        if cur > 0:
-            prev_arrow.on_click = lambda e: self._go_to_page(cur - 1)
-            prev_arrow.on_hover = lambda e, b=prev_arrow: (
-                setattr(b, "bgcolor",
-                        CARD2_BG if e.data == "true" else INPUT_BG)
-                or b.update()
-            )
-        row.controls.append(prev_arrow)
+        row.controls.append(
+            _arrow(ft.icons.CHEVRON_LEFT_ROUNDED, cur - 1, cur > 0))
 
-        # Page numbers
-        # Logic: always show first, last, current ±1, with ellipsis
         pages_to_show: list = []
         if total_pages <= 7:
             pages_to_show = list(range(total_pages))
@@ -651,35 +702,16 @@ class DiscoverView:
             row.controls.append(_page_btn(p + 1, p, active=(p == cur)))
             prev_p = p
 
-        # Next arrow
-        has_next = cur < total_pages - 1
-        next_arrow = ft.Container(
-            width=36, height=36,
-            bgcolor=INPUT_BG if has_next else "transparent",
-            border=ft.border.all(1, BORDER) if has_next else None,
-            border_radius=8,
-            alignment=ft.alignment.center,
-            content=ft.Icon(
-                ft.icons.CHEVRON_RIGHT_ROUNDED,
-                size=18,
-                color=TEXT_PRI if has_next else TEXT_DIM,
-            ),
-        )
-        if has_next:
-            next_arrow.on_click = lambda e: self._go_to_page(cur + 1)
-            next_arrow.on_hover = lambda e, b=next_arrow: (
-                setattr(b, "bgcolor",
-                        CARD2_BG if e.data == "true" else INPUT_BG)
-                or b.update()
-            )
-        row.controls.append(next_arrow)
+        row.controls.append(
+            _arrow(ft.icons.CHEVRON_RIGHT_ROUNDED, cur + 1,
+                   cur < total_pages - 1))
 
-    # ── Skeleton / Empty state ─────────────────────────────────────────────────
+    # ── Skeleton / Empty ───────────────────────────────────────────────────────
     def _show_skeleton(self):
         self._list_col.controls.clear()
-        self._empty_state.visible = False
+        self._empty_state.visible          = False
         self._pagination_container.visible = False
-        for _ in range(6):
+        for _ in range(5):
             self._list_col.controls.append(_skeleton_card())
         try:
             self._list_col.update()
@@ -689,12 +721,12 @@ class DiscoverView:
             pass
 
     def _hide_skeleton(self):
-        pass  # _render_results / _show_empty lo limpia
+        pass  # _render_results / _show_empty handles clearing
 
     def _show_empty(self):
         self._list_col.controls.clear()
-        self._empty_state.visible = True
-        self._count_lbl.value     = "0 results"
+        self._empty_state.visible          = True
+        self._count_lbl.value              = "0 results"
         self._pagination_container.visible = False
         try:
             self._list_col.update()
@@ -705,11 +737,6 @@ class DiscoverView:
             pass
 
     # ── Helpers ────────────────────────────────────────────────────────────────
-    def _active_profile(self):
-        if self._source_profile:
-            return self._source_profile
-        return None
-
     def _detect_loader(self, profile) -> str | None:
         if not profile:
             return None
@@ -732,18 +759,19 @@ class DiscoverView:
         pt = TAB_PROJECT_TYPES[self._tab_index]
         if pt == "resourcepack":
             return getattr(profile, "resourcepacks_dir", None)
-        if pt in ("shader",):
+        if pt == "shader":
             return getattr(profile, "shaderpacks_dir", None)
         return getattr(profile, "mods_dir", None)
 
     # ── CARD ───────────────────────────────────────────────────────────────────
     def _make_card(self, proj, is_installed: bool) -> ft.Container:
-        author     = getattr(proj, "author", "")
-        slug_url   = f"https://modrinth.com/mod/{proj.slug}"
-        author_url = f"https://modrinth.com/user/{author}" if author else ""
-        follows    = getattr(proj, "follows", 0)
-        updated    = getattr(proj, "date_modified", "") or getattr(proj, "date_updated", "")
-        date_str   = _rel_date(updated)
+        author    = getattr(proj, "author", "")
+        follows   = getattr(proj, "follows", 0)
+        updated   = (getattr(proj, "date_modified", "")
+                     or getattr(proj, "date_updated", ""))
+        date_str  = _rel_date(updated)
+        slug_url  = f"https://modrinth.com/mod/{proj.slug}"
+        auth_url  = f"https://modrinth.com/user/{author}" if author else ""
 
         # ── Install button ────────────────────────────────────────────────────
         if is_installed:
@@ -752,7 +780,6 @@ class DiscoverView:
                 border=ft.border.all(1.5, GREEN),
                 border_radius=8,
                 padding=ft.padding.symmetric(horizontal=14, vertical=7),
-                tooltip="Already installed in this profile",
                 content=ft.Row([
                     ft.Icon(ft.icons.CHECK_ROUNDED, size=14, color=GREEN),
                     ft.Container(width=6),
@@ -766,7 +793,6 @@ class DiscoverView:
                 padding=ft.padding.symmetric(horizontal=14, vertical=7),
                 animate=ft.animation.Animation(120, ft.AnimationCurve.EASE_OUT),
                 on_click=lambda e, p=proj: self._quick_install(p),
-                on_hover=lambda e, b=None: None,  # set below
                 content=ft.Row([
                     ft.Icon(ft.icons.DOWNLOAD_ROUNDED, size=14, color=TEXT_INV),
                     ft.Container(width=6),
@@ -780,27 +806,28 @@ class DiscoverView:
             )
 
         # ── Author row ────────────────────────────────────────────────────────
-        author_row_controls = []
+        meta_controls: list = []
         if author:
             cached = cache_get_author(author) or {}
             av_url = cached.get("avatar_url")
-            if av_url:
-                av = ft.Image(src=av_url, width=15, height=15,
-                              border_radius=8, fit=ft.ImageFit.COVER)
-            else:
-                av = ft.Container(
+            av     = (
+                ft.Image(src=av_url, width=15, height=15,
+                         border_radius=8, fit=ft.ImageFit.COVER)
+                if av_url else
+                ft.Container(
                     width=15, height=15, border_radius=8,
                     bgcolor=CARD2_BG, alignment=ft.alignment.center,
                     content=ft.Text(author[0].upper(), size=7,
                                     color=TEXT_DIM),
                 )
-            author_txt = ft.Text(
-                author, color=GREEN, size=11,
-                weight=ft.FontWeight.W_500,
             )
+            author_txt = ft.Text(author, color=GREEN, size=11,
+                                 weight=ft.FontWeight.W_500)
+
+            # GestureDetector — NO tooltip kwarg (not supported in this version)
             author_gd = ft.GestureDetector(
                 mouse_cursor=ft.MouseCursor.CLICK,
-                on_tap=lambda e, u=author_url: self.page.launch_url(u),
+                on_tap=lambda e, u=auth_url: self.page.launch_url(u),
                 on_enter=lambda e, t=author_txt: (
                     setattr(t, "decoration", ft.TextDecoration.UNDERLINE)
                     or t.update()
@@ -814,38 +841,37 @@ class DiscoverView:
                     spacing=0, tight=True,
                 ),
             )
-            author_row_controls = [
+
+            # External link icon — wrapped in Tooltip instead of GestureDetector kwarg
+            ext_icon = ft.Tooltip(
+                message="Open on Modrinth",
+                content=ft.GestureDetector(
+                    mouse_cursor=ft.MouseCursor.CLICK,
+                    on_tap=lambda e, u=slug_url: self.page.launch_url(u),
+                    content=ft.Icon(ft.icons.OPEN_IN_NEW_ROUNDED,
+                                    size=12, color=TEXT_DIM),
+                ),
+            )
+            meta_controls = [
                 ft.Text("by ", color=TEXT_DIM, size=11),
                 author_gd,
                 ft.Container(width=6),
-                ft.GestureDetector(
-                    mouse_cursor=ft.MouseCursor.CLICK,
-                    on_tap=lambda e, u=slug_url: self.page.launch_url(u),
-                    content=ft.Icon(
-                        ft.icons.OPEN_IN_NEW_ROUNDED,
-                        size=12, color=TEXT_DIM,
-                    ),
-                    tooltip="Open on Modrinth",
-                ),
+                ext_icon,
             ]
 
-        # ── Categories ────────────────────────────────────────────────────────
-        cats = getattr(proj, "categories", []) or []
-        shown_cats = cats[:3]
-        extra      = len(cats) - 3
-
-        chip_row_controls = [_cat_chip(c) for c in shown_cats]
+        # ── Category chips ────────────────────────────────────────────────────
+        cats         = getattr(proj, "categories", []) or []
+        shown        = cats[:3]
+        extra        = len(cats) - 3
+        chip_row: list = [_cat_chip(c) for c in shown]
         if extra > 0:
-            chip_row_controls.append(
-                ft.Container(
-                    bgcolor="#1f2937", border_radius=5,
-                    padding=ft.padding.symmetric(horizontal=8, vertical=4),
-                    content=ft.Text(f"+{extra}", color=TEXT_DIM, size=9),
-                )
-            )
-        chips_row = ft.Row(chip_row_controls, spacing=6, wrap=True)
+            chip_row.append(ft.Container(
+                bgcolor="#1f2937", border_radius=5,
+                padding=ft.padding.symmetric(horizontal=8, vertical=4),
+                content=ft.Text(f"+{extra}", color=TEXT_DIM, size=9),
+            ))
 
-        # ── Stats (right side) ────────────────────────────────────────────────
+        # ── Stats (right column) ──────────────────────────────────────────────
         stats_col = ft.Column([
             ft.Row([
                 ft.Icon(ft.icons.DOWNLOAD_ROUNDED, size=13, color=TEXT_DIM),
@@ -854,11 +880,11 @@ class DiscoverView:
                         weight=ft.FontWeight.W_500),
             ], spacing=0, tight=True),
             ft.Row([
-                ft.Icon(ft.icons.FAVORITE_BORDER_ROUNDED, size=13, color=TEXT_DIM),
+                ft.Icon(ft.icons.FAVORITE_BORDER_ROUNDED,
+                        size=13, color=TEXT_DIM),
                 ft.Container(width=5),
                 ft.Text(_human(follows) if follows else "—",
-                        color=TEXT_SEC, size=11,
-                        weight=ft.FontWeight.W_500),
+                        color=TEXT_SEC, size=11, weight=ft.FontWeight.W_500),
             ], spacing=0, tight=True),
             ft.Row([
                 ft.Icon(ft.icons.HISTORY_ROUNDED, size=13, color=TEXT_DIM),
@@ -867,39 +893,25 @@ class DiscoverView:
             ], spacing=0, tight=True),
         ], spacing=6, horizontal_alignment=ft.CrossAxisAlignment.END)
 
-        # ── Title text (for hover underline) ─────────────────────────────────
         title_txt = ft.Text(
             proj.title, color=TEXT_PRI, size=15,
             weight=ft.FontWeight.BOLD,
             overflow=ft.TextOverflow.ELLIPSIS,
         )
 
-        desc_txt = ft.Text(
-            (proj.description[:180] + "…"
-             if len(proj.description) > 180 else proj.description),
-            color=TEXT_SEC, size=11,
-            overflow=ft.TextOverflow.ELLIPSIS,
-            max_lines=2,
-        )
-
-        # ── Main card ─────────────────────────────────────────────────────────
         card = ft.Container(
             bgcolor=CARD_BG,
             border=ft.border.all(1, BORDER),
-            border_radius=14,
-            padding=ft.padding.all(20),
+            border_radius=14, padding=ft.padding.all(20),
             animate=ft.animation.Animation(120, ft.AnimationCurve.EASE_OUT),
             on_click=lambda e, p=proj: self._open_detail(p),
-            on_hover=lambda e, c=None, t=title_txt: None,  # set below
             content=ft.Row([
-                # Left: icon
                 _icon_widget(proj.icon_url, proj.title, size=80),
                 ft.Container(width=20),
-                # Center: info
                 ft.Column([
                     ft.Row([
                         ft.Column([
-                            ft.Row([title_txt] + author_row_controls,
+                            ft.Row([title_txt] + meta_controls,
                                    spacing=0, wrap=False,
                                    vertical_alignment=ft.CrossAxisAlignment.CENTER),
                         ], expand=True, spacing=0),
@@ -907,36 +919,39 @@ class DiscoverView:
                     ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                        vertical_alignment=ft.CrossAxisAlignment.START),
                     ft.Container(height=6),
-                    desc_txt,
+                    ft.Text(
+                        (proj.description[:180] + "…"
+                         if len(proj.description) > 180 else proj.description),
+                        color=TEXT_SEC, size=11,
+                        overflow=ft.TextOverflow.ELLIPSIS, max_lines=2,
+                    ),
                     ft.Container(height=10),
-                    chips_row,
+                    ft.Row(chip_row, spacing=6, wrap=True),
                 ], spacing=0, expand=True),
                 ft.Container(width=24),
-                # Right: stats
-                ft.Column([
-                    stats_col,
-                ], alignment=ft.MainAxisAlignment.END,
-                   horizontal_alignment=ft.CrossAxisAlignment.END),
+                stats_col,
             ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
         )
 
-        def _card_hover(e, c=card, t=title_txt):
+        def _hover(e, c=card, t=title_txt):
             c.bgcolor = CARD2_BG if e.data == "true" else CARD_BG
-            c.border  = ft.border.all(1, BORDER_BRIGHT if e.data == "true" else BORDER)
+            c.border  = ft.border.all(
+                1, BORDER_BRIGHT if e.data == "true" else BORDER)
             t.decoration = (ft.TextDecoration.UNDERLINE
-                            if e.data == "true" else ft.TextDecoration.NONE)
+                            if e.data == "true"
+                            else ft.TextDecoration.NONE)
             try:
                 c.update()
                 t.update()
             except Exception:
                 pass
 
-        card.on_hover = _card_hover
+        card.on_hover = _hover
         return card
 
     # ── Quick install ──────────────────────────────────────────────────────────
     def _quick_install(self, project):
-        profile = self._active_profile()
+        profile = self._source_profile
         if not profile:
             self.app.snack("Select a profile first.", error=True)
             return
@@ -951,14 +966,14 @@ class DiscoverView:
                 )
                 if not version:
                     self.page.run_thread(lambda: self.app.snack(
-                        "No compatible version found for this profile.", error=True))
+                        "No compatible version found.", error=True))
                     return
                 target = self._target_dir(profile)
                 os.makedirs(target, exist_ok=True)
                 self.app.modrinth_service.download_mod_version(version, target)
                 self._installed_set = build_installed_set(target)
                 self.page.run_thread(lambda: self.app.snack(
-                    f"{project.title} installed in {profile.name}. ✓"))
+                    f"{project.title} installed. ✓"))
                 self.page.run_thread(self._refresh_badges)
             except Exception as err:
                 self.page.run_thread(
@@ -979,7 +994,7 @@ class DiscoverView:
 
     # ── Detail dialog ──────────────────────────────────────────────────────────
     def _open_detail(self, project):
-        profile = self._active_profile()
+        profile = self._source_profile
         ModDetailDialog(
             self.page, self.app, project,
             active_profile=profile,
@@ -989,13 +1004,33 @@ class DiscoverView:
         )
 
     def _on_installed(self, project):
-        profile = self._active_profile()
+        profile = self._source_profile
         self._installed_set = build_installed_set(self._target_dir(profile))
         self._refresh_badges()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  Diálogo de detalle
+#  Stat pill helper
+# ══════════════════════════════════════════════════════════════════════════════
+def _stat_pill(icon, value: str, tooltip: str) -> ft.Container:
+    return ft.Container(
+        bgcolor=INPUT_BG, border=ft.border.all(1, BORDER),
+        border_radius=8,
+        padding=ft.padding.symmetric(horizontal=12, vertical=6),
+        content=ft.Tooltip(
+            message=tooltip,
+            content=ft.Row([
+                ft.Icon(icon, size=13, color=TEXT_DIM),
+                ft.Container(width=6),
+                ft.Text(value, color=TEXT_SEC, size=11,
+                        weight=ft.FontWeight.W_500),
+            ], spacing=0, tight=True),
+        ),
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  Detail dialog
 # ══════════════════════════════════════════════════════════════════════════════
 class ModDetailDialog:
     def __init__(self, page, app, project, active_profile,
@@ -1015,7 +1050,8 @@ class ModDetailDialog:
     def _build(self):
         author    = getattr(self.project, "author", "")
         follows   = getattr(self.project, "follows", 0)
-        prof_name = self.active_profile.name if self.active_profile else "No profile"
+        prof_name = (self.active_profile.name
+                     if self.active_profile else "No profile")
 
         header = ft.Row([
             _icon_widget(self.project.icon_url, self.project.title, size=68),
@@ -1135,7 +1171,6 @@ class ModDetailDialog:
             if not mc_ver or mc_ver in v.game_versions
         )
 
-        # Header row
         self._versions_lv.controls.clear()
         self._versions_lv.controls.append(
             ft.Container(
@@ -1145,8 +1180,8 @@ class ModDetailDialog:
                     ft.Text("Version", color=TEXT_DIM, size=9,
                             weight=ft.FontWeight.BOLD, expand=True),
                     ft.Text("MC versions", color=TEXT_DIM, size=9, width=130),
-                    ft.Text("Loaders",    color=TEXT_DIM, size=9, width=100),
-                    ft.Text("File",       color=TEXT_DIM, size=9, width=170),
+                    ft.Text("Loaders",     color=TEXT_DIM, size=9, width=100),
+                    ft.Text("File",        color=TEXT_DIM, size=9, width=170),
                 ]),
             )
         )
@@ -1157,23 +1192,21 @@ class ModDetailDialog:
             primary    = v.get_primary_file()
             filename   = primary.get("filename", "—") if primary else "—"
 
-            dot   = ft.Container(width=8, height=8, border_radius=4,
-                                 bgcolor=GREEN if compatible else TEXT_DIM)
-            row   = ft.Container(
+            row = ft.Container(
                 bgcolor=INPUT_BG if compatible else CARD2_BG,
                 border_radius=8, data=v.version_id,
                 padding=ft.padding.symmetric(horizontal=14, vertical=11),
                 animate=ft.animation.Animation(100, ft.AnimationCurve.EASE_OUT),
                 on_click=(lambda e, ver=v: self._select_version(ver))
                          if compatible else None,
-                on_hover=(lambda e, r=None: None) if compatible else None,
                 content=ft.Row([
-                    dot,
+                    ft.Container(
+                        width=8, height=8, border_radius=4,
+                        bgcolor=GREEN if compatible else TEXT_DIM),
                     ft.Container(width=14),
                     ft.Text(v.name,
                             color=TEXT_PRI if compatible else TEXT_DIM,
-                            size=11, weight=ft.FontWeight.W_600,
-                            expand=True),
+                            size=11, weight=ft.FontWeight.W_600, expand=True),
                     ft.Text(", ".join(v.game_versions[:3]),
                             color=TEXT_DIM, size=9, width=130),
                     ft.Text(", ".join(v.loaders[:2]),
@@ -1259,20 +1292,3 @@ class ModDetailDialog:
                 self.page.run_thread(_e)
 
         threading.Thread(target=do, daemon=True).start()
-
-
-# ── Util: stat pill para el diálogo ──────────────────────────────────────────
-def _stat_pill(icon, value: str, label: str) -> ft.Container:
-    return ft.Container(
-        bgcolor=INPUT_BG,
-        border=ft.border.all(1, BORDER),
-        border_radius=8,
-        padding=ft.padding.symmetric(horizontal=12, vertical=6),
-        tooltip=label,
-        content=ft.Row([
-            ft.Icon(icon, size=13, color=TEXT_DIM),
-            ft.Container(width=6),
-            ft.Text(value, color=TEXT_SEC, size=11,
-                    weight=ft.FontWeight.W_500),
-        ], spacing=0, tight=True),
-    )
