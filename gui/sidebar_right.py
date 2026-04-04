@@ -393,24 +393,55 @@ class SidebarRight:
         cats = CATEGORIES_BY_TYPE.get(self._discover_tab_type, [])
         self._cat_col.controls.clear()
         for cat in cats:
-            cb = ft.Checkbox(
-                label=cat,
-                label_style=ft.TextStyle(color=TEXT_SEC, size=11),
-                value=(cat in self._selected_cats),
-                fill_color=GREEN,
-                check_color=TEXT_INV,
+            is_sel = cat in self._selected_cats
+            dot = ft.Container(
+                width=8, height=8, border_radius=4,
+                bgcolor=GREEN if is_sel else "transparent",
+                border=ft.border.all(1.5, GREEN if is_sel else BORDER_BRIGHT),
+                animate=ft.animation.Animation(100, ft.AnimationCurve.EASE_OUT),
+            )
+            lbl = ft.Text(cat, color=TEXT_PRI if is_sel else TEXT_SEC,
+                        size=11, weight=ft.FontWeight.W_500 if is_sel
+                        else ft.FontWeight.W_400)
+            row = ft.Container(
+                padding=ft.padding.symmetric(horizontal=8, vertical=7),
+                border_radius=6,
                 data=cat,
-                on_change=self._on_cat_change,
+                content=ft.Row([dot, ft.Container(width=10), lbl],
+                            spacing=0, tight=True),
             )
-            self._cat_col.controls.append(
-                ft.Container(
-                    padding=ft.padding.symmetric(horizontal=4, vertical=2),
-                    border_radius=6,
-                    content=cb,
-                )
+            def _make_click(c, d, l):
+                def _click(e):
+                    if c in self._selected_cats:
+                        self._selected_cats.discard(c)
+                        d.bgcolor = "transparent"
+                        d.border  = ft.border.all(1.5, BORDER_BRIGHT)
+                        l.color   = TEXT_SEC
+                        l.weight  = ft.FontWeight.W_400
+                    else:
+                        self._selected_cats.add(c)
+                        d.bgcolor = GREEN
+                        d.border  = ft.border.all(1.5, GREEN)
+                        l.color   = TEXT_PRI
+                        l.weight  = ft.FontWeight.W_500
+                    try:
+                        d.update()
+                        l.update()
+                    except Exception:
+                        pass
+                    self._fire_filter_change()
+                return _click
+            row.on_click = _make_click(cat, dot, lbl)
+            row.on_hover = lambda e, r=row: (
+                setattr(r, "bgcolor",
+                        INPUT_BG if e.data == "true" else "transparent")
+                or r.update()
             )
-        try: self._cat_col.update()
-        except Exception: pass
+            self._cat_col.controls.append(row)
+        try:
+            self._cat_col.update()
+        except Exception:
+            pass
 
     def _on_cat_change(self, e):
         cat = e.control.data
