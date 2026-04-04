@@ -324,6 +324,8 @@ class DiscoverView:
                 ft.Container(
                     expand=True,
                     content=ft.ListView(
+                        key="main_scroll",
+                        on_scroll=None,
                         controls=[
                             ft.Container(
                                 padding=ft.padding.only(
