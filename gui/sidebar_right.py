@@ -297,22 +297,22 @@ class SidebarRight:
         ], spacing=0, expand=True)
 
     # ── Section header ────────────────────────────────────────────────────────
-    def _section_header(self, title: str, expanded: bool,
-                        on_toggle, arrow_ref=None) -> ft.Container:
-        arrow = arrow_ref or ft.Icon(
+    def _section_header(self, title: str, icon, expanded: bool,
+                    on_toggle) -> ft.Container:
+        self_arrow = ft.Icon(
             ft.icons.KEYBOARD_ARROW_UP_ROUNDED if expanded
             else ft.icons.KEYBOARD_ARROW_DOWN_ROUNDED,
-            size=18, color=TEXT_DIM,
+            size=16, color=TEXT_DIM,
         )
         hdr = ft.Container(
-            padding=ft.padding.symmetric(horizontal=16, vertical=12),
+            padding=ft.padding.symmetric(horizontal=16, vertical=11),
             on_click=on_toggle,
-            on_hover=lambda e, c=None: None,  # set below
             content=ft.Row([
+                ft.Icon(icon, size=14, color=TEXT_SEC),
+                ft.Container(width=10),
                 ft.Text(title, color=TEXT_PRI, size=12,
-                        weight=ft.FontWeight.BOLD),
-                ft.Container(expand=True),
-                arrow,
+                        weight=ft.FontWeight.BOLD, expand=True),
+                self_arrow,
             ]),
         )
         hdr.on_hover = lambda e, h=hdr: (
