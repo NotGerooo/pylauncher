@@ -320,39 +320,48 @@ class DiscoverView:
 
         self.root = ft.Container(
             expand=True, bgcolor=BG,
-            padding=ft.padding.only(left=36, right=36, top=28, bottom=0),
             content=ft.Column([
-                self._inst_header,
-                # Title
-                ft.Text("Install content to instance",
-                        color=TEXT_PRI, size=22, weight=ft.FontWeight.BOLD),
-                ft.Container(height=18),
-                # Tabs row
-                ft.Row(tab_controls, spacing=4),
-                ft.Container(height=16),
-                # Search
-                ft.Row([self._search_field]),
-                ft.Container(height=12),
-                # Sort/View + Pagination
-                ft.Row([
-                    self._sort_dd,
-                    ft.Container(width=8),
-                    self._view_dd,
-                    ft.Container(expand=True),
-                    self._pagination_container,
-                ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
-                ft.Container(height=10),
-                # Version/loader chips
-                self._filter_chips_row,
-                ft.Container(height=4),
-                # List
-                ft.Stack([
-                    self._list_col,
-                    self._empty_state,
-                ], expand=True),
-                ft.Container(height=6),
-                ft.Row([self._count_lbl]),
-                ft.Container(height=16),
+                ft.Container(
+                    expand=True,
+                    content=ft.ListView(
+                        controls=[
+                            ft.Container(
+                                padding=ft.padding.only(
+                                    left=36, right=36, top=28, bottom=16),
+                                content=ft.Column([
+                                    self._inst_header,
+                                    ft.Text("Install content to instance",
+                                            color=TEXT_PRI, size=22,
+                                            weight=ft.FontWeight.BOLD),
+                                    ft.Container(height=18),
+                                    ft.Row(tab_controls, spacing=4),
+                                    ft.Container(height=16),
+                                    ft.Row([self._search_field]),
+                                    ft.Container(height=12),
+                                    ft.Row([
+                                        self._sort_dd,
+                                        ft.Container(width=8),
+                                        self._view_dd,
+                                        ft.Container(expand=True),
+                                        self._pagination_container,
+                                    ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                                    ft.Container(height=10),
+                                    self._filter_chips_row,
+                                    ft.Container(height=4),
+                                    ft.Stack([
+                                        self._list_col,
+                                        self._empty_state,
+                                    ]),
+                                    ft.Container(height=6),
+                                    ft.Row([self._count_lbl]),
+                                    ft.Container(height=16),
+                                ], spacing=0),
+                            ),
+                        ],
+                        spacing=0,
+                        padding=0,
+                    ),
+                ),
             ], spacing=0, expand=True),
         )
 
