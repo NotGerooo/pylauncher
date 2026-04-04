@@ -172,8 +172,7 @@ class SidebarRight:
             padding=ft.padding.all(18),
             content=ft.Column([
                 ft.Text("JUGANDO COMO", color=TEXT_DIM, size=8,
-                        weight=ft.FontWeight.BOLD,
-                        letter_spacing=1.2),
+                        weight=ft.FontWeight.BOLD),
                 ft.Container(height=12),
                 ft.Row([
                     self._avatar_box,
@@ -217,7 +216,7 @@ class SidebarRight:
                     padding=ft.padding.only(left=18, right=18, top=14, bottom=8),
                     content=ft.Row([
                         ft.Text("NOTICIAS", color=TEXT_DIM, size=8,
-                                weight=ft.FontWeight.BOLD, letter_spacing=1.2),
+                                weight=ft.FontWeight.BOLD),
                         ft.Container(expand=True),
                         self._news_count_lbl,
                     ]),
