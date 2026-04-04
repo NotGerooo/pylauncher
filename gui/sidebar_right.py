@@ -560,97 +560,109 @@ class SidebarRight:
 
     def _make_cat_row(self, cat: str) -> ft.Container:
         is_sel  = cat in self._selected_cats
+        is_excl = cat in self._excluded_cats
         ico     = _CAT_ICONS.get(cat, ft.icons.LABEL_ROUNDED)
 
-        check = ft.Icon(
-            ft.icons.CHECK_ROUNDED,
-            size=14, color=GREEN,
-            visible=is_sel,
-        )
+        check = ft.Icon(ft.icons.CHECK_ROUNDED, size=14, color=GREEN,
+                        visible=is_sel)
+        block_icon = ft.Icon(ft.icons.BLOCK_ROUNDED, size=14,
+                            color="#e05555" if is_excl else "#e05555")
         block_btn = ft.Container(
             width=22, height=22, border_radius=11,
-            bgcolor="transparent",
+            bgcolor=ft.colors.with_opacity(0.15, "#e05555") if is_excl else "transparent",
             alignment=ft.alignment.center,
-            visible=False,  # solo aparece en hover
-            content=ft.Icon(ft.icons.BLOCK_ROUNDED, size=14, color="#e05555"),
+            visible=is_excl,  # visible si excluido, o en hover
+            content=block_icon,
         )
-        ico_ctrl = ft.Icon(ico, size=14, color=GREEN if is_sel else TEXT_DIM)
+        ico_ctrl = ft.Icon(ico, size=14,
+                        color=GREEN if is_sel else
+                        (TEXT_DIM if not is_excl else "#e05555"))
         lbl = ft.Text(
             cat,
-            color=TEXT_PRI if is_sel else TEXT_SEC,
+            color=TEXT_PRI if is_sel else (TEXT_SEC if not is_excl else "#e05555"),
             size=11,
             weight=ft.FontWeight.W_600 if is_sel else ft.FontWeight.W_400,
         )
         row = ft.Container(
             padding=ft.padding.symmetric(horizontal=10, vertical=8),
             border_radius=7,
-            bgcolor=ft.colors.with_opacity(0.06, GREEN) if is_sel else "transparent",
+            bgcolor=(ft.colors.with_opacity(0.06, GREEN) if is_sel else
+                    ft.colors.with_opacity(0.06, "#e05555") if is_excl else
+                    "transparent"),
             animate=ft.animation.Animation(120, ft.AnimationCurve.EASE_OUT),
             content=ft.Row([
-                ico_ctrl,
-                ft.Container(width=10),
-                lbl,
+                ico_ctrl, ft.Container(width=10), lbl,
                 ft.Container(expand=True),
-                check,
-                ft.Container(width=4),
-                block_btn,
+                check, ft.Container(width=4), block_btn,
             ], spacing=0, vertical_alignment=ft.CrossAxisAlignment.CENTER),
         )
 
-        def _click(e, c=cat, d=check, bb=block_btn,
-                ic=ico_ctrl, l=lbl, r=row):
-            if c in self._selected_cats:
+        def _refresh_ui(sel, excl):
+            check.visible    = sel
+            block_btn.visible = excl or (row._hovered if hasattr(row, "_hovered") else False)
+            block_btn.bgcolor = (ft.colors.with_opacity(0.15, "#e05555")
+                                if excl else "transparent")
+            ico_ctrl.color   = GREEN if sel else ("#e05555" if excl else TEXT_DIM)
+            lbl.color        = TEXT_PRI if sel else ("#e05555" if excl else TEXT_SEC)
+            lbl.weight       = ft.FontWeight.W_600 if sel else ft.FontWeight.W_400
+            row.bgcolor      = (ft.colors.with_opacity(0.06, GREEN) if sel else
+                                ft.colors.with_opacity(0.06, "#e05555") if excl else
+                                "transparent")
+            try:
+                check.update(); block_btn.update(); ico_ctrl.update()
+                lbl.update(); row.update()
+            except Exception:
+                pass
+
+        def _click(e, c=cat):
+            excl = c in self._excluded_cats
+            sel  = c in self._selected_cats
+            if excl:
+                # excluido → normal
+                self._excluded_cats.discard(c)
+                _refresh_ui(False, False)
+            elif sel:
+                # seleccionado → normal
                 self._selected_cats.discard(c)
-                d.visible = False
-                ic.color  = TEXT_DIM
-                l.color   = TEXT_SEC
-                l.weight  = ft.FontWeight.W_400
-                r.bgcolor = INPUT_BG  # sigue en hover
+                _refresh_ui(False, False)
             else:
+                # normal → seleccionado
                 self._selected_cats.add(c)
-                d.visible = True
-                ic.color  = GREEN
-                l.color   = TEXT_PRI
-                l.weight  = ft.FontWeight.W_600
-                r.bgcolor = ft.colors.with_opacity(0.10, GREEN)
-            try:
-                d.update(); ic.update(); l.update(); r.update()
-            except Exception:
-                pass
+                _refresh_ui(True, False)
             if callable(self._on_filter_change):
                 self._on_filter_change()
 
-        def _block_click(e, c=cat, d=check, bb=block_btn,
-                        ic=ico_ctrl, l=lbl, r=row):
-            self._selected_cats.discard(c)
-            d.visible  = False
-            bb.visible = False
-            ic.color   = TEXT_DIM
-            l.color    = TEXT_SEC
-            l.weight   = ft.FontWeight.W_400
-            r.bgcolor  = INPUT_BG
-            try:
-                d.update(); bb.update(); ic.update()
-                l.update(); r.update()
-            except Exception:
-                pass
-            if callable(self._on_filter_change):
-                self._on_filter_change()
-
-        def _hover(e, c=cat, d=check, bb=block_btn, r=row):
+        def _block_click(e, c=cat):
+            e.stop_propagation = True
             sel = c in self._selected_cats
-            if e.data == "true":
-                # entrar hover — mostrar botón bloquear si está seleccionado
-                bb.visible = sel
-                r.bgcolor  = (ft.colors.with_opacity(0.10, GREEN)
-                            if sel else INPUT_BG)
+            excl = c in self._excluded_cats
+            if excl:
+                # ya excluido → quitar exclusión
+                self._excluded_cats.discard(c)
+                _refresh_ui(False, False)
             else:
-                # salir hover — ocultar botón bloquear
-                bb.visible = False
-                r.bgcolor  = (ft.colors.with_opacity(0.06, GREEN)
-                            if sel else "transparent")
+                # seleccionado o normal → excluir
+                self._selected_cats.discard(c)
+                self._excluded_cats.add(c)
+                _refresh_ui(False, True)
+            if callable(self._on_filter_change):
+                self._on_filter_change()
+
+        def _hover(e, c=cat):
+            sel  = c in self._selected_cats
+            excl = c in self._excluded_cats
+            if e.data == "true":
+                block_btn.visible = True
+                row.bgcolor = (ft.colors.with_opacity(0.10, GREEN) if sel else
+                            ft.colors.with_opacity(0.10, "#e05555") if excl else
+                            INPUT_BG)
+            else:
+                block_btn.visible = excl  # solo queda visible si está excluido
+                row.bgcolor = (ft.colors.with_opacity(0.06, GREEN) if sel else
+                            ft.colors.with_opacity(0.06, "#e05555") if excl else
+                            "transparent")
             try:
-                bb.update(); r.update()
+                block_btn.update(); row.update()
             except Exception:
                 pass
 
