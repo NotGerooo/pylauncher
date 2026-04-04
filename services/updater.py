@@ -26,7 +26,7 @@ from utils.logger import get_logger
 log = get_logger()
 
 CURRENT_VERSION = "1.0.0"
-UPDATE_CHECK_URL = "https://tu-servidor.com/gerosLauncher_version.json"
+UPDATE_CHECK_URL = "https://raw.githubusercontent.com/NotGerooo/pylauncher/main/version.json"
 
 
 def _parse_version(v: str) -> tuple:
