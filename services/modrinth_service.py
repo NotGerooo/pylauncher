@@ -100,6 +100,7 @@ class ModrinthService:
         offset: int = 0,
         sort_by: str = "relevance",
         project_type: str = "mod",
+        categories: list = None,
     ) -> list[ModrinthProject]:
         facets = [[f"project_type:{project_type}"]]
 
@@ -107,6 +108,10 @@ class ModrinthService:
             facets.append([f"versions:{mc_version}"])
         if loader:
             facets.append([f"categories:{loader}"])
+        # Categorías: cada una va como facet OR dentro del mismo sub-array
+        # Ej: ["categories:optimization", "categories:utility"] = OR entre ellas
+        if categories:
+            facets.append([f"categories:{c.lower()}" for c in categories])
 
         params = {
             "limit":   limit,
@@ -119,9 +124,12 @@ class ModrinthService:
 
         url  = f"{self._base_url}/search?{urllib.parse.urlencode(params)}"
         data = self._get(url)
+
+        self._last_total_hits = data.get("total_hits", 0)
+
         projects = [ModrinthProject(hit) for hit in data.get("hits", [])]
         log.info(f"Modrinth: {len(projects)} resultados (type={project_type},"
-                 f" sort={sort_by}, offset={offset})")
+                f" sort={sort_by}, offset={offset})")
         return projects
 
     # ── Proyecto individual ───────────────────────────────────────────────────
