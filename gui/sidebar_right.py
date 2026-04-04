@@ -394,6 +394,8 @@ class SidebarRight:
 
     # ── Category section rebuild ──────────────────────────────────────────────
     def _rebuild_cat_section(self):
+        if not hasattr(self, "_cat_col"):
+            return
         cats = CATEGORIES_BY_TYPE.get(self._discover_tab_type, [])
         self._cat_col.controls.clear()
         for cat in cats:
