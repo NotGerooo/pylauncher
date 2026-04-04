@@ -257,6 +257,7 @@ class SidebarRight:
     def get_discover_filters(self) -> dict:
         return {
             "categories":     sorted(self._selected_cats),
+            "excluded_cats":  sorted(self._excluded_cats),
             "hide_installed": self._hide_installed,
             "loader":         self._discover_loader,
         }
