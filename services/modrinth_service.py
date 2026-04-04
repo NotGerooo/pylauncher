@@ -21,17 +21,17 @@ class ModrinthError(Exception):
 
 class ModrinthProject:
     def __init__(self, data: dict):
-        self.project_id   = data.get("project_id", data.get("id", ""))
-        self.slug         = data.get("slug", "")
-        self.title        = data.get("title", "")
-        self.description  = data.get("description", "")
-        self.downloads    = data.get("downloads", 0)
-        self.game_versions= data.get("game_versions", [])
-        self.categories   = data.get("categories", [])
-        self.icon_url     = data.get("icon_url", "")
-        self.source_url   = data.get("source_url", "")
+        self.project_id    = data.get("project_id", data.get("id", ""))
+        self.slug          = data.get("slug", "")
+        self.title         = data.get("title", "")
+        self.description   = data.get("description", "")
+        self.downloads     = data.get("downloads", 0)
+        self.game_versions = data.get("game_versions", [])
+        self.categories    = data.get("categories", [])
+        self.icon_url      = data.get("icon_url", "")
+        self.source_url    = data.get("source_url", "")
         # author viene como "author" en /search, o como "team" en /project
-        self.author       = data.get("author", data.get("team", ""))
+        self.author        = data.get("author", data.get("team", ""))
         self.date_modified = data.get("date_modified", data.get("date_updated", ""))
 
     def supports_version(self, mc_version: str) -> bool:
