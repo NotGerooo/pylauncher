@@ -101,6 +101,7 @@ class ModrinthService:
         sort_by: str = "relevance",
         project_type: str = "mod",
         categories: list = None,
+        excluded_cats: list = None,   
     ) -> list[ModrinthProject]:
         facets = [[f"project_type:{project_type}"]]
 
