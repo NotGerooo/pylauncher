@@ -556,49 +556,74 @@ class SidebarRight:
             pass
 
     def _make_cat_row(self, cat: str) -> ft.Container:
-    is_sel  = cat in self._selected_cats
-    ico     = _CAT_ICONS.get(cat, ft.icons.LABEL_ROUNDED)
+        is_sel  = cat in self._selected_cats
+        ico     = _CAT_ICONS.get(cat, ft.icons.LABEL_ROUNDED)
 
-    check = ft.Icon(
-        ft.icons.CHECK_ROUNDED,
-        size=14,
-        color=GREEN,
-        visible=is_sel,
-    )
-    block_btn = ft.Container(
-        width=22, height=22, border_radius=11,
-        bgcolor="transparent",
-        alignment=ft.alignment.center,
-        visible=is_sel,
-        content=ft.Icon(ft.icons.BLOCK_ROUNDED, size=14, color="#e05555"),
-    )
-    ico_ctrl = ft.Icon(ico, size=14,
-                       color=GREEN if is_sel else TEXT_DIM)
-    lbl = ft.Text(
-        cat,
-        color=TEXT_PRI if is_sel else TEXT_SEC,
-        size=11,
-        weight=ft.FontWeight.W_600 if is_sel else ft.FontWeight.W_400,
-    )
-    row = ft.Container(
-        padding=ft.padding.symmetric(horizontal=10, vertical=8),
-        border_radius=7,
-        bgcolor=ft.colors.with_opacity(0.06, GREEN) if is_sel else "transparent",
-        animate=ft.animation.Animation(120, ft.AnimationCurve.EASE_OUT),
-        content=ft.Row([
-            ico_ctrl,
-            ft.Container(width=10),
-            lbl,
-            ft.Container(expand=True),
-            check,
-            ft.Container(width=4),
-            block_btn,
-        ], spacing=0, vertical_alignment=ft.CrossAxisAlignment.CENTER),
-    )
+        check = ft.Icon(
+            ft.icons.CHECK_ROUNDED,
+            size=14,
+            color=GREEN,
+            visible=is_sel,
+        )
+        block_btn = ft.Container(
+            width=22, height=22, border_radius=11,
+            bgcolor="transparent",
+            alignment=ft.alignment.center,
+            visible=is_sel,
+            content=ft.Icon(ft.icons.BLOCK_ROUNDED, size=14, color="#e05555"),
+        )
+        ico_ctrl = ft.Icon(ico, size=14,
+                        color=GREEN if is_sel else TEXT_DIM)
+        lbl = ft.Text(
+            cat,
+            color=TEXT_PRI if is_sel else TEXT_SEC,
+            size=11,
+            weight=ft.FontWeight.W_600 if is_sel else ft.FontWeight.W_400,
+        )
+        row = ft.Container(
+            padding=ft.padding.symmetric(horizontal=10, vertical=8),
+            border_radius=7,
+            bgcolor=ft.colors.with_opacity(0.06, GREEN) if is_sel else "transparent",
+            animate=ft.animation.Animation(120, ft.AnimationCurve.EASE_OUT),
+            content=ft.Row([
+                ico_ctrl,
+                ft.Container(width=10),
+                lbl,
+                ft.Container(expand=True),
+                check,
+                ft.Container(width=4),
+                block_btn,
+            ], spacing=0, vertical_alignment=ft.CrossAxisAlignment.CENTER),
+        )
 
-    def _click(e, c=cat, d=check, bb=block_btn,
-               ic=ico_ctrl, l=lbl, r=row):
-        if c in self._selected_cats:
+        def _click(e, c=cat, d=check, bb=block_btn,
+                ic=ico_ctrl, l=lbl, r=row):
+            if c in self._selected_cats:
+                self._selected_cats.discard(c)
+                d.visible  = False
+                bb.visible = False
+                ic.color   = TEXT_DIM
+                l.color    = TEXT_SEC
+                l.weight   = ft.FontWeight.W_400
+                r.bgcolor  = "transparent"
+            else:
+                self._selected_cats.add(c)
+                d.visible  = True
+                bb.visible = True
+                ic.color   = GREEN
+                l.color    = TEXT_PRI
+                l.weight   = ft.FontWeight.W_600
+                r.bgcolor  = ft.colors.with_opacity(0.06, GREEN)
+            try:
+                d.update(); bb.update(); ic.update()
+                l.update(); r.update()
+            except Exception:
+                pass
+            self._fire_filter_change()
+
+        def _block_click(e, c=cat, d=check, bb=block_btn,
+                        ic=ico_ctrl, l=lbl, r=row):
+            e.stop_propagation = True  # no propagar al row
             self._selected_cats.discard(c)
             d.visible  = False
             bb.visible = False
@@ -606,81 +631,23 @@ class SidebarRight:
             l.color    = TEXT_SEC
             l.weight   = ft.FontWeight.W_400
             r.bgcolor  = "transparent"
-        else:
-            self._selected_cats.add(c)
-            d.visible  = True
-            bb.visible = True
-            ic.color   = GREEN
-            l.color    = TEXT_PRI
-            l.weight   = ft.FontWeight.W_600
-            r.bgcolor  = ft.colors.with_opacity(0.06, GREEN)
-        try:
-            d.update(); bb.update(); ic.update()
-            l.update(); r.update()
-        except Exception:
-            pass
-        self._fire_filter_change()
-
-    def _block_click(e, c=cat, d=check, bb=block_btn,
-                     ic=ico_ctrl, l=lbl, r=row):
-        e.stop_propagation = True  # no propagar al row
-        self._selected_cats.discard(c)
-        d.visible  = False
-        bb.visible = False
-        ic.color   = TEXT_DIM
-        l.color    = TEXT_SEC
-        l.weight   = ft.FontWeight.W_400
-        r.bgcolor  = "transparent"
-        try:
-            d.update(); bb.update(); ic.update()
-            l.update(); r.update()
-        except Exception:
-            pass
-        self._fire_filter_change()
-
-    block_btn.on_click = _block_click
-    row.on_click = _click
-    row.on_hover = lambda e, r=row, s=(cat in self._selected_cats): (
-        setattr(r, "bgcolor",
-                (ft.colors.with_opacity(0.10, GREEN) if e.data == "true"
-                 else (ft.colors.with_opacity(0.06, GREEN) if s
-                       else "transparent")))
-        or r.update()
-    )
-    return row
-
-        def _click(e, c=cat, d=dot, ic=ico_ctrl, l=lbl, r=row):
-            if c in self._selected_cats:
-                self._selected_cats.discard(c)
-                d.bgcolor  = "transparent"
-                d.border   = ft.border.all(1.5, BORDER_BRIGHT)
-                ic.color   = TEXT_DIM
-                l.color    = TEXT_SEC
-                l.weight   = ft.FontWeight.W_400
-            else:
-                self._selected_cats.add(c)
-                d.bgcolor  = GREEN
-                d.border   = ft.border.all(1.5, GREEN)
-                ic.color   = GREEN
-                l.color    = TEXT_PRI
-                l.weight   = ft.FontWeight.W_500
             try:
-                d.update(); ic.update(); l.update()
+                d.update(); bb.update(); ic.update()
+                l.update(); r.update()
             except Exception:
                 pass
             self._fire_filter_change()
 
+        block_btn.on_click = _block_click
         row.on_click = _click
-        row.on_hover = lambda e, r=row: (
+        row.on_hover = lambda e, r=row, s=(cat in self._selected_cats): (
             setattr(r, "bgcolor",
-                    INPUT_BG if e.data == "true" else "transparent")
+                    (ft.colors.with_opacity(0.10, GREEN) if e.data == "true"
+                    else (ft.colors.with_opacity(0.06, GREEN) if s
+                        else "transparent")))
             or r.update()
         )
         return row
-
-    def _fire_filter_change(self):
-        if callable(self._on_filter_change):
-            self._on_filter_change()
 
     # ── Toggle sections ───────────────────────────────────────────────────────
     def _toggle_ver(self, e):
