@@ -54,7 +54,7 @@ LOADERS = ["fabric", "forge", "neoforge", "quilt"]
 
 class SidebarRight:
     def __init__(self, app):
-        self.app = app
+        self.app  = app
         self.page = app.page
 
         # ── Discover filter state ─────────────────────────────────────────
