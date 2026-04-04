@@ -325,7 +325,7 @@ class DiscoverView:
                     expand=True,
                     content=ft.ListView(
                         key="main_scroll",
-                        on_scroll=None,
+                        on_scroll_interval=10,
                         controls=[
                             ft.Container(
                                 padding=ft.padding.only(
@@ -360,13 +360,33 @@ class DiscoverView:
                                 ], spacing=0),
                             ),
                         ],
-                        spacing=0,
                         padding=0,
                     ),
                 ),
             ], spacing=0, expand=True),
+        
         )
-        self._main_lv = self.root.content.controls[0].content
+
+    def _smooth_scroll(self, delta: float):
+        """Scroll suave simulado con pasos pequeños."""
+        steps   = 8
+        step_px = delta / steps
+
+        def _do_step(i):
+            if i >= steps:
+                return
+            try:
+                self._main_lv.scroll_to(
+                    delta=step_px,
+                    duration=18,
+                    curve=ft.AnimationCurve.EASE_OUT,
+                )
+            except Exception:
+                pass
+            threading.Timer(0.018 * (i + 1), lambda: _do_step(i + 1)).start()
+
+        _do_step(0)
+
     # ── Lifecycle ──────────────────────────────────────────────────────────────
     def on_show(self):
         self._loading = False        # ← reset flag por si quedó colgado
