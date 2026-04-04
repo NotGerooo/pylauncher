@@ -303,8 +303,8 @@ class _ContentTab:
         self._alive    = True
 
         self._file_picker = ft.FilePicker(on_result=self._on_file_picked)
-        if self._file_picker not in self.page.overlay:
-            self.page.overlay.append(self._file_picker)
+        self.page.overlay.append(self._file_picker)
+        self.page.update()
 
         self._icon_cache:   dict[str, str | None]  = {}
         self._author_cache: dict[str, dict | None] = {}
