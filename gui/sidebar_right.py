@@ -197,7 +197,8 @@ class SidebarRight:
             return
         self._discover_tab_type = tab_type
         self._selected_cats.clear()
-        # Rebuild solo la sección de categorías
+        if not hasattr(self, "_cat_col"):
+            return
         self._rebuild_cat_section()
 
     def get_discover_filters(self) -> dict:
