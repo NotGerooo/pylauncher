@@ -52,6 +52,7 @@ class App:
         p.bgcolor = SIDEBAR_BG
         p.padding = 0
         p.spacing = 0
+        p.scroll_animation_duration = 300
 
     # ── Servicios ─────────────────────────────────────────────────────────────
     def _init_services(self):
