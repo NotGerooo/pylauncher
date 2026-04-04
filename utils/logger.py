@@ -15,7 +15,6 @@ import os
 import sys
 from datetime import datetime
 
-
 def setup_logger() -> logging.Logger:
     # Si está corriendo como .exe compilado, usar AppData
     if getattr(sys, "frozen", False):
