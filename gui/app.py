@@ -140,7 +140,7 @@ class App:
                     ft.Container(width=16),
                     ft.Row([
                         wbtn("#cc4a44", "#ff3b30",
-                            lambda: self.page.run_thread(lambda: self.page.window.close()), "✕", True),
+                            lambda: self.page.window.destroy(), "✕", True),
                         wbtn("#c9941a", "#f0a500",
                             self._minimize, "−", True),
                         wbtn("#1fa832", "#1da831",
