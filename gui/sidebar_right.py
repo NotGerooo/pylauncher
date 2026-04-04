@@ -89,8 +89,14 @@ class SidebarRight:
 
     def _set_swap(self, content):
         self._swap.content = content
-        try: self._swap.update()
-        except Exception: pass
+        try:
+            self._swap.update()
+        except Exception:
+            pass
+        try:
+            self.page.update()
+        except Exception:
+            pass
 
     # ═══════════════════════════════════════════════════════════════════════
     #  NORMAL MODE  (cuenta + noticias)
