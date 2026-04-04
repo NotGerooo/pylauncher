@@ -302,7 +302,7 @@ class DiscoverView:
 
         # ── Results list ──────────────────────────────────────────────────────
         self._list_col = ft.Column(
-            [], spacing=8, scroll=ft.ScrollMode.AUTO, expand=True)
+            [], spacing=8, expand=True)
 
         self._empty_state = ft.Container(
             visible=False, alignment=ft.alignment.center, expand=True,
