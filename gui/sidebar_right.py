@@ -214,17 +214,20 @@ class SidebarRight:
 
         # ── Hide installed ────────────────────────────────────────────────
         self._hide_cb = ft.Checkbox(
-            label="Hide installed content",
+            label="Hide installed",
             label_style=ft.TextStyle(color=TEXT_SEC, size=11),
             value=False,
             fill_color=GREEN,
             check_color=TEXT_INV,
             on_change=self._on_hide_installed_change,
         )
-
         hide_row = ft.Container(
-            padding=ft.padding.symmetric(horizontal=16, vertical=14),
-            content=self._hide_cb,
+            padding=ft.padding.symmetric(horizontal=16, vertical=12),
+            content=ft.Row([
+                ft.Icon(ft.icons.VISIBILITY_OFF_ROUNDED, size=14, color=TEXT_DIM),
+                ft.Container(width=10),
+                self._hide_cb,
+            ], spacing=0, vertical_alignment=ft.CrossAxisAlignment.CENTER),
         )
 
         # ── Game version section ──────────────────────────────────────────
@@ -236,59 +239,52 @@ class SidebarRight:
                 border=ft.border.all(1, BORDER),
                 border_radius=8,
                 padding=ft.padding.symmetric(horizontal=12, vertical=8),
-                content=ft.Text(mc_ver, color=TEXT_PRI, size=12,
-                                weight=ft.FontWeight.W_500),
+                content=ft.Row([
+                    ft.Icon(ft.icons.VIDEOGAME_ASSET_ROUNDED, size=13, color=TEXT_DIM),
+                    ft.Container(width=8),
+                    ft.Text(mc_ver, color=TEXT_PRI, size=12,
+                            weight=ft.FontWeight.W_500),
+                ], spacing=0),
             ),
         )
         self._ver_section = ft.Column([
-            self._section_header("Game version", self._ver_expanded,
-                                 self._toggle_ver),
+            self._section_header(
+                "Game version", ft.icons.SPORTS_ESPORTS_ROUNDED,
+                self._ver_expanded, self._toggle_ver),
             self._ver_body,
         ], spacing=0)
 
         # ── Loader section ────────────────────────────────────────────────
-        self._loader_controls: list[ft.Container] = []
-        self._loader_body = ft.Column(
-            spacing=4,
+        self._loader_body = ft.Column(spacing=2, visible=self._loader_expanded)
+        self._rebuild_loader_section(profile)
+        self._loader_body_container = ft.Container(
+            padding=ft.padding.only(left=16, right=16, bottom=14),
+            content=self._loader_body,
             visible=self._loader_expanded,
         )
-        self._rebuild_loader_section(profile)
         self._loader_section = ft.Column([
-            self._section_header("Loader", self._loader_expanded,
-                                 self._toggle_loader),
-            ft.Container(
-                padding=ft.padding.only(left=16, right=16, bottom=14),
-                content=self._loader_body,
-                visible=self._loader_expanded,
-            ),
+            self._section_header(
+                "Loader", ft.icons.EXTENSION_ROUNDED,
+                self._loader_expanded, self._toggle_loader),
+            self._loader_body_container,
         ], spacing=0)
-        # Keep ref to loader container for toggle
-        self._loader_body_container = self._loader_section.controls[1]
 
         # ── Category section ──────────────────────────────────────────────
-        self._cat_col  = ft.Column(spacing=2)
+        self._cat_col = ft.Column(spacing=0)
         self._cat_body_container = ft.Container(
             padding=ft.padding.only(left=16, right=16, bottom=14),
-            content=ft.Column([
-                self._cat_col,
-                ft.Container(height=4),
-            ], spacing=0),
+            content=self._cat_col,
             visible=self._cat_expanded,
         )
-        self._cat_header_arrow = ft.Icon(
-            ft.icons.KEYBOARD_ARROW_UP_ROUNDED if self._cat_expanded
-            else ft.icons.KEYBOARD_ARROW_DOWN_ROUNDED,
-            size=18, color=TEXT_DIM,
-        )
         self._cat_section = ft.Column([
-            self._section_header("Category", self._cat_expanded,
-                                 self._toggle_cat,
-                                 arrow_ref=self._cat_header_arrow),
+            self._section_header(
+                "Category", ft.icons.CATEGORY_ROUNDED,
+                self._cat_expanded, self._toggle_cat),
             self._cat_body_container,
         ], spacing=0)
         self._rebuild_cat_section()
 
-        discover_col = ft.Column([
+        return ft.Column([
             hide_row,
             ft.Divider(height=1, color=BORDER),
             ft.Column([
@@ -299,8 +295,6 @@ class SidebarRight:
                 self._cat_section,
             ], spacing=0, scroll=ft.ScrollMode.AUTO, expand=True),
         ], spacing=0, expand=True)
-
-        return discover_col
 
     # ── Section header ────────────────────────────────────────────────────────
     def _section_header(self, title: str, expanded: bool,
