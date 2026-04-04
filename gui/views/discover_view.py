@@ -557,11 +557,8 @@ class DiscoverView:
                 sort_by      = sort_by,
                 project_type = project_type,
             )
-            try:
-                results = service.search_mods(**kwargs, categories=categories)
-            except TypeError:
-                # Service doesn't support categories yet — call without it
-                results = service.search_mods(**kwargs)
+            results = service.search_mods(**kwargs, categories=categories,
+                                          excluded_cats=excluded_cats)
 
             # Read total_hits if service exposes it
             total = getattr(service, "_last_total_hits", None)
