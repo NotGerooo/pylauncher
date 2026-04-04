@@ -8,7 +8,7 @@ Cuando corre como .exe (PyInstaller), los logs van a:
   %APPDATA%\\GerosLauncher\\logs\\
 
 En desarrollo normal van a:
-  logs\   (carpeta local del proyecto)
+ logs\\   (carpeta local del proyecto)
 """
 import logging
 import os
