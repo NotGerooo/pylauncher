@@ -358,10 +358,9 @@ class DiscoverView:
 
     # ── Lifecycle ──────────────────────────────────────────────────────────────
     def on_show(self):
-        self._loading = False  
+        self._loading = False        # ← reset flag por si quedó colgado
         self._update_instance_header()
         self._refresh_chips()
-        # Activate sidebar filter panel
         if hasattr(self.app, "sidebar_right"):
             self.app.sidebar_right.set_discover_mode(
                 True,
