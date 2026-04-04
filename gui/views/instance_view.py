@@ -38,10 +38,6 @@ LOADER_ICONS = {
 }
 
 
-# ---------------------------------------------------------------------------
-# Widget de icono — IGUAL que discover_view: ft.Image(src=url) directo
-# Fallback: icono generico (sin letra)
-# ---------------------------------------------------------------------------
 def _icon(url: str, title: str, size: int = 40) -> ft.Control:
     fallback = ft.Container(
         width=size, height=size, border_radius=8,
@@ -315,6 +311,9 @@ class _ContentTab:
         self._pid_cache:    dict[str, str]          = {}
         self._fetch_lock = threading.Lock()
 
+        # Versión del refresh — cancela redraws de fetches anteriores
+        self._refresh_token = 0
+
         self._build()
 
     def _build(self):
@@ -515,8 +514,29 @@ class _ContentTab:
         return items
 
     def _refresh(self):
+        # Incrementar token — fetches en curso con token viejo no harán redraw
+        self._refresh_token += 1
+        token = self._refresh_token
+
         items = self._sorted(self._collect_items())
 
+        # Dibujar lista con lo que hay en caché ahora mismo (inmediato, sin bloquear)
+        self._draw_list(items)
+
+        # Lanzar fetch de íconos/autores en background
+        with self._fetch_lock:
+            missing = [i for i in items if i["path"] not in self._icon_cache]
+
+        if missing:
+            threading.Thread(
+                target=self._fetch_icons_batch,
+                args=(missing, token), daemon=True
+            ).start()
+        else:
+            self._launch_author_fetch(items, token)
+
+    def _draw_list(self, items):
+        """Dibuja la lista en el hilo actual. Solo llamar desde el hilo principal."""
         self._list_col.controls.clear()
         self._empty_lbl.visible = len(items) == 0
         self._count_lbl.value  = f"{len(items)} proyecto{'s' if len(items) != 1 else ''}"
@@ -529,38 +549,9 @@ class _ContentTab:
         except Exception:
             pass
 
-        # paths que aún no tienen entrada en icon_cache
-        with self._fetch_lock:
-            missing_icons = [i for i in items if i["path"] not in self._icon_cache]
-
-        if missing_icons:
-            threading.Thread(
-                target=self._fetch_icons_batch,
-                args=(missing_icons,), daemon=True
-            ).start()
-        else:
-            # iconos ya listos → buscar autores que falten
-            self._launch_author_fetch(items)
-
-    def _launch_author_fetch(self, items):
-        with self._fetch_lock:
-            need = [
-                (i["path"], self._pid_cache[i["path"]])
-                for i in items
-                if i["path"] not in self._author_cache
-                and i["path"] in self._pid_cache
-            ]
-            for path, _ in need:
-                self._author_cache[path] = None   # marcar pendiente
-
-        if need:
-            threading.Thread(
-                target=self._fetch_authors_for_projects,
-                args=(need,), daemon=True
-            ).start()
-
-    def _redraw_list(self):
-        if not self._alive:
+    def _redraw_list(self, token: int):
+        """Llamado desde hilo de background via page.run_thread. Ignora tokens viejos."""
+        if not self._alive or token != self._refresh_token:
             return
         try:
             items = self._sorted(self._collect_items())
@@ -571,8 +562,25 @@ class _ContentTab:
         except Exception:
             pass
 
+    def _launch_author_fetch(self, items, token: int):
+        with self._fetch_lock:
+            need = [
+                (i["path"], self._pid_cache[i["path"]])
+                for i in items
+                if i["path"] not in self._author_cache
+                and i["path"] in self._pid_cache
+            ]
+            for path, _ in need:
+                self._author_cache[path] = None
+
+        if need:
+            threading.Thread(
+                target=self._fetch_authors_for_projects,
+                args=(need, token), daemon=True
+            ).start()
+
     # ── Fetch iconos ──────────────────────────────────────────────────────────
-    def _fetch_icons_batch(self, items):
+    def _fetch_icons_batch(self, items, token: int):
         if not self._alive:
             return
         try:
@@ -608,9 +616,12 @@ class _ContentTab:
                 if sha1:
                     path_to_sha1[path] = sha1
 
+        if not self._alive or token != self._refresh_token:
+            return
+
         # 2. Hits del caché de disco
         hits     = {}
-        need_api = {}   # sha1 -> path
+        need_api = {}
         for path, sha1 in path_to_sha1.items():
             cached = cache_get(sha1)
             if cached is not None:
@@ -625,16 +636,15 @@ class _ContentTab:
         if hits:
             with self._fetch_lock:
                 self._icon_cache.update(hits)
-            if self._alive:
-                self.page.run_thread(self._redraw_list)
+            if self._alive and token == self._refresh_token:
+                self.page.run_thread(lambda t=token: self._redraw_list(t))
 
-        # 3. Autores para hits de caché
-        self._launch_author_fetch_paths(list(hits.keys()))
+        self._launch_author_fetch_paths(list(hits.keys()), token)
 
-        if not need_api:
+        if not need_api or not self._alive or token != self._refresh_token:
             return
 
-        # 4. Batch hashes → project_ids
+        # 3. Batch hashes → project_ids
         try:
             ver_results = post(f"{base}/version_files", {
                 "hashes": list(need_api.keys()), "algorithm": "sha1"})
@@ -659,10 +669,10 @@ class _ContentTab:
                 with self._fetch_lock:
                     self._icon_cache[need_api[sha1]] = None
 
-        if not project_ids:
+        if not project_ids or not self._alive or token != self._refresh_token:
             return
 
-        # 5. Batch proyectos → icon_url
+        # 4. Batch proyectos → icon_url
         try:
             projects = get(f"{base}/projects?ids=" +
                            urllib.request.quote(json.dumps(list(project_ids.keys()))))
@@ -683,14 +693,12 @@ class _ContentTab:
                 if icon_url:
                     found_any = True
 
-        if found_any and self._alive:
-            self.page.run_thread(self._redraw_list)
+        if found_any and self._alive and token == self._refresh_token:
+            self.page.run_thread(lambda t=token: self._redraw_list(t))
 
-        # 6. Autores para los recién descubiertos
-        self._launch_author_fetch_paths([need_api[s] for s in sha1_to_pid])
+        self._launch_author_fetch_paths([need_api[s] for s in sha1_to_pid], token)
 
-    def _launch_author_fetch_paths(self, paths):
-        """Lanza fetch de autores para una lista de paths ya con pid conocido."""
+    def _launch_author_fetch_paths(self, paths, token: int):
         with self._fetch_lock:
             need = [
                 (path, self._pid_cache[path])
@@ -704,12 +712,12 @@ class _ContentTab:
         if need:
             threading.Thread(
                 target=self._fetch_authors_for_projects,
-                args=(need,), daemon=True
+                args=(need, token), daemon=True
             ).start()
 
     # ── Fetch autores ─────────────────────────────────────────────────────────
-    def _fetch_authors_for_projects(self, path_pid_list):
-        if not self._alive:
+    def _fetch_authors_for_projects(self, path_pid_list, token: int):
+        if not self._alive or token != self._refresh_token:
             return
         try:
             from config.constants import MODRINTH_API_BASE_URL, HTTP_TIMEOUT_SECONDS, USER_AGENT
@@ -723,7 +731,6 @@ class _ContentTab:
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 return json.loads(r.read())
 
-        # 1. Resolver caché de disco
         need_fetch = []
         for path, pid in path_pid_list:
             cached = cache_get_author(f"pid:{pid}")
@@ -733,13 +740,12 @@ class _ContentTab:
             else:
                 need_fetch.append((path, pid))
 
-        if len(need_fetch) < len(path_pid_list) and self._alive:
-            self.page.run_thread(self._redraw_list)
+        if len(need_fetch) < len(path_pid_list) and self._alive and token == self._refresh_token:
+            self.page.run_thread(lambda t=token: self._redraw_list(t))
 
         if not need_fetch:
             return
 
-        # 2. Fetch en paralelo
         from concurrent.futures import ThreadPoolExecutor, as_completed
 
         def fetch_one(path_pid):
@@ -763,17 +769,16 @@ class _ContentTab:
         with ThreadPoolExecutor(max_workers=8) as ex:
             futures = [ex.submit(fetch_one, item) for item in need_fetch]
             for future in as_completed(futures):
-                if not self._alive:
+                if not self._alive or token != self._refresh_token:
                     break
                 path, pid, result = future.result()
                 cache_set_author(f"pid:{pid}", result.get("avatar_url"), extra=result)
-                # También guardar por username para que discover_view lo encuentre
                 if result.get("username"):
                     cache_set_author(result["username"], result.get("avatar_url"), extra=result)
                 with self._fetch_lock:
                     self._author_cache[path] = result
-                if result.get("username") and self._alive:
-                    self.page.run_thread(self._redraw_list)
+                if result.get("username") and self._alive and token == self._refresh_token:
+                    self.page.run_thread(lambda t=token: self._redraw_list(t))
 
     # ── Fila de mod ───────────────────────────────────────────────────────────
     def _make_row(self, item):
@@ -788,7 +793,6 @@ class _ContentTab:
 
         icon_widget = _icon(icon_url or "", disp, size=40)
 
-        # Autor
         if author_data and author_data.get("username"):
             username     = author_data["username"]
             avatar_url   = author_data.get("avatar_url")
@@ -964,6 +968,7 @@ class _ContentTab:
                 pass
         return "vanilla"
 
+
 # =============================================================================
 # Browse Content Dialog
 # =============================================================================
@@ -1082,7 +1087,6 @@ class _BrowseContentDialog:
             author    = getattr(r, "author", "")
             installed = is_installed_in(r.slug, r.title, self._installed_set)
 
-            # URL directa, igual que discover_view
             icon_w = _icon(getattr(r, "icon_url", None) or "", r.title, size=42)
 
             badge = (
