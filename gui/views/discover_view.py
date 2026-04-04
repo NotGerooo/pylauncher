@@ -358,6 +358,7 @@ class DiscoverView:
 
     # ── Lifecycle ──────────────────────────────────────────────────────────────
     def on_show(self):
+        self._loading = False  
         self._update_instance_header()
         self._refresh_chips()
         # Activate sidebar filter panel
