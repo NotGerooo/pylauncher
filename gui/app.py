@@ -159,6 +159,15 @@ class App:
 
     # ── Navegación ────────────────────────────────────────────────────────────
     def _show_view(self, vid: str):
+        # Notificar a la vista actual que se oculta
+        if self._current_vid and self._current_vid in self._views:
+            prev = self._views[self._current_vid]
+            if hasattr(prev, "on_hide"):
+                try:
+                    prev.on_hide()
+                except Exception:
+                    pass
+
         self._active_instance = None
         self._sidebar_left.set_active(vid)
         self._current_vid = vid
@@ -168,8 +177,10 @@ class App:
 
         view_obj = self._views[vid]
         self._content_area.content = view_obj.root
-        try: self._content_area.update()
-        except Exception: pass
+        try:
+            self._content_area.update()
+        except Exception:
+            pass
 
         if hasattr(view_obj, "on_show"):
             view_obj.on_show()
