@@ -196,13 +196,21 @@ class InstanceView:
 
     def _render_tab(self):
         if self._active_tab == "content":
-            self._tab_area.content = _ContentTab(self.page, self.app, self.profile).root
+            if not hasattr(self, "_content_tab_obj"):
+                self._content_tab_obj = _ContentTab(self.page, self.app, self.profile)
+            self._tab_area.content = self._content_tab_obj.root
         elif self._active_tab == "files":
-            self._tab_area.content = _FilesTab(self.page, self.app, self.profile).root
+            if not hasattr(self, "_files_tab_obj"):
+                self._files_tab_obj = _FilesTab(self.page, self.app, self.profile)
+            self._tab_area.content = self._files_tab_obj.root
         elif self._active_tab == "worlds":
-            self._tab_area.content = _WorldsTab(self.page, self.app, self.profile).root
+            if not hasattr(self, "_worlds_tab_obj"):
+                self._worlds_tab_obj = _WorldsTab(self.page, self.app, self.profile)
+            self._tab_area.content = self._worlds_tab_obj.root
         elif self._active_tab == "logs":
-            self._tab_area.content = _LogsTab(self.page, self.app, self.profile).root
+            if not hasattr(self, "_logs_tab_obj"):
+                self._logs_tab_obj = _LogsTab(self.page, self.app, self.profile)
+            self._tab_area.content = self._logs_tab_obj.root
         try: self._tab_area.update()
         except Exception: pass
 
