@@ -557,8 +557,15 @@ class DiscoverView:
                 sort_by      = sort_by,
                 project_type = project_type,
             )
-            results = service.search_mods(**kwargs, categories=categories,
-                                          excluded_cats=excluded_cats)
+            results = service.search_mods(**kwargs, categories=categories)
+
+            if excluded_cats:
+                excl_lower = {c.lower() for c in excluded_cats}
+                results = [
+                    r for r in results
+                    if not any(c.lower() in excl_lower
+                            for c in (r.categories or []))
+                ]
 
             # Read total_hits if service exposes it
             total = getattr(service, "_last_total_hits", None)
