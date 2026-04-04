@@ -5,7 +5,7 @@ Sistema de logging centralizado para todo el launcher.
 Una sola instancia compartida. Escribe a consola y a archivo .log
 
 Cuando corre como .exe (PyInstaller), los logs van a:
-  %APPDATA%\GerosLauncher\logs\\
+  %APPDATA%\GerosLauncher\\logs\\
 
 En desarrollo normal van a:
   logs\   (carpeta local del proyecto)
