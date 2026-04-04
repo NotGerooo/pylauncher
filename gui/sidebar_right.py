@@ -561,19 +561,17 @@ class SidebarRight:
 
         check = ft.Icon(
             ft.icons.CHECK_ROUNDED,
-            size=14,
-            color=GREEN,
+            size=14, color=GREEN,
             visible=is_sel,
         )
         block_btn = ft.Container(
             width=22, height=22, border_radius=11,
             bgcolor="transparent",
             alignment=ft.alignment.center,
-            visible=is_sel,
+            visible=False,  # solo aparece en hover
             content=ft.Icon(ft.icons.BLOCK_ROUNDED, size=14, color="#e05555"),
         )
-        ico_ctrl = ft.Icon(ico, size=14,
-                        color=GREEN if is_sel else TEXT_DIM)
+        ico_ctrl = ft.Icon(ico, size=14, color=GREEN if is_sel else TEXT_DIM)
         lbl = ft.Text(
             cat,
             color=TEXT_PRI if is_sel else TEXT_SEC,
@@ -600,23 +598,20 @@ class SidebarRight:
                 ic=ico_ctrl, l=lbl, r=row):
             if c in self._selected_cats:
                 self._selected_cats.discard(c)
-                d.visible  = False
-                bb.visible = False
-                ic.color   = TEXT_DIM
-                l.color    = TEXT_SEC
-                l.weight   = ft.FontWeight.W_400
-                r.bgcolor  = "transparent"
+                d.visible = False
+                ic.color  = TEXT_DIM
+                l.color   = TEXT_SEC
+                l.weight  = ft.FontWeight.W_400
+                r.bgcolor = INPUT_BG  # sigue en hover
             else:
                 self._selected_cats.add(c)
-                d.visible  = True
-                bb.visible = True
-                ic.color   = GREEN
-                l.color    = TEXT_PRI
-                l.weight   = ft.FontWeight.W_600
-                r.bgcolor  = ft.colors.with_opacity(0.06, GREEN)
+                d.visible = True
+                ic.color  = GREEN
+                l.color   = TEXT_PRI
+                l.weight  = ft.FontWeight.W_600
+                r.bgcolor = ft.colors.with_opacity(0.10, GREEN)
             try:
-                d.update(); bb.update(); ic.update()
-                l.update(); r.update()
+                d.update(); ic.update(); l.update(); r.update()
             except Exception:
                 pass
             if callable(self._on_filter_change):
@@ -624,14 +619,13 @@ class SidebarRight:
 
         def _block_click(e, c=cat, d=check, bb=block_btn,
                         ic=ico_ctrl, l=lbl, r=row):
-            e.stop_propagation = True  # no propagar al row
             self._selected_cats.discard(c)
             d.visible  = False
             bb.visible = False
             ic.color   = TEXT_DIM
             l.color    = TEXT_SEC
             l.weight   = ft.FontWeight.W_400
-            r.bgcolor  = "transparent"
+            r.bgcolor  = INPUT_BG
             try:
                 d.update(); bb.update(); ic.update()
                 l.update(); r.update()
@@ -640,15 +634,26 @@ class SidebarRight:
             if callable(self._on_filter_change):
                 self._on_filter_change()
 
+        def _hover(e, c=cat, d=check, bb=block_btn, r=row):
+            sel = c in self._selected_cats
+            if e.data == "true":
+                # entrar hover — mostrar botón bloquear si está seleccionado
+                bb.visible = sel
+                r.bgcolor  = (ft.colors.with_opacity(0.10, GREEN)
+                            if sel else INPUT_BG)
+            else:
+                # salir hover — ocultar botón bloquear
+                bb.visible = False
+                r.bgcolor  = (ft.colors.with_opacity(0.06, GREEN)
+                            if sel else "transparent")
+            try:
+                bb.update(); r.update()
+            except Exception:
+                pass
+
         block_btn.on_click = _block_click
         row.on_click = _click
-        row.on_hover = lambda e, r=row, s=(cat in self._selected_cats): (
-            setattr(r, "bgcolor",
-                    (ft.colors.with_opacity(0.10, GREEN) if e.data == "true"
-                    else (ft.colors.with_opacity(0.06, GREEN) if s
-                        else "transparent")))
-            or r.update()
-        )
+        row.on_hover = _hover
         return row
 
     # ── Toggle sections ───────────────────────────────────────────────────────
