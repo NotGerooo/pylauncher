@@ -235,6 +235,7 @@ class SidebarRight:
         self._on_filter_change = on_change
         self._discover_profile = profile
         self._selected_cats.clear()
+        self._excluded_cats.clear()
         self._hide_installed  = False
         self._discover_loader = None
 
