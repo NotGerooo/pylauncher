@@ -109,6 +109,7 @@ _LOADER_COLORS = {
 class SidebarRight:
     def __init__(self, app):
         self.app  = app
+        self._excluded_cats: set = set()
         self.page = app.page
 
         self._discover_mode      = False
