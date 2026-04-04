@@ -67,6 +67,10 @@ class App:
         self.account_manager  = AccountManager(data_dir="data")
         self.microsoft_auth   = MicrosoftAuth()
 
+    @property
+    def sidebar_right(self):
+        return self._sidebar_right
+
     # ── Layout ────────────────────────────────────────────────────────────────
     def _build_layout(self):
         self._sidebar_left  = SidebarLeft(self)
