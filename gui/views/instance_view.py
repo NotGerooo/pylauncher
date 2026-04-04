@@ -940,13 +940,7 @@ class _ContentTab:
             self.app.snack(str(ex), error=True)
 
     def _on_browse(self, e):
-        loader = self._read_loader()
-        _BrowseContentDialog(
-            self.page, self.app, self.profile,
-            content_type=self._filter,
-            loader=loader if loader != "vanilla" else None,
-            on_install=self._refresh,
-        )
+        self.app._show_view("discover")
 
     def _read_loader(self):
         meta_path = os.path.join(self.profile.game_dir, "loader_meta.json")
