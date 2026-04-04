@@ -355,23 +355,25 @@ class SidebarRight:
             self._loader_body.controls.append(row)
 
     def _loader_option_row(self, display: str, value: str,
-                           selected: bool) -> ft.Container:
+                       selected: bool) -> ft.Container:
         dot = ft.Container(
-            width=10, height=10, border_radius=5,
+            width=8, height=8, border_radius=4,
             bgcolor=GREEN if selected else "transparent",
             border=ft.border.all(1.5, GREEN if selected else BORDER_BRIGHT),
             animate=ft.animation.Animation(120, ft.AnimationCurve.EASE_OUT),
         )
-        lbl = ft.Text(display, color=TEXT_PRI if selected else TEXT_SEC,
-                      size=11)
+        lbl = ft.Text(display,
+                    color=TEXT_PRI if selected else TEXT_SEC,
+                    size=11,
+                    weight=ft.FontWeight.W_500 if selected else ft.FontWeight.W_400)
         row = ft.Container(
-            padding=ft.padding.symmetric(horizontal=4, vertical=6),
+            padding=ft.padding.symmetric(horizontal=8, vertical=7),
             border_radius=6,
             content=ft.Row([dot, ft.Container(width=10), lbl],
-                           spacing=0, tight=True),
+                        spacing=0, tight=True),
         )
-        row.on_click  = lambda e, v=value: self._on_loader_click(v)
-        row.on_hover  = lambda e, r=row: (
+        row.on_click = lambda e, v=value: self._on_loader_click(v)
+        row.on_hover = lambda e, r=row: (
             setattr(r, "bgcolor",
                     INPUT_BG if e.data == "true" else "transparent")
             or r.update()
