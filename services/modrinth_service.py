@@ -32,6 +32,7 @@ class ModrinthProject:
         self.source_url   = data.get("source_url", "")
         # author viene como "author" en /search, o como "team" en /project
         self.author       = data.get("author", data.get("team", ""))
+        self.date_modified = data.get("date_modified", data.get("date_updated", ""))
 
     def supports_version(self, mc_version: str) -> bool:
         return mc_version in self.game_versions
