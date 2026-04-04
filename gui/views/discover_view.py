@@ -364,8 +364,8 @@ class DiscoverView:
                     ),
                 ),
             ], spacing=0, expand=True),
-        
         )
+        self._main_lv = self.root.content.controls[0].content
 
     def _smooth_scroll(self, delta: float):
         """Scroll suave simulado con pasos pequeños."""
