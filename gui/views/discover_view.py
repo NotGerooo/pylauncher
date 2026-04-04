@@ -848,7 +848,7 @@ class DiscoverView:
                 on_tap=lambda e, u=slug_url: self.page.launch_url(u),
                 content=ft.Icon(ft.icons.OPEN_IN_NEW_ROUNDED,
                                 size=12, color=TEXT_DIM),
-                ),
+            )
             meta_controls = [
                 ft.Text("by ", color=TEXT_DIM, size=11),
                 author_gd,
