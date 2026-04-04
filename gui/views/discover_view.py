@@ -533,6 +533,7 @@ class DiscoverView:
             sidebar_filters = self.app.sidebar_right.get_discover_filters()
 
         categories     = sidebar_filters.get("categories", [])
+        excluded_cats  = sidebar_filters.get("excluded_cats", []) 
         hide_installed = sidebar_filters.get("hide_installed", False)
         loader_override= sidebar_filters.get("loader")  # None = auto
 
