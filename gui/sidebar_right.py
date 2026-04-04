@@ -465,20 +465,42 @@ class SidebarRight:
     def _toggle_ver(self, e):
         self._ver_expanded = not self._ver_expanded
         self._ver_body.visible = self._ver_expanded
-        try: self._ver_body.update()
-        except Exception: pass
+        # actualizar flecha
+        hdr = self._ver_section.controls[0]
+        arrow = hdr.content.controls[-1]
+        arrow.name = (ft.icons.KEYBOARD_ARROW_UP_ROUNDED if self._ver_expanded
+                    else ft.icons.KEYBOARD_ARROW_DOWN_ROUNDED)
+        try:
+            self._ver_body.update()
+            arrow.update()
+        except Exception:
+            pass
 
     def _toggle_loader(self, e):
         self._loader_expanded = not self._loader_expanded
         self._loader_body_container.visible = self._loader_expanded
-        try: self._loader_body_container.update()
-        except Exception: pass
+        hdr = self._loader_section.controls[0]
+        arrow = hdr.content.controls[-1]
+        arrow.name = (ft.icons.KEYBOARD_ARROW_UP_ROUNDED if self._loader_expanded
+                    else ft.icons.KEYBOARD_ARROW_DOWN_ROUNDED)
+        try:
+            self._loader_body_container.update()
+            arrow.update()
+        except Exception:
+            pass
 
     def _toggle_cat(self, e):
         self._cat_expanded = not self._cat_expanded
         self._cat_body_container.visible = self._cat_expanded
-        try: self._cat_body_container.update()
-        except Exception: pass
+        hdr = self._cat_section.controls[0]
+        arrow = hdr.content.controls[-1]
+        arrow.name = (ft.icons.KEYBOARD_ARROW_UP_ROUNDED if self._cat_expanded
+                    else ft.icons.KEYBOARD_ARROW_DOWN_ROUNDED)
+        try:
+            self._cat_body_container.update()
+            arrow.update()
+        except Exception:
+            pass
 
     # ═══════════════════════════════════════════════════════════════════════
     #  CUENTA
