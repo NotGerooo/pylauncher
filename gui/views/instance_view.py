@@ -1243,85 +1243,678 @@ class _ContentTab:
                 pass
         return "vanilla"
 
-
 # =============================================================================
-# Browse Content Dialog
+# Instance Settings Dialog
 # =============================================================================
-class _BrowseContentDialog:
-    _TYPE_MAP = {
-        "All": "mod", "Mods": "mod",
-        "Resource Packs": "resourcepack", "Shaders": "shader",
-    }
-    _DEST_FOLDER = {
-        "mod": "mods", "resourcepack": "resourcepacks", "shader": "shaderpacks",
-    }
+class _InstanceSettingsDialog:
+    _SECTIONS = [
+        ("general",     ft.icons.TUNE_ROUNDED,           "General"),
+        ("installation",ft.icons.EXTENSION_ROUNDED,      "Installation"),
+        ("java",        ft.icons.MEMORY_ROUNDED,         "Java & Memory"),
+        ("hooks",       ft.icons.CODE_ROUNDED,           "Launch Hooks"),
+    ]
+    _LOADERS = ["Vanilla", "Fabric", "NeoForge", "Forge", "Quilt"]
 
-    def __init__(self, page, app, profile, content_type, loader, on_install):
-        self.page         = page
-        self.app          = app
-        self.profile      = profile
-        self.content_type = content_type
-        self.loader       = loader
-        self.on_install   = on_install
-        self._results     = []
-        self._selected_id = None
+    def __init__(self, page, app, profile, on_done=None):
+        self.page     = page
+        self.app      = app
+        self.profile  = profile
+        self.on_done  = on_done
+        self._section = "general"
+        self._dirty   = False
 
-        project_type        = self._TYPE_MAP.get(content_type, "mod")
-        dest_folder         = self._DEST_FOLDER.get(project_type, "mods")
-        dest_dir            = os.path.join(profile.game_dir, dest_folder)
-        self._installed_set = build_installed_set(dest_dir)
+        # Estado editable
+        self._name_val    = profile.name
+        self._loader_val  = self._detect_loader()
+        self._version_val = profile.version_id
+        self._ram_val     = self._read_meta("ram_mb", 4096)
+        self._java_val    = self._read_meta("java_path", "")
+        self._jvm_val     = self._read_meta("jvm_args", "")
+        self._pre_val     = self._read_meta("pre_launch", "")
+        self._post_val    = self._read_meta("post_exit", "")
+
         self._build()
 
-    def _build(self):
-        project_type = self._TYPE_MAP.get(self.content_type, "mod")
+    # ── Helpers ───────────────────────────────────────────────────────────────
+    def _detect_loader(self):
+        import json as _json
+        meta_path = os.path.join(self.profile.game_dir, "loader_meta.json")
+        if os.path.isfile(meta_path):
+            try:
+                with open(meta_path) as f:
+                    meta = _json.load(f)
+                entries = meta if isinstance(meta, list) else [meta]
+                if entries:
+                    ld = entries[0].get("loader_type") or entries[0].get("loader", "vanilla")
+                    return ld.capitalize()
+            except Exception:
+                pass
+        return "Vanilla"
 
-        self._search_field = ft.TextField(
-            label=f"Buscar {self.content_type.lower()}...",
-            color=TEXT_PRI, bgcolor=INPUT_BG,
-            border_color=BORDER, focused_border_color=GREEN,
-            border_radius=8, expand=True,
-            label_style=ft.TextStyle(color=TEXT_DIM, size=10),
-            on_submit=lambda e: self._do_search(project_type),
+    def _read_meta(self, key, default):
+        import json as _json
+        meta_path = os.path.join(self.profile.game_dir, "instance_settings.json")
+        if os.path.isfile(meta_path):
+            try:
+                with open(meta_path) as f:
+                    data = _json.load(f)
+                return data.get(key, default)
+            except Exception:
+                pass
+        return default
+
+    def _write_meta(self, updates: dict):
+        import json as _json
+        meta_path = os.path.join(self.profile.game_dir, "instance_settings.json")
+        data = {}
+        if os.path.isfile(meta_path):
+            try:
+                with open(meta_path) as f:
+                    data = _json.load(f)
+            except Exception:
+                pass
+        data.update(updates)
+        os.makedirs(os.path.dirname(meta_path), exist_ok=True)
+        with open(meta_path, "w") as f:
+            _json.dump(data, f, indent=2)
+
+    # ── Build ─────────────────────────────────────────────────────────────────
+    def _build(self):
+        # ── Sidebar ───────────────────────────────────────────────────────────
+        self._nav_items = {}
+        nav_col = ft.Column(spacing=2)
+        for sid, icon, label in self._SECTIONS:
+            item = self._make_nav_item(sid, icon, label)
+            self._nav_items[sid] = item
+            nav_col.controls.append(item)
+
+        sidebar = ft.Container(
+            width=200,
+            bgcolor=CARD2_BG,
+            border=ft.border.only(right=ft.BorderSide(1, BORDER)),
+            padding=ft.padding.symmetric(horizontal=10, vertical=16),
+            content=nav_col,
         )
-        self._status_lbl = ft.Text(
-            f"Busca {self.content_type.lower()} compatibles con "
-            f"Minecraft {self.profile.version_id}"
-            + (f" + {self.loader}" if self.loader else ""),
-            color=TEXT_DIM, size=9,
+
+        # ── Content area ──────────────────────────────────────────────────────
+        self._content_area = ft.Container(
+            expand=True,
+            padding=ft.padding.all(28),
+            content=self._render_section(self._section),
         )
-        self._results_col = ft.Column(spacing=6, scroll=ft.ScrollMode.AUTO, height=380)
-        self._install_btn = ft.ElevatedButton(
-            "Instalar seleccionado",
+
+        # ── Save / Cancel ─────────────────────────────────────────────────────
+        self._save_btn = ft.ElevatedButton(
+            "Save changes",
             bgcolor=GREEN, color=TEXT_INV,
-            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
-            disabled=True, on_click=self._do_install,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                padding=ft.padding.symmetric(horizontal=24, vertical=12),
+            ),
+            on_click=self._on_save,
+        )
+
+        # ── Breadcrumb header ─────────────────────────────────────────────────
+        self._breadcrumb = ft.Text(
+            "General", color=TEXT_PRI, size=15,
+            weight=ft.FontWeight.BOLD,
+        )
+
+        header = ft.Container(
+            bgcolor=CARD_BG,
+            padding=ft.padding.symmetric(horizontal=24, vertical=16),
+            border=ft.border.only(bottom=ft.BorderSide(1, BORDER)),
+            content=ft.Row([
+                ft.Text(self.profile.name, color=TEXT_DIM, size=13),
+                ft.Icon(ft.icons.CHEVRON_RIGHT_ROUNDED, size=14, color=TEXT_DIM),
+                self._breadcrumb,
+                ft.Container(expand=True),
+                ft.TextButton(
+                    "Cancel",
+                    style=ft.ButtonStyle(color=TEXT_SEC),
+                    on_click=lambda e: self.page.close(self._dlg),
+                ),
+                ft.Container(width=8),
+                self._save_btn,
+            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
         )
 
         self._dlg = ft.AlertDialog(
-            modal=True, bgcolor=CARD_BG,
-            title=ft.Text(
-                f"Browse {self.content_type}  -  {self.profile.name}",
-                color=TEXT_PRI, size=14),
-            content=ft.Container(width=720, content=ft.Column([
-                ft.Row([
-                    self._search_field,
-                    ft.Container(width=10),
-                    ft.ElevatedButton(
-                        "Buscar", bgcolor=CARD2_BG, color=TEXT_PRI,
-                        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
-                        on_click=lambda e: self._do_search(project_type),
-                    ),
-                ]),
-                self._status_lbl,
-                ft.Container(height=8),
-                self._results_col,
-            ], spacing=8)),
-            actions=[
-                ft.TextButton("Cerrar", on_click=lambda e: self.page.close(self._dlg)),
-                self._install_btn,
-            ],
+            modal=True,
+            bgcolor=CARD_BG,
+            title=ft.Container(),      # header custom dentro del content
+            content_padding=ft.padding.all(0),
+            content=ft.Container(
+                width=820,
+                height=520,
+                bgcolor=CARD_BG,
+                border_radius=12,
+                clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
+                content=ft.Column([
+                    header,
+                    ft.Row([
+                        sidebar,
+                        self._content_area,
+                    ], spacing=0, expand=True),
+                ], spacing=0, expand=True),
+            ),
+            actions=[],
         )
         self.page.open(self._dlg)
+
+    def _make_nav_item(self, sid, icon, label):
+        active = sid == self._section
+        item = ft.Container(
+            bgcolor=GREEN if active else "transparent",
+            border_radius=8,
+            padding=ft.padding.symmetric(horizontal=12, vertical=10),
+            animate=ft.animation.Animation(120, ft.AnimationCurve.EASE_OUT),
+            on_click=lambda e, s=sid: self._switch_section(s),
+            content=ft.Row([
+                ft.Icon(icon, size=16,
+                        color=TEXT_INV if active else TEXT_DIM),
+                ft.Container(width=10),
+                ft.Text(label, size=12,
+                        color=TEXT_INV if active else TEXT_SEC,
+                        weight=ft.FontWeight.W_600 if active
+                               else ft.FontWeight.NORMAL),
+            ], spacing=0, tight=True),
+        )
+        item.on_hover = lambda e, b=item, s=sid: (
+            None if s == self._section else (
+                setattr(b, "bgcolor",
+                        INPUT_BG if e.data == "true" else "transparent")
+                or b.update()
+            )
+        )
+        return item
+
+    def _switch_section(self, sid):
+        self._section = sid
+        # Update nav highlight
+        for s, icon, label in self._SECTIONS:
+            item = self._nav_items[s]
+            active = s == sid
+            item.bgcolor = GREEN if active else "transparent"
+            row: ft.Row = item.content
+            row.controls[0].color = TEXT_INV if active else TEXT_DIM
+            row.controls[2].color = TEXT_INV if active else TEXT_SEC
+            row.controls[2].weight = (ft.FontWeight.W_600 if active
+                                      else ft.FontWeight.NORMAL)
+            try: item.update()
+            except Exception: pass
+        # Update breadcrumb
+        label_map = {s: l for s, _, l in self._SECTIONS}
+        self._breadcrumb.value = label_map[sid]
+        try: self._breadcrumb.update()
+        except Exception: pass
+        # Render section
+        self._content_area.content = self._render_section(sid)
+        try: self._content_area.update()
+        except Exception: pass
+
+    # ── Section renderers ─────────────────────────────────────────────────────
+    def _render_section(self, sid):
+        if sid == "general":   return self._section_general()
+        if sid == "installation": return self._section_installation()
+        if sid == "java":      return self._section_java()
+        if sid == "hooks":     return self._section_hooks()
+        return ft.Container()
+
+    # ── General ───────────────────────────────────────────────────────────────
+    def _section_general(self):
+        def _heading(text):
+            return ft.Text(text, color=TEXT_PRI, size=13,
+                           weight=ft.FontWeight.BOLD)
+        def _subtext(text):
+            return ft.Text(text, color=TEXT_DIM, size=10)
+
+        self._name_field = ft.TextField(
+            value=self._name_val,
+            color=TEXT_PRI, bgcolor=INPUT_BG,
+            border_color=BORDER, focused_border_color=GREEN,
+            border_radius=8, height=42,
+            content_padding=ft.padding.symmetric(horizontal=14, vertical=10),
+            text_size=12,
+            on_change=lambda e: setattr(self, "_name_val", e.control.value),
+        )
+
+        # Instance icon display
+        icon_box = ft.Container(
+            width=80, height=80, border_radius=14,
+            bgcolor=CARD2_BG, alignment=ft.alignment.center,
+            border=ft.border.all(1, BORDER),
+            content=ft.Icon(ft.icons.WIDGETS_ROUNDED, size=36, color=TEXT_DIM),
+        )
+
+        # Duplicate
+        def on_duplicate(e):
+            self.page.close(self._dlg)
+            self._duplicate_instance()
+
+        dup_btn = ft.OutlinedButton(
+            "Duplicate",
+            icon=ft.icons.COPY_ALL_ROUNDED,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                side=ft.BorderSide(1, BORDER), color=TEXT_SEC,
+                padding=ft.padding.symmetric(horizontal=16, vertical=10),
+            ),
+            on_click=on_duplicate,
+        )
+
+        # Delete
+        def on_delete(e):
+            self.page.close(self._dlg)
+            self._confirm_delete()
+
+        del_btn = ft.ElevatedButton(
+            "Delete instance",
+            icon=ft.icons.DELETE_FOREVER_ROUNDED,
+            bgcolor=ACCENT_RED, color="#ffffff",
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                padding=ft.padding.symmetric(horizontal=16, vertical=10),
+            ),
+            on_click=on_delete,
+        )
+
+        return ft.Column([
+            ft.Row([
+                ft.Column([
+                    _heading("Instance name"),
+                    ft.Container(height=6),
+                    self._name_field,
+                ], spacing=0, expand=True),
+                ft.Container(width=20),
+                icon_box,
+            ], vertical_alignment=ft.CrossAxisAlignment.START),
+            ft.Container(height=24),
+            ft.Divider(height=1, color=BORDER),
+            ft.Container(height=16),
+            _heading("Duplicate instance"),
+            ft.Container(height=4),
+            _subtext("Creates a copy of this instance, including worlds, configs, mods, etc."),
+            ft.Container(height=10),
+            dup_btn,
+            ft.Container(height=24),
+            ft.Divider(height=1, color=BORDER),
+            ft.Container(height=16),
+            _heading("Delete instance"),
+            ft.Container(height=4),
+            _subtext(
+                "Permanently deletes this instance from your device, including worlds, configs,\n"
+                "and all installed content. This action cannot be undone."
+            ),
+            ft.Container(height=10),
+            del_btn,
+        ], spacing=0, scroll=ft.ScrollMode.AUTO)
+
+    # ── Installation ──────────────────────────────────────────────────────────
+    def _section_installation(self):
+        def _heading(text):
+            return ft.Text(text, color=TEXT_PRI, size=13,
+                           weight=ft.FontWeight.BOLD)
+        def _subtext(text):
+            return ft.Text(text, color=TEXT_DIM, size=10)
+
+        # Loader pills
+        self._loader_btns = {}
+        loader_row = ft.Row(spacing=8, wrap=True)
+        for ld in self._LOADERS:
+            btn = self._loader_pill(ld)
+            self._loader_btns[ld] = btn
+            loader_row.controls.append(btn)
+
+        # Version dropdown — load versions from version_manager
+        versions = ["(current) " + self.profile.version_id]
+        try:
+            all_v = self.app.version_manager.get_available_versions()
+            versions = [v.id if hasattr(v, "id") else str(v) for v in all_v]
+            if not versions:
+                versions = [self.profile.version_id]
+        except Exception:
+            versions = [self.profile.version_id]
+
+        self._version_dd = ft.Dropdown(
+            value=self._version_val,
+            color=TEXT_PRI, bgcolor=INPUT_BG,
+            border_color=BORDER, focused_border_color=GREEN,
+            border_radius=8, height=42,
+            content_padding=ft.padding.symmetric(horizontal=14, vertical=8),
+            text_style=ft.TextStyle(size=12),
+            options=[ft.dropdown.Option(v) for v in versions],
+            on_change=lambda e: setattr(self, "_version_val", e.control.value),
+        )
+
+        return ft.Column([
+            _heading("Mod loader"),
+            ft.Container(height=4),
+            _subtext("Select the loader for this instance."),
+            ft.Container(height=12),
+            loader_row,
+            ft.Container(height=24),
+            ft.Divider(height=1, color=BORDER),
+            ft.Container(height=16),
+            _heading("Game version"),
+            ft.Container(height=4),
+            _subtext("Minecraft version used by this instance."),
+            ft.Container(height=12),
+            self._version_dd,
+        ], spacing=0, scroll=ft.ScrollMode.AUTO)
+
+    def _loader_pill(self, label):
+        active = label.lower() == self._loader_val.lower()
+        pill = ft.Container(
+            bgcolor=GREEN if active else INPUT_BG,
+            border=ft.border.all(1, GREEN if active else BORDER),
+            border_radius=20,
+            padding=ft.padding.symmetric(horizontal=18, vertical=9),
+            animate=ft.animation.Animation(120, ft.AnimationCurve.EASE_OUT),
+            content=ft.Text(label,
+                            color=TEXT_INV if active else TEXT_SEC,
+                            size=11, weight=ft.FontWeight.W_600),
+        )
+        def on_click(e, lbl=label, p=pill):
+            self._loader_val = lbl
+            for l2, b in self._loader_btns.items():
+                a = l2.lower() == lbl.lower()
+                b.bgcolor = GREEN if a else INPUT_BG
+                b.border  = ft.border.all(1, GREEN if a else BORDER)
+                b.content.color = TEXT_INV if a else TEXT_SEC
+                try: b.update()
+                except Exception: pass
+        pill.on_click = on_click
+        pill.on_hover = lambda e, p=pill, lbl=label: (
+            None if lbl.lower() == self._loader_val.lower() else (
+                setattr(p, "bgcolor", CARD2_BG if e.data == "true" else INPUT_BG)
+                or p.update()
+            )
+        )
+        return pill
+
+    # ── Java & Memory ─────────────────────────────────────────────────────────
+    def _section_java(self):
+        def _heading(text):
+            return ft.Text(text, color=TEXT_PRI, size=13,
+                           weight=ft.FontWeight.BOLD)
+        def _subtext(text):
+            return ft.Text(text, color=TEXT_DIM, size=10)
+
+        ram_opts = [512, 1024, 2048, 3072, 4096, 6144, 8192, 12288, 16384]
+        self._ram_dd = ft.Dropdown(
+            value=str(self._ram_val),
+            color=TEXT_PRI, bgcolor=INPUT_BG,
+            border_color=BORDER, focused_border_color=GREEN,
+            border_radius=8, height=42,
+            content_padding=ft.padding.symmetric(horizontal=14, vertical=8),
+            text_style=ft.TextStyle(size=12),
+            options=[ft.dropdown.Option(str(r),
+                     f"{r} MB  ({r//1024} GB)" if r >= 1024 else f"{r} MB")
+                     for r in ram_opts],
+            on_change=lambda e: setattr(self, "_ram_val",
+                                        int(e.control.value or 4096)),
+        )
+
+        self._java_field = ft.TextField(
+            value=self._java_val,
+            hint_text="Leave empty to use system default",
+            hint_style=ft.TextStyle(color=TEXT_DIM, size=11),
+            color=TEXT_PRI, bgcolor=INPUT_BG,
+            border_color=BORDER, focused_border_color=GREEN,
+            border_radius=8, height=42, expand=True,
+            content_padding=ft.padding.symmetric(horizontal=14, vertical=10),
+            text_size=12,
+            on_change=lambda e: setattr(self, "_java_val", e.control.value),
+        )
+
+        def browse_java(e):
+            # Abrir file picker para seleccionar java executable
+            fp = ft.FilePicker(on_result=lambda r: (
+                setattr(self, "_java_val",
+                        r.files[0].path if r.files else self._java_val)
+                or setattr(self._java_field, "value",
+                           r.files[0].path if r.files else self._java_val)
+                or self._java_field.update()
+            ))
+            self.page.overlay.append(fp)
+            self.page.update()
+            fp.pick_files(dialog_title="Select Java executable",
+                         allowed_extensions=["exe", ""])
+
+        browse_btn = ft.OutlinedButton(
+            "Browse",
+            icon=ft.icons.FOLDER_OPEN_ROUNDED,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                side=ft.BorderSide(1, BORDER), color=TEXT_SEC,
+                padding=ft.padding.symmetric(horizontal=14, vertical=10),
+            ),
+            on_click=browse_java,
+        )
+
+        self._jvm_field = ft.TextField(
+            value=self._jvm_val,
+            hint_text="e.g.  -XX:+UseG1GC -XX:MaxGCPauseMillis=50",
+            hint_style=ft.TextStyle(color=TEXT_DIM, size=11),
+            color=TEXT_PRI, bgcolor=INPUT_BG,
+            border_color=BORDER, focused_border_color=GREEN,
+            border_radius=8, min_lines=2, max_lines=4,
+            content_padding=ft.padding.symmetric(horizontal=14, vertical=10),
+            text_size=12,
+            on_change=lambda e: setattr(self, "_jvm_val", e.control.value),
+        )
+
+        return ft.Column([
+            _heading("Memory (RAM)"),
+            ft.Container(height=4),
+            _subtext("Amount of RAM allocated to this Minecraft instance."),
+            ft.Container(height=12),
+            self._ram_dd,
+            ft.Container(height=24),
+            ft.Divider(height=1, color=BORDER),
+            ft.Container(height=16),
+            _heading("Java executable"),
+            ft.Container(height=4),
+            _subtext("Path to the java binary. Leave empty to use the system default."),
+            ft.Container(height=12),
+            ft.Row([self._java_field, ft.Container(width=8), browse_btn],
+                   vertical_alignment=ft.CrossAxisAlignment.CENTER),
+            ft.Container(height=24),
+            ft.Divider(height=1, color=BORDER),
+            ft.Container(height=16),
+            _heading("JVM arguments"),
+            ft.Container(height=4),
+            _subtext("Additional arguments passed to the JVM. Advanced users only."),
+            ft.Container(height=12),
+            self._jvm_field,
+        ], spacing=0, scroll=ft.ScrollMode.AUTO)
+
+    # ── Launch Hooks ──────────────────────────────────────────────────────────
+    def _section_hooks(self):
+        def _heading(text):
+            return ft.Text(text, color=TEXT_PRI, size=13,
+                           weight=ft.FontWeight.BOLD)
+        def _subtext(text):
+            return ft.Text(text, color=TEXT_DIM, size=10)
+
+        self._pre_field = ft.TextField(
+            value=self._pre_val,
+            hint_text="Command to run before launching Minecraft",
+            hint_style=ft.TextStyle(color=TEXT_DIM, size=11),
+            color=TEXT_PRI, bgcolor=INPUT_BG,
+            border_color=BORDER, focused_border_color=GREEN,
+            border_radius=8, min_lines=2, max_lines=4,
+            content_padding=ft.padding.symmetric(horizontal=14, vertical=10),
+            text_size=12,
+            on_change=lambda e: setattr(self, "_pre_val", e.control.value),
+        )
+
+        self._post_field = ft.TextField(
+            value=self._post_val,
+            hint_text="Command to run after Minecraft exits",
+            hint_style=ft.TextStyle(color=TEXT_DIM, size=11),
+            color=TEXT_PRI, bgcolor=INPUT_BG,
+            border_color=BORDER, focused_border_color=GREEN,
+            border_radius=8, min_lines=2, max_lines=4,
+            content_padding=ft.padding.symmetric(horizontal=14, vertical=10),
+            text_size=12,
+            on_change=lambda e: setattr(self, "_post_val", e.control.value),
+        )
+
+        return ft.Column([
+            _heading("Pre-launch command"),
+            ft.Container(height=4),
+            _subtext(
+                "Runs before Minecraft starts. Use $INSTANCE_DIR for the instance path.\n"
+                "Example:  echo 'Starting' >> $INSTANCE_DIR/launch.log"
+            ),
+            ft.Container(height=12),
+            self._pre_field,
+            ft.Container(height=24),
+            ft.Divider(height=1, color=BORDER),
+            ft.Container(height=16),
+            _heading("Post-exit command"),
+            ft.Container(height=4),
+            _subtext(
+                "Runs after Minecraft exits. $EXIT_CODE contains the process exit code.\n"
+                "Example:  notify-send 'Minecraft closed with code $EXIT_CODE'"
+            ),
+            ft.Container(height=12),
+            self._post_field,
+            ft.Container(height=24),
+            ft.Container(
+                bgcolor="#1a2a1a",
+                border=ft.border.all(1, "#2a4a2a"),
+                border_radius=8,
+                padding=ft.padding.all(14),
+                content=ft.Row([
+                    ft.Icon(ft.icons.INFO_OUTLINE_ROUNDED, size=16, color=GREEN),
+                    ft.Container(width=10),
+                    ft.Text(
+                        "Commands run in a shell (bash on Linux/macOS, cmd on Windows).\n"
+                        "The instance directory is passed as $INSTANCE_DIR.",
+                        color=TEXT_SEC, size=10,
+                    ),
+                ], vertical_alignment=ft.CrossAxisAlignment.START),
+            ),
+        ], spacing=0, scroll=ft.ScrollMode.AUTO)
+
+    # ── Save ──────────────────────────────────────────────────────────────────
+    def _on_save(self, e):
+        self._save_btn.disabled = True
+        self._save_btn.text = "Saving…"
+        try: self._save_btn.update()
+        except Exception: pass
+
+        try:
+            # 1. Rename profile if name changed
+            if self._name_val.strip() and self._name_val != self.profile.name:
+                self.app.profile_manager.rename_profile(
+                    self.profile.id, self._name_val.strip())
+
+            # 2. Update version if changed
+            if self._version_val != self.profile.version_id:
+                self.app.profile_manager.update_profile_version(
+                    self.profile.id, self._version_val)
+
+            # 3. Write instance settings JSON
+            self._write_meta({
+                "ram_mb":     self._ram_val,
+                "java_path":  self._java_val.strip(),
+                "jvm_args":   self._jvm_val.strip(),
+                "pre_launch": self._pre_val.strip(),
+                "post_exit":  self._post_val.strip(),
+                "loader":     self._loader_val.lower(),
+            })
+
+            self.page.close(self._dlg)
+            self.app.snack("Instance settings saved.")
+            if self.on_done:
+                self.on_done()
+        except Exception as ex:
+            self._save_btn.disabled = False
+            self._save_btn.text = "Save changes"
+            try: self._save_btn.update()
+            except Exception: pass
+            self.app.snack(str(ex), error=True)
+
+    # ── Duplicate ─────────────────────────────────────────────────────────────
+    def _duplicate_instance(self):
+        import shutil, time
+
+        def do_dup():
+            try:
+                new_name = f"{self.profile.name} (copy)"
+                new_dir  = self.profile.game_dir + "_copy_" + str(int(time.time()))
+                shutil.copytree(self.profile.game_dir, new_dir)
+                self.app.profile_manager.create_profile(
+                    name=new_name,
+                    version_id=self.profile.version_id,
+                    game_dir=new_dir,
+                )
+                self.page.run_thread(lambda: self.app.snack(
+                    f"'{new_name}' created."))
+                if self.on_done:
+                    self.page.run_thread(self.on_done)
+            except Exception as ex:
+                self.page.run_thread(
+                    lambda: self.app.snack(str(ex), error=True))
+
+        threading.Thread(target=do_dup, daemon=True).start()
+        self.app.snack("Duplicating instance…")
+
+    # ── Delete ────────────────────────────────────────────────────────────────
+    def _confirm_delete(self):
+        def on_action(e):
+            self.page.close(confirm_dlg)
+            if e.control.data == "delete":
+                self._do_delete()
+
+        confirm_dlg = ft.AlertDialog(
+            modal=True, bgcolor=CARD_BG,
+            title=ft.Text("Delete instance?", color=TEXT_PRI,
+                          weight=ft.FontWeight.BOLD),
+            content=ft.Text(
+                f"This will permanently delete '{self.profile.name}' "
+                f"and all its worlds, configs and mods.\nThis cannot be undone.",
+                color=TEXT_SEC, size=12,
+            ),
+            actions=[
+                ft.TextButton("Cancel",
+                              style=ft.ButtonStyle(color=TEXT_SEC),
+                              on_click=on_action),
+                ft.ElevatedButton(
+                    "Delete forever",
+                    data="delete",
+                    bgcolor=ACCENT_RED, color="#ffffff",
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=8)),
+                    on_click=on_action,
+                ),
+            ],
+        )
+        self.page.open(confirm_dlg)
+
+    def _do_delete(self):
+        import shutil
+
+        def do():
+            try:
+                self.app.profile_manager.delete_profile(self.profile.id)
+                try:
+                    shutil.rmtree(self.profile.game_dir, ignore_errors=True)
+                except Exception:
+                    pass
+                self.page.run_thread(lambda: (
+                    self.app.snack("Instance deleted."),
+                    self.app._show_view("library"),
+                ))
+            except Exception as ex:
+                self.page.run_thread(
+                    lambda: self.app.snack(str(ex), error=True))
+
+        threading.Thread(target=do, daemon=True).start()
 
     def _do_search(self, project_type):
         query = self._search_field.value.strip()
