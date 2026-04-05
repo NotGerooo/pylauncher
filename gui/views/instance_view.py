@@ -161,81 +161,6 @@ class InstanceView:
             content=tab_row,
         )
 
-        # ── Bulk action bar (flotante) ────────────────────────────────────────────────
-self._bulk_count_lbl = ft.Text("0 selected", color=TEXT_PRI, size=12,
-                                weight=ft.FontWeight.W_600)
-self._bulk_bar = ft.Container(
-    visible=False,
-    bgcolor=CARD2_BG,
-    border=ft.border.all(1, BORDER),
-    border_radius=12,
-    padding=ft.padding.symmetric(horizontal=20, vertical=12),
-    shadow=ft.BoxShadow(blur_radius=24, color="#66000000",
-                        offset=ft.Offset(0, 6)),
-    content=ft.Row([
-        ft.Icon(ft.icons.CHECK_BOX_ROUNDED, size=16, color=GREEN),
-        ft.Container(width=10),
-        self._bulk_count_lbl,
-        ft.Container(expand=True),
-        ft.TextButton(
-            "Deselect all",
-            style=ft.ButtonStyle(color=TEXT_DIM),
-            on_click=lambda e: self._deselect_all(),
-        ),
-        ft.Container(width=4),
-        ft.OutlinedButton(
-            "Enable",
-            icon=ft.icons.TOGGLE_ON_ROUNDED,
-            style=ft.ButtonStyle(
-                shape=ft.RoundedRectangleBorder(radius=8),
-                side=ft.BorderSide(1, GREEN), color=GREEN,
-                padding=ft.padding.symmetric(horizontal=14, vertical=8),
-            ),
-            on_click=self._bulk_enable,
-        ),
-        ft.Container(width=6),
-        ft.OutlinedButton(
-            "Disable",
-            icon=ft.icons.TOGGLE_OFF_ROUNDED,
-            style=ft.ButtonStyle(
-                shape=ft.RoundedRectangleBorder(radius=8),
-                side=ft.BorderSide(1, BORDER), color=TEXT_SEC,
-                padding=ft.padding.symmetric(horizontal=14, vertical=8),
-            ),
-            on_click=self._bulk_disable,
-        ),
-        ft.Container(width=6),
-        ft.ElevatedButton(
-            "Delete",
-            icon=ft.icons.DELETE_OUTLINE_ROUNDED,
-            bgcolor=ACCENT_RED, color="#ffffff",
-            style=ft.ButtonStyle(
-                shape=ft.RoundedRectangleBorder(radius=8),
-                padding=ft.padding.symmetric(horizontal=14, vertical=8),
-            ),
-            on_click=self._bulk_delete,
-        ),
-            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
-        )
-
-                    self.root = ft.Column([
-                    toolbar,
-            col_hdr,
-            ft.Container(
-                expand=True,
-                content=ft.Stack([
-                    self._list_col,
-                    self._empty_lbl,
-                    # Bulk bar anclada al fondo centro
-                    ft.Container(
-                        alignment=ft.alignment.bottom_center,
-                        padding=ft.padding.only(bottom=20),
-                        content=self._bulk_bar,
-                    ),
-                ]),
-            ),
-        ], spacing=0, expand=True)
-
         self._tab_area = ft.Container(expand=True, bgcolor=BG)
 
         self.root = ft.Column(
@@ -531,19 +456,78 @@ class _ContentTab:
         )
         self._list_col = ft.Column(spacing=8, scroll=ft.ScrollMode.AUTO, expand=True)
 
+        # ── Bulk action bar (flotante) ────────────────────────────────────────
+        self._bulk_count_lbl = ft.Text("0 selected", color=TEXT_PRI, size=12,
+                                       weight=ft.FontWeight.W_600)
+        self._bulk_bar = ft.Container(
+            visible=False,
+            bgcolor=CARD2_BG,
+            border=ft.border.all(1, BORDER),
+            border_radius=12,
+            padding=ft.padding.symmetric(horizontal=20, vertical=12),
+            shadow=ft.BoxShadow(blur_radius=24, color="#66000000",
+                                offset=ft.Offset(0, 6)),
+            content=ft.Row([
+                ft.Icon(ft.icons.CHECK_BOX_ROUNDED, size=16, color=GREEN),
+                ft.Container(width=10),
+                self._bulk_count_lbl,
+                ft.Container(expand=True),
+                ft.TextButton(
+                    "Deselect all",
+                    style=ft.ButtonStyle(color=TEXT_DIM),
+                    on_click=lambda e: self._deselect_all(),
+                ),
+                ft.Container(width=4),
+                ft.OutlinedButton(
+                    "Enable",
+                    icon=ft.icons.TOGGLE_ON_ROUNDED,
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                        side=ft.BorderSide(1, GREEN), color=GREEN,
+                        padding=ft.padding.symmetric(horizontal=14, vertical=8),
+                    ),
+                    on_click=self._bulk_enable,
+                ),
+                ft.Container(width=6),
+                ft.OutlinedButton(
+                    "Disable",
+                    icon=ft.icons.TOGGLE_OFF_ROUNDED,
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                        side=ft.BorderSide(1, BORDER), color=TEXT_SEC,
+                        padding=ft.padding.symmetric(horizontal=14, vertical=8),
+                    ),
+                    on_click=self._bulk_disable,
+                ),
+                ft.Container(width=6),
+                ft.ElevatedButton(
+                    "Delete",
+                    icon=ft.icons.DELETE_OUTLINE_ROUNDED,
+                    bgcolor=ACCENT_RED, color="#ffffff",
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                        padding=ft.padding.symmetric(horizontal=14, vertical=8),
+                    ),
+                    on_click=self._bulk_delete,
+                ),
+            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+        )
+
         self.root = ft.Column([
             toolbar,
             ft.Container(
                 expand=True,
-                padding=ft.padding.symmetric(horizontal=16, vertical=12),  # <-- agregar esto
                 content=ft.Stack([
                     self._list_col,
                     self._empty_lbl,
+                    ft.Container(
+                        alignment=ft.alignment.bottom_center,
+                        padding=ft.padding.only(bottom=20),
+                        content=self._bulk_bar,
+                    ),
                 ]),
             ),
         ], spacing=0, expand=True)
-
-        self._refresh()
 
     def _make_filter_btn(self, label):
         active = label == self._filter
