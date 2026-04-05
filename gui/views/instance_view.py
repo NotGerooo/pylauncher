@@ -1014,6 +1014,7 @@ class _ContentTab:
             icon_url    = self._icon_cache.get(path)
             author_data = self._author_cache.get(path)
             pid         = self._pid_cache.get(path)
+            update_ver  = self._update_cache.get(path)   # None = ok, str = update available
 
         icon_widget  = _icon(icon_url or "", disp, size=46)
         version_str  = item["version"] or "—"
@@ -1038,8 +1039,7 @@ class _ContentTab:
                 on_tap=lambda e, u=f"https://modrinth.com/user/{username}":
                     self.page.launch_url(u),
                 content=ft.Row([
-                    av,
-                    ft.Container(width=5),
+                    av, ft.Container(width=5),
                     ft.Text(username, color=GREEN, size=10,
                             weight=ft.FontWeight.W_500),
                 ], spacing=0, tight=True),
@@ -1047,92 +1047,128 @@ class _ContentTab:
         else:
             author_row = ft.Container(height=14)
 
-        # ── Swap: abre ModDetailDialog para cambiar versión ───────────────────────
+        # ── Update badge ──────────────────────────────────────────────────────────
+        if update_ver:
+            update_badge = ft.Container(
+                bgcolor="#1a2d1a",
+                border=ft.border.all(1, "#2d5a2d"),
+                border_radius=5,
+                padding=ft.padding.symmetric(horizontal=8, vertical=3),
+                tooltip=f"Update available: {update_ver}",
+                content=ft.Row([
+                    ft.Icon(ft.icons.DOWNLOAD_ROUNDED, size=10, color=GREEN),
+                    ft.Container(width=4),
+                    ft.Text(update_ver, color=GREEN, size=9,
+                            weight=ft.FontWeight.W_600),
+                ], spacing=0, tight=True),
+            )
+            version_col = ft.Column([
+                ft.Row([
+                    ft.Text(version_str, color=TEXT_DIM, size=10,
+                            weight=ft.FontWeight.W_400,
+                            style=ft.TextStyle(decoration=ft.TextDecoration.LINE_THROUGH)),
+                    ft.Container(width=6),
+                    update_badge,
+                ], spacing=0, vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                ft.Text(filename_str, color=TEXT_DIM, size=9,
+                        overflow=ft.TextOverflow.ELLIPSIS),
+            ], spacing=2, width=280)
+        else:
+            version_col = ft.Column([
+                ft.Text(version_str, color=TEXT_PRI, size=11,
+                        weight=ft.FontWeight.W_500),
+                ft.Text(filename_str, color=TEXT_DIM, size=9,
+                        overflow=ft.TextOverflow.ELLIPSIS),
+            ], spacing=2, width=280)
+
+        # ── Checkbox con tracking ─────────────────────────────────────────────────
+        chk = ft.Checkbox(
+            value=path in self._selected_paths,
+            fill_color={"selected": GREEN},
+            check_color=TEXT_INV, width=20,
+            on_change=lambda e, p=path: self._on_check(p, e.control.value),
+        )
+
+        # ── Swap ──────────────────────────────────────────────────────────────────
         def on_swap(e, _pid=pid, _disp=disp):
             if not _pid:
-                self.app.snack("No se encontró este mod en Modrinth.", error=True)
+                self.app.snack("No encontrado en Modrinth.", error=True)
                 return
-
-            # Construir un objeto mínimo compatible con ModDetailDialog
             class _FakeProject:
                 def __init__(self, pid, title, icon):
-                    self.project_id  = pid
-                    self.title       = title
-                    self.icon_url    = icon or ""
-                    self.description = ""
-                    self.downloads   = 0
-                    self.author      = ""
-                    self.follows     = 0
-                    self.slug        = pid
-
+                    self.project_id = pid; self.title = title
+                    self.icon_url = icon or ""; self.description = ""
+                    self.downloads = 0; self.author = ""; self.follows = 0
+                    self.slug = pid
             from gui.views.discover_view import ModDetailDialog
-            loader  = self._read_loader()
-            target  = os.path.dirname(path)
-
-            def on_installed():
-                self._refresh()
-
             ModDetailDialog(
                 self.page, self.app,
-                project        = _FakeProject(_pid, _disp, icon_url),
-                active_profile = self.profile,
-                active_loader  = loader,
-                target_dir     = target,
-                on_installed   = on_installed,
+                project=_FakeProject(_pid, _disp, icon_url),
+                active_profile=self.profile,
+                active_loader=self._read_loader(),
+                target_dir=os.path.dirname(path),
+                on_installed=lambda: self._refresh(),
             )
 
-        # ── More (⋮): menú contextual real ───────────────────────────────────────
+        # ── More ──────────────────────────────────────────────────────────────────
         def on_more(e, _path=path, _pid=pid, _disp=disp):
-            def open_folder(e):
-                self.page.close(sheet)
-                import subprocess, sys
-                folder = os.path.dirname(_path)
-                if sys.platform == "win32":
-                    os.startfile(folder)
-                elif sys.platform == "darwin":
-                    subprocess.Popen(["open", folder])
-                else:
-                    subprocess.Popen(["xdg-open", folder])
-
-            def open_modrinth(e):
-                self.page.close(sheet)
-                if _pid:
-                    self.page.launch_url(f"https://modrinth.com/mod/{_pid}")
-                else:
-                    self.app.snack("Proyecto no encontrado en Modrinth.", error=True)
-
-            def copy_filename(e):
-                self.page.close(sheet)
-                self.page.set_clipboard(os.path.basename(_path))
-                self.app.snack("Nombre copiado al portapapeles.")
-
-            def copy_path(e):
-                self.page.close(sheet)
-                self.page.set_clipboard(_path)
-                self.app.snack("Ruta copiada al portapapeles.")
-
-            def _menu_item(icon, label, action, color=TEXT_PRI):
-                return ft.Container(
-                    bgcolor="transparent",
-                    border_radius=8,
+            def _hoverable(icon, label, action, color=TEXT_PRI):
+                item = ft.Container(
+                    bgcolor="transparent", border_radius=8,
                     padding=ft.padding.symmetric(horizontal=16, vertical=12),
                     on_click=action,
-                    on_hover=lambda ev, c=None: None,  # definido abajo
                     content=ft.Row([
-                        ft.Icon(icon, size=18, color=GREEN if color == TEXT_PRI else color),
+                        ft.Icon(icon, size=18,
+                                color=GREEN if color == TEXT_PRI else color),
                         ft.Container(width=14),
                         ft.Text(label, color=color, size=13),
                     ], spacing=0, tight=True),
                 )
-
-            def _hoverable(icon, label, action, color=TEXT_PRI):
-                item = _menu_item(icon, label, action, color)
                 item.on_hover = lambda ev, c=item: (
                     setattr(c, "bgcolor",
                             INPUT_BG if ev.data == "true" else "transparent")
                     or c.update()
                 )
                 return item
+
+            # Botón "Install update" solo si hay update disponible
+            update_item = None
+            if update_ver and _pid:
+                def install_update(e):
+                    self.page.close(sheet)
+                    self._install_update(_path, _pid, update_ver)
+                update_item = _hoverable(
+                    ft.icons.SYSTEM_UPDATE_ROUNDED,
+                    f"Install update  ({update_ver})",
+                    install_update, color=GREEN,
+                )
+
+            items_list = []
+            if update_item:
+                items_list.append(update_item)
+                items_list.append(ft.Divider(height=1, color=BORDER))
+
+            items_list += [
+                _hoverable(ft.icons.FOLDER_OPEN_ROUNDED, "Open folder",
+                    lambda e: (self.page.close(sheet), self._open_folder(os.path.dirname(_path)))),
+                _hoverable(ft.icons.OPEN_IN_NEW_ROUNDED, "View on Modrinth",
+                    lambda e: (self.page.close(sheet),
+                        self.page.launch_url(f"https://modrinth.com/mod/{_pid}")
+                        if _pid else self.app.snack("Not found on Modrinth.", error=True))),
+                ft.Divider(height=1, color=BORDER),
+                _hoverable(ft.icons.COPY_ROUNDED, "Copy filename",
+                    lambda e: (self.page.close(sheet),
+                        self.page.set_clipboard(os.path.basename(_path)),
+                        self.app.snack("Filename copied."))),
+                _hoverable(ft.icons.ROUTE_ROUNDED, "Copy full path",
+                    lambda e: (self.page.close(sheet),
+                        self.page.set_clipboard(_path),
+                        self.app.snack("Path copied."))),
+                ft.Divider(height=1, color=BORDER),
+                _hoverable(ft.icons.DELETE_OUTLINE_ROUNDED, "Delete",
+                    lambda e: (self.page.close(sheet),
+                        self._delete(item)), color=ACCENT_RED),
+            ]
 
             sheet = ft.BottomSheet(
                 bgcolor=CARD_BG,
@@ -1154,20 +1190,7 @@ class _ContentTab:
                         ),
                         ft.Divider(height=1, color=BORDER),
                         ft.Container(height=4),
-                        _hoverable(ft.icons.FOLDER_OPEN_ROUNDED,
-                                    "Abrir carpeta", open_folder),
-                        _hoverable(ft.icons.OPEN_IN_NEW_ROUNDED,
-                                    "Ver en Modrinth", open_modrinth),
-                        ft.Divider(height=1, color=BORDER),
-                        _hoverable(ft.icons.COPY_ROUNDED,
-                                    "Copiar nombre de archivo", copy_filename),
-                        _hoverable(ft.icons.ROUTE_ROUNDED,
-                                    "Copiar ruta completa", copy_path),
-                        ft.Divider(height=1, color=BORDER),
-                        _hoverable(ft.icons.DELETE_OUTLINE_ROUNDED,
-                                    "Eliminar", lambda ev: (
-                                        self.page.close(sheet) or self._delete(item)
-                                    ), color=ACCENT_RED),
+                        *items_list,
                         ft.Container(height=8),
                     ], spacing=2, tight=True),
                 ),
@@ -1184,12 +1207,7 @@ class _ContentTab:
                 or e.control.update()
             ),
             content=ft.Row([
-                ft.Checkbox(
-                    value=False,
-                    fill_color={"selected": GREEN},
-                    check_color=TEXT_INV,
-                    width=20,
-                ),
+                chk,
                 ft.Container(width=12),
                 icon_widget,
                 ft.Container(width=16),
@@ -1199,41 +1217,36 @@ class _ContentTab:
                             overflow=ft.TextOverflow.ELLIPSIS),
                     author_row,
                 ], spacing=3, expand=True),
-                ft.Column([
-                    ft.Text(version_str, color=TEXT_PRI, size=11,
-                            weight=ft.FontWeight.W_500),
-                    ft.Text(filename_str, color=TEXT_DIM, size=9,
-                            overflow=ft.TextOverflow.ELLIPSIS),
-                ], spacing=2, width=260),
+                version_col,
                 ft.Row([
                     ft.IconButton(
                         icon=ft.icons.SWAP_HORIZ_ROUNDED,
                         icon_color=TEXT_DIM, icon_size=20,
-                        tooltip="Cambiar versión",
+                        tooltip="Change version",
                         on_click=on_swap,
                     ),
                     ft.IconButton(
                         icon=ft.icons.TOGGLE_ON if is_en else ft.icons.TOGGLE_OFF,
                         icon_color=GREEN if is_en else TEXT_DIM,
                         icon_size=34,
-                        tooltip="Deshabilitar" if is_en else "Habilitar",
+                        tooltip="Disable" if is_en else "Enable",
                         on_click=lambda e, i=item: self._toggle(i),
                     ),
                     ft.IconButton(
                         icon=ft.icons.DELETE_OUTLINE_ROUNDED,
                         icon_color=TEXT_DIM, icon_size=18,
-                        tooltip="Eliminar",
+                        tooltip="Delete",
                         on_click=lambda e, i=item: self._delete(i),
                     ),
                     ft.IconButton(
                         icon=ft.icons.MORE_VERT_ROUNDED,
                         icon_color=TEXT_DIM, icon_size=18,
-                        tooltip="Más opciones",
+                        tooltip="More options",
                         on_click=on_more,
                     ),
                 ], spacing=0, tight=True),
             ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
-    )
+        )
 
     def _toggle(self, item):
         path = item["path"]
