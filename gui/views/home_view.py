@@ -147,8 +147,7 @@ class HomeView:
     # ── Tarjeta ───────────────────────────────────────────────────────────────
     def _build_card(self, mod: dict, kind: str = "mod") -> ft.Container:
         icon_url   = mod.get("icon_url") or ""
-        gallery    = mod.get("gallery") or []
-        banner_url = gallery[0] if gallery else ""
+        banner_url = mod.get("featured_gallery") or ""
         title      = mod.get("title", "?")
         raw_desc   = mod.get("description", "")
         desc       = (raw_desc[:90] + "…") if len(raw_desc) > 90 else raw_desc
