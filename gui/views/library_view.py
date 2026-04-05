@@ -276,7 +276,7 @@ class LibraryView:
                               on_done=self._on_instance_saved)
 
     def _on_instance_saved(self):
-        self.app._refresh_instance_icons()
+        pass
         # Invalidar caché de la instancia si fue editada
         self._refresh()
 
