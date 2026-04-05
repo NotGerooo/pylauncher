@@ -604,16 +604,15 @@ class _ContentTab:
             self._launch_author_fetch(items, token)
 
     def _draw_list(self, items):
-        """Dibuja la lista en el hilo actual. Solo llamar desde el hilo principal."""
         self._list_col.controls.clear()
         self._empty_lbl.visible = len(items) == 0
-        self._count_lbl.value  = f"{len(items)} proyecto{'s' if len(items) != 1 else ''}"
+        self._search_field.hint_text = f"Search {len(items)} projects..."
         for item in items:
             self._list_col.controls.append(self._make_row(item))
         try:
             self._list_col.update()
             self._empty_lbl.update()
-            self._count_lbl.update()
+            self._search_field.update()
         except Exception:
             pass
 
