@@ -611,18 +611,21 @@ class _ContentTab:
             except Exception:
                 pass
 
-            # Fetch icons en background separado
             with self._fetch_lock:
-                missing = [i for i in items if i["path"] not in self._icon_cache]
-            if missing:
+                missing_icons = [i for i in items if i["path"] not in self._icon_cache]
+            if missing_icons:
                 threading.Thread(
                     target=self._fetch_icons_batch,
-                    args=(missing, token), daemon=True
+                    args=(missing_icons, token), daemon=True
                 ).start()
             else:
                 self._launch_author_fetch(items, token)
 
-        threading.Thread(target=background_work, daemon=True).start()
+            # Lanzar update checker en paralelo
+            threading.Thread(
+                target=self._check_updates_batch,
+                args=(items, token), daemon=True
+            ).start()
 
     def _draw_list(self, items, token=None):
         if token is not None and token != self._refresh_token:
