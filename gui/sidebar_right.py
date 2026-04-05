@@ -256,11 +256,14 @@ class SidebarRight:
         self._rebuild_cat_section()
 
     def get_discover_filters(self) -> dict:
+        loader = self._discover_loader
+        if loader is None:
+            loader = self._detect_loader_from_profile(self._discover_profile)
         return {
             "categories":     sorted(self._selected_cats),
             "excluded_cats":  sorted(self._excluded_cats),
             "hide_installed": self._hide_installed,
-            "loader":         self._discover_loader if self._discover_loader is not None else self._detect_loader_from_profile(self._discover_profile),
+            "loader":         loader,
         }
 
     # ── Build discover panel ──────────────────────────────────────────────────
