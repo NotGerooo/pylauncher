@@ -340,6 +340,7 @@ class _ContentTab:
         self._pid_cache:    dict[str, str]          = {}
         self._fetch_lock = threading.Lock()
         self._update_cache: dict[str, str | None] = {}  # path -> latest_version_id or None
+        self._selected_paths: set[str] = set()
 
         # Versión del refresh — cancela redraws de fetches anteriores
         self._refresh_token = 0
@@ -626,6 +627,140 @@ class _ContentTab:
                 target=self._check_updates_batch,
                 args=(items, token), daemon=True
             ).start()
+
+def _on_check(self, path: str, checked: bool):
+    if checked:
+        self._selected_paths.add(path)
+    else:
+        self._selected_paths.discard(path)
+    self._update_bulk_bar()
+
+def _update_bulk_bar(self):
+    count = len(self._selected_paths)
+    if count == 0:
+        self._bulk_bar.visible = False
+    else:
+        self._bulk_count_lbl.value = f"{count} selected"
+        self._bulk_bar.visible = True
+    try:
+        self._bulk_bar.update()
+    except Exception:
+        pass
+
+def _bulk_enable(self, e):
+    for path in list(self._selected_paths):
+        if path.endswith(".disabled"):
+            new_path = path.removesuffix(".disabled")
+            try:
+                os.rename(path, new_path)
+                with self._fetch_lock:
+                    for cache in (self._icon_cache, self._author_cache,
+                                  self._pid_cache, self._update_cache):
+                        if path in cache:
+                            cache[new_path] = cache.pop(path)
+            except OSError:
+                pass
+    self._selected_paths.clear()
+    self._refresh()
+
+def _bulk_disable(self, e):
+    for path in list(self._selected_paths):
+        if not path.endswith(".disabled"):
+            new_path = path + ".disabled"
+            try:
+                os.rename(path, new_path)
+                with self._fetch_lock:
+                    for cache in (self._icon_cache, self._author_cache,
+                                  self._pid_cache, self._update_cache):
+                        if path in cache:
+                            cache[new_path] = cache.pop(path)
+            except OSError:
+                pass
+    self._selected_paths.clear()
+    self._refresh()
+
+    def _bulk_delete(self, e):
+        count = len(self._selected_paths)
+        paths = list(self._selected_paths)
+
+        def confirm(e):
+            self.page.close(dlg)
+            if e.control.text != "Delete":
+                return
+            for path in paths:
+                try:
+                    os.remove(path)
+                    with self._fetch_lock:
+                        for cache in (self._icon_cache, self._author_cache,
+                                    self._pid_cache, self._update_cache):
+                            cache.pop(path, None)
+                except OSError:
+                    pass
+            self._selected_paths.clear()
+            self._refresh()
+            self.app.snack(f"{count} item(s) deleted.")
+
+        dlg = ft.AlertDialog(
+            modal=True, bgcolor=CARD_BG,
+            title=ft.Text("Delete selected?", color=TEXT_PRI,
+                        weight=ft.FontWeight.BOLD),
+            content=ft.Text(
+                f"This will permanently delete {count} item(s). Cannot be undone.",
+                color=TEXT_SEC, size=12),
+            actions=[
+                ft.TextButton("Cancel", on_click=confirm),
+                ft.ElevatedButton(
+                    "Delete",
+                    bgcolor=ACCENT_RED, color="#ffffff",
+                    style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
+                    on_click=confirm,
+                ),
+            ],
+        )
+        self.page.open(dlg)
+
+    def _install_update(self, path: str, pid: str, latest_ver: str):
+        loader  = self._read_loader()
+        mc_ver  = self.profile.version_id
+        dest_dir = os.path.dirname(path)
+
+        def do():
+            try:
+                version = self.app.modrinth_service.get_latest_version(
+                    pid, mc_version=mc_ver, loader=loader)
+                if not version:
+                    self.page.run_thread(lambda: self.app.snack(
+                        "No compatible version found.", error=True))
+                    return
+                # Borrar el archivo viejo
+                try: os.remove(path)
+                except OSError: pass
+                with self._fetch_lock:
+                    for cache in (self._icon_cache, self._author_cache,
+                                self._pid_cache, self._update_cache):
+                        cache.pop(path, None)
+                self.app.modrinth_service.download_mod_version(version, dest_dir)
+                self.page.run_thread(lambda: (
+                    self.app.snack(f"Updated to {latest_ver} ✓"),
+                    self._refresh(),
+                ))
+            except Exception as ex:
+                self.page.run_thread(
+                    lambda: self.app.snack(str(ex), error=True))
+
+        threading.Thread(target=do, daemon=True).start()
+        self.app.snack(f"Installing update {latest_ver}…")
+
+    @staticmethod
+    def _open_folder(path: str):
+        import subprocess, sys
+        os.makedirs(path, exist_ok=True)
+        if sys.platform == "win32":
+            os.startfile(path)
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", path])
+        else:
+            subprocess.Popen(["xdg-open", path])
 
     def _draw_list(self, items, token=None):
         if token is not None and token != self._refresh_token:
