@@ -13,8 +13,8 @@ import urllib.error
 import flet as ft
 
 from gui.theme import (
-    BG, CARD_BG, CARD2_BG, INPUT_BG, BORDER,
-    GREEN, TEXT_PRI, TEXT_SEC, TEXT_DIM, TEXT_INV, ACCENT_RED,
+    BG, CARD_BG, CARD2_BG, INPUT_BG, BORDER, BORDER_BRIGHT,
+    GREEN, GREEN_DIM, TEXT_PRI, TEXT_SEC, TEXT_DIM, TEXT_INV, ACCENT_RED,
 )
 from utils.install_detector import build_installed_set, is_installed_in
 from utils.logger import get_logger
