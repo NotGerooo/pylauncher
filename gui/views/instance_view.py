@@ -848,94 +848,209 @@ class _ContentTab:
                     self.page.run_thread(lambda t=token: self._redraw_list(t))
 
     # ── Fila de mod ───────────────────────────────────────────────────────────
-    def _make_row(self, item):
-        fn    = item["filename"]
-        path  = item["path"]
-        is_en = item["is_enabled"]
-        disp  = re.sub(r'\.(jar|zip)(\.disabled)?$', '', fn, flags=re.IGNORECASE)
+def _make_row(self, item):
+    fn    = item["filename"]
+    path  = item["path"]
+    is_en = item["is_enabled"]
+    disp  = re.sub(r'\.(jar|zip)(\.disabled)?$', '', fn, flags=re.IGNORECASE)
 
-        with self._fetch_lock:
-            icon_url    = self._icon_cache.get(path)
-            author_data = self._author_cache.get(path)
+    with self._fetch_lock:
+        icon_url    = self._icon_cache.get(path)
+        author_data = self._author_cache.get(path)
 
-        icon_widget = _icon(icon_url or "", disp, size=46)
+    icon_widget = _icon(icon_url or "", disp, size=72)
+    version_str = item["version"] or "—"
 
-        if author_data and author_data.get("username"):
-            username   = author_data["username"]
-            avatar_url = author_data.get("avatar_url")
-            av = (
-                ft.Image(src=avatar_url, width=15, height=15,
-                        border_radius=8, fit=ft.ImageFit.COVER)
-                if avatar_url else
-                ft.Container(
-                    width=15, height=15, border_radius=8, bgcolor=CARD2_BG,
-                    alignment=ft.alignment.center,
-                    content=ft.Text(username[0].upper(), size=7, color=TEXT_DIM),
-                )
+    # ── Type badge ────────────────────────────────────────────────────────────
+    _type_styles = {
+        "Mods":           ("#1a3d2a", GREEN),
+        "Resource Packs": ("#1a2a3d", "#4da6ff"),
+        "Shaders":        ("#2a1a3d", "#b04dff"),
+    }
+    type_bg, type_fg = _type_styles.get(item["type"], ("#1f2937", TEXT_DIM))
+    type_badge = ft.Container(
+        bgcolor=type_bg, border_radius=5,
+        padding=ft.padding.symmetric(horizontal=8, vertical=4),
+        content=ft.Text(item["type"], color=type_fg, size=9,
+                        weight=ft.FontWeight.W_600),
+    )
+
+    # ── Status badge ──────────────────────────────────────────────────────────
+    status_badge = ft.Container(
+        bgcolor="#1a3d2a" if is_en else "#2a2020",
+        border_radius=5,
+        padding=ft.padding.symmetric(horizontal=8, vertical=4),
+        content=ft.Row([
+            ft.Icon(
+                ft.icons.CHECK_CIRCLE_ROUNDED if is_en
+                else ft.icons.CANCEL_ROUNDED,
+                size=10, color=GREEN if is_en else ACCENT_RED,
+            ),
+            ft.Container(width=4),
+            ft.Text("Enabled" if is_en else "Disabled",
+                    color=GREEN if is_en else ACCENT_RED,
+                    size=9, weight=ft.FontWeight.BOLD),
+        ], spacing=0, tight=True),
+    )
+
+    # ── Version badge ─────────────────────────────────────────────────────────
+    ver_badge = ft.Container(
+        bgcolor="#1f2937", border_radius=5,
+        padding=ft.padding.symmetric(horizontal=8, vertical=4),
+        content=ft.Row([
+            ft.Icon(ft.icons.TAG_ROUNDED, size=10, color=TEXT_DIM),
+            ft.Container(width=4),
+            ft.Text(version_str, color=TEXT_DIM, size=9),
+        ], spacing=0, tight=True),
+    )
+
+    # ── Author row ────────────────────────────────────────────────────────────
+    if author_data and author_data.get("username"):
+        username   = author_data["username"]
+        avatar_url = author_data.get("avatar_url")
+        av = (
+            ft.Image(src=avatar_url, width=16, height=16,
+                     border_radius=8, fit=ft.ImageFit.COVER)
+            if avatar_url else
+            ft.Container(
+                width=16, height=16, border_radius=8,
+                bgcolor=CARD2_BG, alignment=ft.alignment.center,
+                content=ft.Text(username[0].upper(), size=8, color=TEXT_DIM),
             )
-            author_row = ft.GestureDetector(
-                mouse_cursor=ft.MouseCursor.CLICK,
-                on_tap=lambda e, u=f"https://modrinth.com/user/{username}":
-                    self.page.launch_url(u),
-                content=ft.Row([
-                    av, ft.Container(width=5),
-                    ft.Text(username, color=GREEN, size=9,
-                            weight=ft.FontWeight.W_500),
-                ], spacing=0, tight=True),
-            )
-        else:
-            author_row = ft.Container(height=12)
-
-        version_str  = item["version"] or "—"
-        filename_str = fn if len(fn) <= 36 else fn[:34] + "…"
-
-        return ft.Container(
-            bgcolor="transparent",
-            border=ft.border.only(bottom=ft.BorderSide(1, BORDER)),
-            padding=ft.padding.symmetric(horizontal=16, vertical=10),
-            on_hover=lambda e: (
-                setattr(e.control, "bgcolor",
-                        INPUT_BG if e.data == "true" else "transparent")
-                or e.control.update()),
-            content=ft.Row([
-                ft.Checkbox(
-                    value=False,
-                    fill_color={"selected": GREEN},
-                    check_color=TEXT_INV, width=20,
-                ),
-                ft.Container(width=10),
-                icon_widget,
-                ft.Container(width=16),
-                ft.Column([
-                    ft.Text(disp, color=TEXT_PRI, size=11,
-                            weight=ft.FontWeight.BOLD,
-                            overflow=ft.TextOverflow.ELLIPSIS),
-                    author_row,
-                ], spacing=3, expand=True),
-                ft.Column([
-                    ft.Text(version_str, color=TEXT_PRI, size=10,
-                            weight=ft.FontWeight.W_500),
-                    ft.Text(filename_str, color=TEXT_DIM, size=8,
-                            overflow=ft.TextOverflow.ELLIPSIS),
-                ], spacing=2, width=220),
-                ft.Row([
-                    ft.IconButton(
-                        icon=ft.icons.TOGGLE_ON if is_en else ft.icons.TOGGLE_OFF,
-                        icon_color=GREEN if is_en else TEXT_DIM,
-                        icon_size=30,
-                        tooltip="Deshabilitar" if is_en else "Habilitar",
-                        on_click=lambda e, i=item: self._toggle(i),
-                    ),
-                    ft.IconButton(
-                        icon=ft.icons.DELETE_OUTLINE_ROUNDED,
-                        icon_color=TEXT_DIM, icon_size=18,
-                        tooltip="Eliminar",
-                        on_click=lambda e, i=item: self._delete(i),
-                    ),
-                ], spacing=0, width=100,
-                alignment=ft.MainAxisAlignment.END),
-            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
         )
+        author_txt = ft.Text(username, color=GREEN, size=11,
+                             weight=ft.FontWeight.W_500)
+        author_row = ft.GestureDetector(
+            mouse_cursor=ft.MouseCursor.CLICK,
+            on_tap=lambda e, u=f"https://modrinth.com/user/{username}":
+                self.page.launch_url(u),
+            on_enter=lambda e, t=author_txt: (
+                setattr(t, "decoration", ft.TextDecoration.UNDERLINE) or t.update()),
+            on_exit=lambda e, t=author_txt: (
+                setattr(t, "decoration", ft.TextDecoration.NONE) or t.update()),
+            content=ft.Row([
+                ft.Text("by ", color=TEXT_DIM, size=11),
+                av,
+                ft.Container(width=5),
+                author_txt,
+            ], spacing=0, tight=True),
+        )
+    else:
+        author_row = ft.Text("Unknown author", color=TEXT_DIM, size=11)
+
+    # ── Toggle button ─────────────────────────────────────────────────────────
+    toggle_btn = ft.Container(
+        bgcolor=GREEN if is_en else "transparent",
+        border=ft.border.all(1, GREEN if is_en else BORDER),
+        border_radius=8,
+        padding=ft.padding.symmetric(horizontal=12, vertical=7),
+        animate=ft.animation.Animation(120, ft.AnimationCurve.EASE_OUT),
+        on_click=lambda e, i=item: self._toggle(i),
+        content=ft.Row([
+            ft.Icon(
+                ft.icons.TOGGLE_ON if is_en else ft.icons.TOGGLE_OFF,
+                size=14,
+                color=TEXT_INV if is_en else TEXT_DIM,
+            ),
+            ft.Container(width=6),
+            ft.Text(
+                "Enabled" if is_en else "Disabled",
+                color=TEXT_INV if is_en else TEXT_DIM,
+                size=11, weight=ft.FontWeight.W_600,
+            ),
+        ], spacing=0, tight=True),
+    )
+    toggle_btn.on_hover = lambda e, b=toggle_btn: (
+        None if is_en else (
+            setattr(b, "bgcolor", INPUT_BG if e.data == "true" else "transparent")
+            or b.update()
+        )
+    )
+
+    # ── Delete button ─────────────────────────────────────────────────────────
+    delete_btn = ft.Container(
+        width=36, height=36,
+        bgcolor="transparent",
+        border=ft.border.all(1, BORDER),
+        border_radius=8,
+        alignment=ft.alignment.center,
+        tooltip="Delete",
+        on_click=lambda e, i=item: self._delete(i),
+        content=ft.Icon(ft.icons.DELETE_OUTLINE_ROUNDED,
+                        size=16, color=TEXT_DIM),
+    )
+    delete_btn.on_hover = lambda e, b=delete_btn: (
+        setattr(b, "bgcolor", "#3d1a1a" if e.data == "true" else "transparent")
+        or setattr(b.content, "color", ACCENT_RED if e.data == "true" else TEXT_DIM)
+        or b.update()
+    )
+
+    filename_short = fn if len(fn) <= 52 else fn[:50] + "…"
+    title_txt = ft.Text(
+        disp, color=TEXT_PRI, size=14,
+        weight=ft.FontWeight.BOLD,
+        overflow=ft.TextOverflow.ELLIPSIS,
+    )
+
+    card = ft.Container(
+        bgcolor=CARD_BG,
+        border=ft.border.all(1, BORDER),
+        border_radius=14,
+        padding=ft.padding.all(20),
+        animate=ft.animation.Animation(120, ft.AnimationCurve.EASE_OUT),
+        content=ft.Row([
+            ft.Checkbox(
+                value=False,
+                fill_color={"selected": GREEN},
+                check_color=TEXT_INV, width=20,
+            ),
+            ft.Container(width=14),
+            icon_widget,
+            ft.Container(width=20),
+            ft.Column([
+                # ── Top row: title + actions ──────────────────────────────────
+                ft.Row([
+                    ft.Column([
+                        title_txt,
+                        ft.Container(height=3),
+                        author_row,
+                    ], expand=True, spacing=0),
+                    toggle_btn,
+                    ft.Container(width=8),
+                    delete_btn,
+                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                   vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                ft.Container(height=8),
+                # ── Filename ─────────────────────────────────────────────────
+                ft.Text(filename_short, color=TEXT_DIM, size=10,
+                        overflow=ft.TextOverflow.ELLIPSIS),
+                ft.Container(height=10),
+                # ── Badges row ───────────────────────────────────────────────
+                ft.Row([
+                    type_badge,
+                    ft.Container(width=6),
+                    status_badge,
+                    ft.Container(width=6),
+                    ver_badge,
+                ], spacing=0),
+            ], spacing=0, expand=True),
+        ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+    )
+
+    def _hover(e, c=card, t=title_txt):
+        c.bgcolor = CARD2_BG if e.data == "true" else CARD_BG
+        c.border  = ft.border.all(
+            1, BORDER_BRIGHT if e.data == "true" else BORDER)
+        t.decoration = (ft.TextDecoration.UNDERLINE
+                        if e.data == "true" else ft.TextDecoration.NONE)
+        try:
+            c.update()
+            t.update()
+        except Exception:
+            pass
+
+    card.on_hover = _hover
+    return card
 
     def _toggle(self, item):
         path = item["path"]
