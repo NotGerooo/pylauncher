@@ -34,6 +34,22 @@ _JAVA_COMPONENTS_FALLBACK = [
     "java-runtime-alpha",   # Java 8
 ]
 
+def get_java_path_for_component(self, component: str) -> str:
+    """Obtiene Java para un componente específico requerido por la versión de MC."""
+    runtime_dir = os.path.join(self._settings.minecraft_dir, "runtime")
+    comp_dir = os.path.join(runtime_dir, component)
+    
+    if os.path.isdir(comp_dir):
+        java_exe = self._find_java_in_dir(comp_dir)
+        if java_exe:
+            is_valid, version = self.validate_java_path(java_exe)
+            if is_valid:
+                log.info(f"Usando Java embebido: {java_exe}")
+                return java_exe
+    
+    # No está descargado — descargarlo
+    log.info(f"Componente {component} no encontrado, descargando...")
+    return self._download_component(component)
 
 class JavaNotFoundError(Exception):
     pass
