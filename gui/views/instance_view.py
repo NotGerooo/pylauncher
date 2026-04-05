@@ -922,9 +922,13 @@ class _ContentTab:
         with self._fetch_lock:
             icon_url    = self._icon_cache.get(path)
             author_data = self._author_cache.get(path)
+            pid         = self._pid_cache.get(path)
 
-        icon_widget = _icon(icon_url or "", disp, size=46)
+        icon_widget  = _icon(icon_url or "", disp, size=46)
+        version_str  = item["version"] or "—"
+        filename_str = fn if len(fn) <= 42 else fn[:40] + "…"
 
+        # ── Author ────────────────────────────────────────────────────────────────
         if author_data and author_data.get("username"):
             username   = author_data["username"]
             avatar_url = author_data.get("avatar_url")
@@ -952,43 +956,134 @@ class _ContentTab:
         else:
             author_row = ft.Container(height=14)
 
-        version_str  = item["version"] or "—"
-        filename_str = fn if len(fn) <= 42 else fn[:40] + "…"
+        # ── Swap: abre ModDetailDialog para cambiar versión ───────────────────────
+        def on_swap(e, _pid=pid, _disp=disp):
+            if not _pid:
+                self.app.snack("No se encontró este mod en Modrinth.", error=True)
+                return
 
-        # ── Botón update (solo decorativo por ahora, igual al screenshot) ─────────
-        update_btn = ft.IconButton(
-            icon=ft.icons.SWAP_HORIZ_ROUNDED,
-            icon_color=TEXT_DIM, icon_size=18,
-            tooltip="Check update",
-            on_click=lambda e: self.app.snack("Update check — próximamente"),
-        )
+            # Construir un objeto mínimo compatible con ModDetailDialog
+            class _FakeProject:
+                def __init__(self, pid, title, icon):
+                    self.project_id  = pid
+                    self.title       = title
+                    self.icon_url    = icon or ""
+                    self.description = ""
+                    self.downloads   = 0
+                    self.author      = ""
+                    self.follows     = 0
+                    self.slug        = pid
 
-        # ── Toggle ────────────────────────────────────────────────────────────────
-        toggle_btn = ft.IconButton(
-            icon=ft.icons.TOGGLE_ON if is_en else ft.icons.TOGGLE_OFF,
-            icon_color=GREEN if is_en else TEXT_DIM,
-            icon_size=34,
-            tooltip="Disable" if is_en else "Enable",
-            on_click=lambda e, i=item: self._toggle(i),
-        )
+            from gui.views.discover_view import ModDetailDialog
+            loader  = self._read_loader()
+            target  = os.path.dirname(path)
 
-        # ── Delete ────────────────────────────────────────────────────────────────
-        delete_btn = ft.IconButton(
-            icon=ft.icons.DELETE_OUTLINE_ROUNDED,
-            icon_color=TEXT_DIM, icon_size=18,
-            tooltip="Delete",
-            on_click=lambda e, i=item: self._delete(i),
-        )
+            def on_installed():
+                self._refresh()
 
-        # ── More (⋮) ──────────────────────────────────────────────────────────────
-        more_btn = ft.IconButton(
-            icon=ft.icons.MORE_VERT_ROUNDED,
-            icon_color=TEXT_DIM, icon_size=18,
-            tooltip="More",
-            on_click=lambda e: self.app.snack("Más opciones — próximamente"),
-        )
+            ModDetailDialog(
+                self.page, self.app,
+                project        = _FakeProject(_pid, _disp, icon_url),
+                active_profile = self.profile,
+                active_loader  = loader,
+                target_dir     = target,
+                on_installed   = on_installed,
+            )
 
-        row = ft.Container(
+        # ── More (⋮): menú contextual real ───────────────────────────────────────
+        def on_more(e, _path=path, _pid=pid, _disp=disp):
+            def open_folder(e):
+                self.page.close(sheet)
+                import subprocess, sys
+                folder = os.path.dirname(_path)
+                if sys.platform == "win32":
+                    os.startfile(folder)
+                elif sys.platform == "darwin":
+                    subprocess.Popen(["open", folder])
+                else:
+                    subprocess.Popen(["xdg-open", folder])
+
+            def open_modrinth(e):
+                self.page.close(sheet)
+                if _pid:
+                    self.page.launch_url(f"https://modrinth.com/mod/{_pid}")
+                else:
+                    self.app.snack("Proyecto no encontrado en Modrinth.", error=True)
+
+            def copy_filename(e):
+                self.page.close(sheet)
+                self.page.set_clipboard(os.path.basename(_path))
+                self.app.snack("Nombre copiado al portapapeles.")
+
+            def copy_path(e):
+                self.page.close(sheet)
+                self.page.set_clipboard(_path)
+                self.app.snack("Ruta copiada al portapapeles.")
+
+            def _menu_item(icon, label, action, color=TEXT_PRI):
+                return ft.Container(
+                    bgcolor="transparent",
+                    border_radius=8,
+                    padding=ft.padding.symmetric(horizontal=16, vertical=12),
+                    on_click=action,
+                    on_hover=lambda ev, c=None: None,  # definido abajo
+                    content=ft.Row([
+                        ft.Icon(icon, size=18, color=GREEN if color == TEXT_PRI else color),
+                        ft.Container(width=14),
+                        ft.Text(label, color=color, size=13),
+                    ], spacing=0, tight=True),
+                )
+
+            def _hoverable(icon, label, action, color=TEXT_PRI):
+                item = _menu_item(icon, label, action, color)
+                item.on_hover = lambda ev, c=item: (
+                    setattr(c, "bgcolor",
+                            INPUT_BG if ev.data == "true" else "transparent")
+                    or c.update()
+                )
+                return item
+
+            sheet = ft.BottomSheet(
+                bgcolor=CARD_BG,
+                content=ft.Container(
+                    padding=ft.padding.symmetric(horizontal=12, vertical=16),
+                    content=ft.Column([
+                        ft.Container(
+                            padding=ft.padding.symmetric(horizontal=16, vertical=8),
+                            content=ft.Row([
+                                _icon(icon_url or "", _disp, size=36),
+                                ft.Container(width=12),
+                                ft.Column([
+                                    ft.Text(_disp, color=TEXT_PRI, size=13,
+                                            weight=ft.FontWeight.BOLD,
+                                            overflow=ft.TextOverflow.ELLIPSIS),
+                                    ft.Text(version_str, color=TEXT_DIM, size=10),
+                                ], spacing=2, expand=True),
+                            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                        ),
+                        ft.Divider(height=1, color=BORDER),
+                        ft.Container(height=4),
+                        _hoverable(ft.icons.FOLDER_OPEN_ROUNDED,
+                                    "Abrir carpeta", open_folder),
+                        _hoverable(ft.icons.OPEN_IN_NEW_ROUNDED,
+                                    "Ver en Modrinth", open_modrinth),
+                        ft.Divider(height=1, color=BORDER),
+                        _hoverable(ft.icons.COPY_ROUNDED,
+                                    "Copiar nombre de archivo", copy_filename),
+                        _hoverable(ft.icons.ROUTE_ROUNDED,
+                                    "Copiar ruta completa", copy_path),
+                        ft.Divider(height=1, color=BORDER),
+                        _hoverable(ft.icons.DELETE_OUTLINE_ROUNDED,
+                                    "Eliminar", lambda ev: (
+                                        self.page.close(sheet) or self._delete(item)
+                                    ), color=ACCENT_RED),
+                        ft.Container(height=8),
+                    ], spacing=2, tight=True),
+                ),
+            )
+            self.page.open(sheet)
+
+        return ft.Container(
             bgcolor="transparent",
             border=ft.border.only(bottom=ft.BorderSide(1, BORDER)),
             padding=ft.padding.symmetric(horizontal=16, vertical=10),
@@ -1007,45 +1102,47 @@ class _ContentTab:
                 ft.Container(width=12),
                 icon_widget,
                 ft.Container(width=16),
-                # ── Nombre + autor ─────────────────────────────────────────────────
                 ft.Column([
                     ft.Text(disp, color=TEXT_PRI, size=12,
                             weight=ft.FontWeight.BOLD,
                             overflow=ft.TextOverflow.ELLIPSIS),
                     author_row,
                 ], spacing=3, expand=True),
-                # ── Versión + filename ─────────────────────────────────────────────
                 ft.Column([
                     ft.Text(version_str, color=TEXT_PRI, size=11,
                             weight=ft.FontWeight.W_500),
                     ft.Text(filename_str, color=TEXT_DIM, size=9,
                             overflow=ft.TextOverflow.ELLIPSIS),
                 ], spacing=2, width=260),
-                # ── Acciones ───────────────────────────────────────────────────────
                 ft.Row([
-                    update_btn,
-                    toggle_btn,
-                    delete_btn,
-                    more_btn,
+                    ft.IconButton(
+                        icon=ft.icons.SWAP_HORIZ_ROUNDED,
+                        icon_color=TEXT_DIM, icon_size=20,
+                        tooltip="Cambiar versión",
+                        on_click=on_swap,
+                    ),
+                    ft.IconButton(
+                        icon=ft.icons.TOGGLE_ON if is_en else ft.icons.TOGGLE_OFF,
+                        icon_color=GREEN if is_en else TEXT_DIM,
+                        icon_size=34,
+                        tooltip="Deshabilitar" if is_en else "Habilitar",
+                        on_click=lambda e, i=item: self._toggle(i),
+                    ),
+                    ft.IconButton(
+                        icon=ft.icons.DELETE_OUTLINE_ROUNDED,
+                        icon_color=TEXT_DIM, icon_size=18,
+                        tooltip="Eliminar",
+                        on_click=lambda e, i=item: self._delete(i),
+                    ),
+                    ft.IconButton(
+                        icon=ft.icons.MORE_VERT_ROUNDED,
+                        icon_color=TEXT_DIM, icon_size=18,
+                        tooltip="Más opciones",
+                        on_click=on_more,
+                    ),
                 ], spacing=0, tight=True),
             ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
-        )
-        return row
-
-        def _hover(e, c=card, t=title_txt):
-            c.bgcolor = CARD2_BG if e.data == "true" else CARD_BG
-            c.border  = ft.border.all(
-                1, BORDER_BRIGHT if e.data == "true" else BORDER)
-            t.decoration = (ft.TextDecoration.UNDERLINE
-                            if e.data == "true" else ft.TextDecoration.NONE)
-            try:
-                c.update()
-                t.update()
-            except Exception:
-                pass
-
-        card.on_hover = _hover
-        return card
+    )
 
     def _toggle(self, item):
         path = item["path"]
