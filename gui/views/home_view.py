@@ -1,9 +1,10 @@
 """
-gui/views/home_view.py — Home estilo Modrinth: mods populares + modpacks populares
+gui/views/home_view.py — Home estilo Modrinth: mods + modpacks populares
 """
 import json
 import threading
 import urllib.request
+import urllib.parse
 
 import flet as ft
 from gui.theme import (
@@ -33,10 +34,38 @@ def _fmt(n: int) -> str:
     return str(n)
 
 
-def _fetch(url: str) -> list:
+def _get(url: str) -> dict | list:
     req = urllib.request.Request(url, headers=_HEADERS)
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        return json.loads(resp.read().decode()).get("hits", [])
+    with urllib.request.urlopen(req, timeout=10) as r:
+        return json.loads(r.read().decode())
+
+
+def _fetch_with_gallery(search_url: str) -> list[dict]:
+    """
+    1) Busca en Modrinth (devuelve featured_gallery pero no gallery completa).
+    2) Hace un bulk fetch a /v2/projects?ids=[...] para obtener la galería real.
+    3) Mezcla los datos: usa la primera imagen de gallery como banner si existe.
+    """
+    hits = _get(search_url).get("hits", [])
+    if not hits:
+        return []
+
+    # IDs de los proyectos
+    ids = [h["project_id"] for h in hits]
+    ids_param = urllib.parse.quote(json.dumps(ids))
+    bulk_url  = f"https://api.modrinth.com/v2/projects?ids={ids_param}"
+    projects  = {p["id"]: p for p in _get(bulk_url)}
+
+    # Enriquecer hits con gallery del proyecto completo
+    for hit in hits:
+        proj = projects.get(hit["project_id"], {})
+        gallery = proj.get("gallery") or []
+        # Preferir imagen marcada como featured, si no la primera
+        featured = next((g["url"] for g in gallery if g.get("featured")), None)
+        fallback = gallery[0]["url"] if gallery else None
+        hit["_banner"] = featured or fallback or hit.get("featured_gallery") or ""
+
+    return hits
 
 
 class HomeView:
@@ -45,7 +74,6 @@ class HomeView:
         self.app     = app
         self._loaded = False
 
-        # ── filas de tarjetas ─────────────────────────────────────────────
         self._mods_row     = ft.Row(controls=[], scroll=ft.ScrollMode.AUTO, spacing=16)
         self._packs_row    = ft.Row(controls=[], scroll=ft.ScrollMode.AUTO, spacing=16)
         self._mods_status  = ft.Text("Cargando…", color=TEXT_DIM, size=12, italic=True)
@@ -59,7 +87,6 @@ class HomeView:
                 [
                     self._build_header(),
                     ft.Divider(height=1, color=BORDER, thickness=1),
-                    # ── Mods ────────────────────────────────────────────
                     ft.Row(
                         [
                             ft.Text("Mods populares", color=TEXT_PRI, size=15,
@@ -71,7 +98,6 @@ class HomeView:
                     ),
                     ft.Container(content=self._mods_row, height=340),
                     ft.Divider(height=1, color=BORDER, thickness=1),
-                    # ── Modpacks ─────────────────────────────────────────
                     ft.Row(
                         [
                             ft.Text("Modpacks populares", color=TEXT_PRI, size=15,
@@ -89,7 +115,6 @@ class HomeView:
             ),
         )
 
-    # ── Header ────────────────────────────────────────────────────────────────
     def _build_header(self) -> ft.Control:
         return ft.Column(
             [
@@ -120,7 +145,6 @@ class HomeView:
         except Exception:
             pass
 
-    # ── Ciclo de vida ─────────────────────────────────────────────────────────
     def on_show(self):
         if not self._loaded:
             self._loaded = True
@@ -135,8 +159,8 @@ class HomeView:
 
     def _load_section(self, url: str, row: ft.Row, status: ft.Text, kind: str):
         try:
-            hits = _fetch(url)
-            row.controls = [self._build_card(h, kind) for h in hits[:6]]
+            hits = _fetch_with_gallery(url)
+            row.controls = [self._build_card(h, kind) for h in hits]
             status.visible = False
         except Exception as exc:
             status.value  = f"Error — {exc}"
@@ -144,17 +168,16 @@ class HomeView:
             status.italic = False
         self.page.update()
 
-    # ── Tarjeta ───────────────────────────────────────────────────────────────
     def _build_card(self, mod: dict, kind: str = "mod") -> ft.Container:
-        icon_url   = mod.get("icon_url") or ""
-        banner_url = mod.get("featured_gallery") or ""
-        title      = mod.get("title", "?")
-        raw_desc   = mod.get("description", "")
-        desc       = (raw_desc[:90] + "…") if len(raw_desc) > 90 else raw_desc
-        downloads  = _fmt(mod.get("downloads", 0))
-        follows    = _fmt(mod.get("follows", 0))
-        cats       = mod.get("display_categories") or mod.get("categories") or []
-        cat_label  = cats[0].capitalize() if cats else ""
+        icon_url  = mod.get("icon_url") or ""
+        banner_url = mod.get("_banner") or ""
+        title     = mod.get("title", "?")
+        raw_desc  = mod.get("description", "")
+        desc      = (raw_desc[:90] + "…") if len(raw_desc) > 90 else raw_desc
+        downloads = _fmt(mod.get("downloads", 0))
+        follows   = _fmt(mod.get("follows", 0))
+        cats      = mod.get("display_categories") or mod.get("categories") or []
+        cat_label = cats[0].capitalize() if cats else ""
 
         banner: ft.Control = (
             ft.Image(
@@ -224,24 +247,23 @@ class HomeView:
             on_hover=self._on_card_hover,
         )
 
-    # ── Placeholders ──────────────────────────────────────────────────────────
     @staticmethod
     def _banner_ph(kind: str = "mod") -> ft.Container:
-        icon = ft.icons.WIDGETS_OUTLINED if kind == "modpack" else ft.icons.EXTENSION_OUTLINED
+        ico = ft.icons.WIDGETS_OUTLINED if kind == "modpack" else ft.icons.EXTENSION_OUTLINED
         return ft.Container(
             width=260, height=130, bgcolor=INPUT_BG,
             border_radius=ft.border_radius.only(top_left=10, top_right=10),
-            content=ft.Icon(icon, color=TEXT_DIM, size=36),
+            content=ft.Icon(ico, color=TEXT_DIM, size=36),
             alignment=ft.alignment.center,
         )
 
     @staticmethod
     def _icon_ph(kind: str = "mod") -> ft.Container:
-        icon = ft.icons.WIDGETS_OUTLINED if kind == "modpack" else ft.icons.EXTENSION_OUTLINED
+        ico = ft.icons.WIDGETS_OUTLINED if kind == "modpack" else ft.icons.EXTENSION_OUTLINED
         return ft.Container(
             width=40, height=40, bgcolor=INPUT_BG,
             border_radius=ft.border_radius.all(8),
-            content=ft.Icon(icon, color=TEXT_DIM, size=20),
+            content=ft.Icon(ico, color=TEXT_DIM, size=20),
             alignment=ft.alignment.center,
         )
 
