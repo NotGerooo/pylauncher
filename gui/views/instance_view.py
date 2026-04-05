@@ -194,11 +194,18 @@ class InstanceView:
         return btn
     def _switch_tab(self, tid):
         self._active_tab = tid
-        for t, btn in self._tab_btns.items():
+        tabs_data = [
+            ("content", "Content", ft.icons.EXTENSION_ROUNDED),
+            ("files",   "Files",   ft.icons.FOLDER_ROUNDED),
+            ("worlds",  "Worlds",  ft.icons.PUBLIC_ROUNDED),
+            ("logs",    "Logs",    ft.icons.TERMINAL_ROUNDED),
+        ]
+        for (t, label, icon), btn in zip(tabs_data, self._tab_btns.values()):
             active = t == tid
-            btn._text.color  = GREEN if active else TEXT_SEC
-            btn._text.weight = ft.FontWeight.BOLD if active else ft.FontWeight.NORMAL
-            btn._ind.bgcolor = GREEN if active else "transparent"
+            btn.bgcolor = GREEN if active else "transparent"
+            row: ft.Row = btn.content
+            row.controls[0].color = TEXT_INV if active else TEXT_SEC
+            row.controls[2].color = TEXT_INV if active else TEXT_SEC
             try: btn.update()
             except Exception: pass
         self._render_tab()
