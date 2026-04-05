@@ -571,27 +571,51 @@ class _ContentTab:
         self._refresh_token += 1
         token = self._refresh_token
 
-        # Mostrar estado de carga inmediatamente en UI thread
+        # Limpiar lista inmediatamente (no bloquea)
         self._list_col.controls.clear()
         self._empty_lbl.visible = False
-        for _ in range(4):
-            self._list_col.controls.append(self._skeleton_card())
         try:
             self._list_col.update()
             self._empty_lbl.update()
         except Exception:
             pass
 
-        # Mover filesystem + build de cards a background
-        def do_in_background():
+        # Todo lo pesado va al background
+        def background_work():
             if token != self._refresh_token:
                 return
             items = self._sorted(self._collect_items())
             if token != self._refresh_token:
                 return
-            self.page.run_thread(lambda: self._draw_list(items, token))
+            self.page.run_thread(lambda: _draw(items))
 
-        threading.Thread(target=do_in_background, daemon=True).start()
+        def _draw(items):
+            if token != self._refresh_token:
+                return
+            self._list_col.controls.clear()
+            self._empty_lbl.visible = (len(items) == 0)
+            self._search_field.hint_text = f"Search {len(items)} projects..."
+            for item in items:
+                self._list_col.controls.append(self._make_row(item))
+            try:
+                self._list_col.update()
+                self._empty_lbl.update()
+                self._search_field.update()
+            except Exception:
+                pass
+
+            # Fetch icons en background separado
+            with self._fetch_lock:
+                missing = [i for i in items if i["path"] not in self._icon_cache]
+            if missing:
+                threading.Thread(
+                    target=self._fetch_icons_batch,
+                    args=(missing, token), daemon=True
+                ).start()
+            else:
+                self._launch_author_fetch(items, token)
+
+        threading.Thread(target=background_work, daemon=True).start()
 
     def _draw_list(self, items, token=None):
         if token is not None and token != self._refresh_token:
