@@ -221,6 +221,9 @@ class JavaManager:
                     with urllib.request.urlopen(req, timeout=30) as resp:
                         with open(dest, "wb") as f:
                             f.write(resp.read())
+                            downloaded += 1
+                            if downloaded % 50 == 0:
+                                log.info(f"Java: {downloaded}/{total} archivos...")
 
                     # Hacer ejecutable en Linux/macOS
                     if file_info.get("executable", False) and os.name != "nt":
