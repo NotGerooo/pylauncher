@@ -28,9 +28,10 @@ _JAVA_COMPONENT = "java-runtime-delta"  # Java 21 para MC 1.21+
 
 # Componentes alternativos por si el principal no está disponible
 _JAVA_COMPONENTS_FALLBACK = [
-    "java-runtime-delta",   # Java 21
-    "java-runtime-gamma",   # Java 21 (alternativo)
+    "java-runtime-gamma",   # Java 21 (el que usa MC 1.21+)
+    "java-runtime-delta",   # Java 21 (alternativo)  
     "java-runtime-beta",    # Java 17
+    "java-runtime-alpha",   # Java 8
 ]
 
 
