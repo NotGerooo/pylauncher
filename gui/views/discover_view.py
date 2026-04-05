@@ -389,21 +389,7 @@ class DiscoverView:
 
     # ── Lifecycle ──────────────────────────────────────────────────────────────
     def on_show(self):
-        # Auto-assign last used profile if none set
-        if not self._source_profile:
-            try:
-                last = self.app.settings.last_profile
-                if last:
-                    p = self.app.profile_manager.get_profile_by_name(last)
-                    if p:
-                        self._source_profile = p
-                if not self._source_profile:
-                    profiles = self.app.profile_manager.get_all_profiles()
-                    if profiles:
-                        self._source_profile = profiles[0]
-            except Exception:
-                pass
-        self._loading = False
+        self._loading = False        # ← reset flag por si quedó colgado
         self._update_instance_header()
         self._refresh_chips()
         if hasattr(self.app, "sidebar_right"):
