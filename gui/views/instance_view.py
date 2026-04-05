@@ -490,7 +490,27 @@ class _ContentTab:
         btn._txt = txt
         btn._ind = ind
         return btn
-
+    
+    def _make_chip(self, label):
+        active = label == self._filter
+        chip = ft.Container(
+            bgcolor=GREEN if active else "transparent",
+            border=ft.border.all(1, GREEN if active else BORDER),
+            border_radius=20,
+            padding=ft.padding.symmetric(horizontal=14, vertical=6),
+            animate=ft.animation.Animation(120, ft.AnimationCurve.EASE_OUT),
+            on_click=lambda e, l=label: self._set_filter(l),
+            content=ft.Text(label, color=TEXT_INV if active else TEXT_SEC,
+                            size=10, weight=ft.FontWeight.W_600),
+        )
+        chip.on_hover = lambda e, c=chip, l=label: (
+            None if l == self._filter else (
+                setattr(c, "bgcolor", INPUT_BG if e.data == "true" else "transparent")
+                or c.update()
+            )
+        )
+        return chip
+    
     def _set_filter(self, label):
         self._filter = label
         for l, btn in self._filter_btns.items():
