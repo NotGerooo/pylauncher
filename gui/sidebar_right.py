@@ -237,7 +237,7 @@ class SidebarRight:
         self._selected_cats.clear()
         self._excluded_cats.clear()
         self._hide_installed  = False
-        self._discover_loader = None
+        self._discover_loader = None  # None = auto (usa el del perfil)
 
         if active:
             self._discover_tab_type = tab_type
@@ -260,7 +260,7 @@ class SidebarRight:
             "categories":     sorted(self._selected_cats),
             "excluded_cats":  sorted(self._excluded_cats),
             "hide_installed": self._hide_installed,
-            "loader":         self._discover_loader,
+            "loader":         self._discover_loader if self._discover_loader is not None else self._detect_loader_from_profile(self._discover_profile),
         }
 
     # ── Build discover panel ──────────────────────────────────────────────────
@@ -537,13 +537,14 @@ class SidebarRight:
             self._loader_body.controls.append(row)
 
     def _on_loader_click(self, value):
-        self._discover_loader = value  # None = auto
+        self._discover_loader = value
         self._rebuild_loader_section(self._discover_profile)
         try:
             self._loader_body.update()
         except Exception:
             pass
-        self._fire_filter_change()
+        if callable(self._on_filter_change):
+            self._on_filter_change()
 
     # ── Category section ──────────────────────────────────────────────────────
     def _rebuild_cat_section(self):
