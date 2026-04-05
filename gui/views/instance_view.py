@@ -513,23 +513,29 @@ class _ContentTab:
             ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
         )
 
-        self.root = ft.Column([
-            toolbar,
+        self.root = ft.Stack([
+            ft.Column([
+                toolbar,
+                ft.Container(
+                    expand=True,
+                    content=ft.Stack([
+                        self._list_col,
+                        self._empty_lbl,
+                    ]),
+                ),
+            ], spacing=0, expand=True),
             ft.Container(
-                expand=True,
-                content=ft.Stack([
-                    self._list_col,
-                    self._empty_lbl,
-                    ft.Container(
-                        alignment=ft.alignment.bottom_center,
-                        padding=ft.padding.only(bottom=20),
-                        content=self._bulk_bar,
-                        ignore_interactions=True,   # ← esto
-                    ),
+                bottom=20,
+                left=0,
+                right=0,
+                alignment=ft.alignment.bottom_center,
+                content=ft.Row([
+                    ft.Container(expand=True),
+                    self._bulk_bar,
+                    ft.Container(expand=True),
                 ]),
             ),
-        ], spacing=0, expand=True)
-
+        ])
     def _make_filter_btn(self, label):
         active = label == self._filter
         txt = ft.Text(label, color=TEXT_PRI if active else TEXT_SEC, size=10,
