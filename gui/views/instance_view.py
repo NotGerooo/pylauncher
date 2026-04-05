@@ -513,12 +513,12 @@ class _ContentTab:
     
     def _set_filter(self, label):
         self._filter = label
-        for l, btn in self._filter_btns.items():
+        for l, chip in self._filter_chips.items():
             active = l == label
-            btn._txt.color   = TEXT_PRI if active else TEXT_SEC
-            btn._txt.weight  = ft.FontWeight.BOLD if active else ft.FontWeight.NORMAL
-            btn._ind.bgcolor = GREEN if active else "transparent"
-            try: btn.update()
+            chip.bgcolor = GREEN if active else "transparent"
+            chip.border  = ft.border.all(1, GREEN if active else BORDER)
+            chip.content.color = TEXT_INV if active else TEXT_SEC
+            try: chip.update()
             except Exception: pass
         self._refresh()
 
