@@ -433,20 +433,6 @@ class _ContentTab:
             ], spacing=0),
         )
 
-        col_hdr = ft.Container(
-            bgcolor=BG,
-            padding=ft.padding.only(left=88, right=20, top=8, bottom=8),
-            border=ft.border.only(bottom=ft.BorderSide(1, BORDER)),
-            content=ft.Row([
-                ft.Text("Project", color=TEXT_DIM, size=9,
-                        weight=ft.FontWeight.BOLD, expand=True),
-                ft.Text("Version", color=TEXT_DIM, size=9,
-                        weight=ft.FontWeight.BOLD, width=220),
-                ft.Text("Actions", color=TEXT_DIM, size=9,
-                        weight=ft.FontWeight.BOLD, width=100,
-                        text_align=ft.TextAlign.RIGHT),
-            ]),
-        )
 
         self._count_lbl = ft.Text("", color=TEXT_DIM, size=9)
         self._empty_lbl = ft.Container(
@@ -464,9 +450,9 @@ class _ContentTab:
 
         self.root = ft.Column([
             toolbar,
-            col_hdr,
             ft.Container(
                 expand=True,
+                padding=ft.padding.symmetric(horizontal=16, vertical=12),  # <-- agregar esto
                 content=ft.Stack([
                     self._list_col,
                     self._empty_lbl,
