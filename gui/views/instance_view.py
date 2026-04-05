@@ -288,13 +288,19 @@ class InstanceView:
         self.app.snack(f"Iniciando Minecraft {self.profile.version_id} como {username}...")
 
     def _open_edit(self):
-        from gui.views.library_view import _CreateInstanceDialog
-        def done():
-            updated = self.app.profile_manager.get_profile(self.profile.id)
-            if updated:
-                self.profile = updated
+        def done(updated_profile=None):
+            if updated_profile:
+                self.profile = updated_profile
+            elif True:
+                updated = self.app.profile_manager.get_profile(self.profile.id)
+                if updated:
+                    self.profile = updated
             self._build()
-        _CreateInstanceDialog(self.page, self.app, self.profile, on_done=done)
+            try: self.root.update()
+            except Exception: pass
+        _InstanceSettingsDialog(self.page, self.app, self.profile, on_done=done)
+
+
 
     def _read_loader(self):
         meta_path = os.path.join(self.profile.game_dir, "loader_meta.json")
