@@ -1,7 +1,9 @@
 """
-gui/views/home_view.py — Home estilo Modrinth: mods + modpacks populares
+gui/views/home_view.py — Home estilo Modrinth con caché de imágenes en disco.
 """
+import hashlib
 import json
+import os
 import threading
 import urllib.request
 import urllib.parse
@@ -25,19 +27,56 @@ _URL_MODPACKS = (
     '&facets=[[%22project_type:modpack%22]]'
 )
 
-# (gradiente_inicio, gradiente_fin, color_acento)
+# Directorio de caché (junto al script o en AppData)
+_CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "cache", "images")
+os.makedirs(_CACHE_DIR, exist_ok=True)
+
+# Paletas (start, end, accent) por índice cíclico
 _PALETTES = [
-    ("#0f2d1a", "#1a5c32", "#4ade80"),   # verde bosque
-    ("#0d1b3e", "#1a2f6b", "#60a5fa"),   # azul noche
-    ("#1e0a3c", "#3b1278", "#a78bfa"),   # morado profundo
-    ("#0a1f3d", "#0e4a7a", "#38bdf8"),   # azul océano
-    ("#1a0d00", "#5c2800", "#fb923c"),   # naranja quemado
-    ("#0d2626", "#0e5555", "#2dd4bf"),   # teal oscuro
-    ("#1f0a0a", "#6b1212", "#f87171"),   # rojo carmesí
-    ("#1a1208", "#5c3d08", "#fbbf24"),   # dorado oscuro
-    ("#0a1a0a", "#1a4a1a", "#86efac"),   # verde pino
-    ("#1a0a1f", "#4a1060", "#e879f9"),   # magenta oscuro
+    ("#0f2d1a", "#1a5c32", "#4ade80"),
+    ("#0d1b3e", "#1a2f6b", "#60a5fa"),
+    ("#1e0a3c", "#3b1278", "#a78bfa"),
+    ("#0a1f3d", "#0e4a7a", "#38bdf8"),
+    ("#1a0d00", "#5c2800", "#fb923c"),
+    ("#0d2626", "#0e5555", "#2dd4bf"),
+    ("#1f0a0a", "#6b1212", "#f87171"),
+    ("#1a1208", "#5c3d08", "#fbbf24"),
+    ("#0a1a0a", "#1a4a1a", "#86efac"),
+    ("#1a0a1f", "#4a1060", "#e879f9"),
 ]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Caché de imágenes
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _cache_path(url: str) -> str:
+    """Devuelve la ruta local para una URL, usando su hash como nombre."""
+    ext = os.path.splitext(url.split("?")[0])[-1][:5] or ".png"
+    name = hashlib.md5(url.encode()).hexdigest() + ext
+    return os.path.join(_CACHE_DIR, name)
+
+
+def _cached_image_src(url: str) -> str:
+    """
+    Devuelve la ruta local si la imagen ya está cacheada,
+    o descarga y cachea antes de devolver la ruta.
+    Ante cualquier error devuelve la URL original.
+    """
+    if not url:
+        return ""
+    path = _cache_path(url)
+    if os.path.exists(path):
+        return path
+    try:
+        req = urllib.request.Request(url, headers=_HEADERS)
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = r.read()
+        with open(path, "wb") as f:
+            f.write(data)
+        return path
+    except Exception:
+        return url          # fallback: URL directa
 
 
 def _fmt(n: int) -> str:
@@ -72,29 +111,20 @@ def _fetch_with_gallery(search_url: str) -> list[dict]:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Placeholders usando sólo ft.Container + ft.Column/Row (sin Stack posicional)
+# Placeholders Flet (sin letter_spacing, sin Stack posicional)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _banner_placeholder(idx: int, kind: str = "mod") -> ft.Container:
-    """
-    Banner 260×130 con gradiente, badge de tipo e ícono central.
-    Usa sólo Column/Row para evitar bugs de posicionamiento absoluto en Stack.
-    """
     c1, c2, accent = _PALETTES[idx % len(_PALETTES)]
-    ico = ft.icons.WIDGETS_OUTLINED if kind == "modpack" else ft.icons.EXTENSION_OUTLINED
+    ico   = ft.icons.WIDGETS_OUTLINED if kind == "modpack" else ft.icons.EXTENSION_OUTLINED
     label = "MODPACK" if kind == "modpack" else "MOD"
 
-    # Fila superior: badge tipo alineado a la derecha
     top_row = ft.Row(
         [
-            ft.Container(expand=True),          # spacer
+            ft.Container(expand=True),
             ft.Container(
-                content=ft.Text(
-                    label, size=9,
-                    color=ft.colors.with_opacity(0.8, accent),
-                    weight=ft.FontWeight.W_700,
-                    letter_spacing=1.5,
-                ),
+                content=ft.Text(label, size=9, color=ft.colors.with_opacity(0.8, accent),
+                                weight=ft.FontWeight.W_700),
                 padding=ft.padding.symmetric(horizontal=8, vertical=4),
                 bgcolor=ft.colors.with_opacity(0.18, accent),
                 border_radius=4,
@@ -103,12 +133,10 @@ def _banner_placeholder(idx: int, kind: str = "mod") -> ft.Container:
         ],
     )
 
-    # Centro: ícono con halo circular
     center = ft.Row(
         [
             ft.Container(
-                width=56, height=56,
-                border_radius=28,
+                width=56, height=56, border_radius=28,
                 bgcolor=ft.colors.with_opacity(0.15, accent),
                 border=ft.border.all(1, ft.colors.with_opacity(0.3, accent)),
                 content=ft.Icon(ico, color=accent, size=26),
@@ -131,7 +159,7 @@ def _banner_placeholder(idx: int, kind: str = "mod") -> ft.Container:
             [
                 ft.Container(content=top_row, padding=ft.padding.only(right=10, top=8)),
                 ft.Container(content=center, expand=True),
-                ft.Container(height=8),          # padding inferior
+                ft.Container(height=8),
             ],
             spacing=0,
             expand=True,
@@ -140,7 +168,6 @@ def _banner_placeholder(idx: int, kind: str = "mod") -> ft.Container:
 
 
 def _icon_placeholder(idx: int, kind: str = "mod") -> ft.Container:
-    """Ícono 40×40 con gradiente."""
     c1, c2, accent = _PALETTES[idx % len(_PALETTES)]
     ico = ft.icons.WIDGETS_OUTLINED if kind == "modpack" else ft.icons.EXTENSION_OUTLINED
     return ft.Container(
@@ -179,10 +206,10 @@ class HomeView:
                 [
                     self._build_header(),
                     ft.Divider(height=1, color=BORDER, thickness=1),
-                    self._section_title("Mods populares",     GREEN,      self._mods_status),
+                    self._section_title("Mods populares",     GREEN,     self._mods_status),
                     ft.Container(content=self._mods_row,  height=340),
                     ft.Divider(height=1, color=BORDER, thickness=1),
-                    self._section_title("Modpacks populares", "#60a5fa",  self._packs_status),
+                    self._section_title("Modpacks populares", "#60a5fa", self._packs_status),
                     ft.Container(content=self._packs_row, height=340),
                 ],
                 spacing=14,
@@ -317,11 +344,15 @@ class HomeView:
         accent     = GREEN if kind == "mod" else "#60a5fa"
         ph_idx     = idx % len(_PALETTES)
 
-        # Banner ──────────────────────────────────────────────────────────────
+        # Resuelve src con caché (descarga en background ya terminó en _load_section)
+        banner_src = _cached_image_src(banner_url) if banner_url else ""
+        icon_src   = _cached_image_src(icon_url)   if icon_url   else ""
+
+        # Banner
         ph_banner = _banner_placeholder(ph_idx, kind)
-        if banner_url:
+        if banner_src:
             banner: ft.Control = ft.Image(
-                src=banner_url, width=260, height=130,
+                src=banner_src, width=260, height=130,
                 fit=ft.ImageFit.COVER,
                 border_radius=ft.border_radius.only(top_left=10, top_right=10),
                 error_content=ph_banner,
@@ -329,11 +360,11 @@ class HomeView:
         else:
             banner = ph_banner
 
-        # Ícono ───────────────────────────────────────────────────────────────
+        # Ícono
         ph_icon = _icon_placeholder(ph_idx, kind)
-        if icon_url:
+        if icon_src:
             icon_ctrl: ft.Control = ft.Image(
-                src=icon_url, width=40, height=40,
+                src=icon_src, width=40, height=40,
                 border_radius=ft.border_radius.all(8),
                 fit=ft.ImageFit.COVER,
                 error_content=ph_icon,
@@ -341,18 +372,12 @@ class HomeView:
         else:
             icon_ctrl = ph_icon
 
-        # Stats ───────────────────────────────────────────────────────────────
+        # Stats
         stat_items: list[ft.Control] = [
-            ft.Row(
-                [ft.Icon(ft.icons.DOWNLOAD_OUTLINED, size=12, color=TEXT_DIM),
-                 ft.Text(downloads, size=11, color=TEXT_DIM)],
-                spacing=3,
-            ),
-            ft.Row(
-                [ft.Icon(ft.icons.FAVORITE_BORDER, size=12, color=TEXT_DIM),
-                 ft.Text(follows, size=11, color=TEXT_DIM)],
-                spacing=3,
-            ),
+            ft.Row([ft.Icon(ft.icons.DOWNLOAD_OUTLINED, size=12, color=TEXT_DIM),
+                    ft.Text(downloads, size=11, color=TEXT_DIM)], spacing=3),
+            ft.Row([ft.Icon(ft.icons.FAVORITE_BORDER,   size=12, color=TEXT_DIM),
+                    ft.Text(follows,   size=11, color=TEXT_DIM)], spacing=3),
         ]
         if cat_label:
             stat_items.append(
@@ -371,12 +396,10 @@ class HomeView:
             content=ft.Column(
                 [
                     ft.Row(
-                        [
-                            icon_ctrl,
-                            ft.Text(title, size=13, weight=ft.FontWeight.BOLD,
-                                    color=TEXT_PRI, expand=True,
-                                    overflow=ft.TextOverflow.ELLIPSIS, max_lines=1),
-                        ],
+                        [icon_ctrl,
+                         ft.Text(title, size=13, weight=ft.FontWeight.BOLD,
+                                 color=TEXT_PRI, expand=True,
+                                 overflow=ft.TextOverflow.ELLIPSIS, max_lines=1)],
                         spacing=9,
                         vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
@@ -397,8 +420,6 @@ class HomeView:
         )
         card.on_hover = lambda e, c=card: self._on_card_hover(e, c)
         return card
-
-    # ── Hover ─────────────────────────────────────────────────────────────────
 
     @staticmethod
     def _on_card_hover(e: ft.HoverEvent, card: ft.Container):
