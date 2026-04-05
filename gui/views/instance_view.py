@@ -536,6 +536,9 @@ class _ContentTab:
                 ]),
             ),
         ])
+
+        self._refresh()
+        
     def _make_filter_btn(self, label):
         active = label == self._filter
         txt = ft.Text(label, color=TEXT_PRI if active else TEXT_SEC, size=10,
