@@ -634,6 +634,41 @@ class _ContentTab:
             self._list_col.update()
         except Exception:
             pass
+        
+    def _skeleton_card(self) -> ft.Container:
+        def _bar(w, h=10, op=0.10):
+            return ft.Container(
+                width=w, height=h, border_radius=4,
+                bgcolor="#ffffff", opacity=op,
+            )
+        return ft.Container(
+            bgcolor=CARD_BG,
+            border=ft.border.all(1, BORDER),
+            border_radius=14,
+            padding=ft.padding.all(20),
+            content=ft.Row([
+                ft.Container(
+                    width=20, bgcolor="transparent"),
+                ft.Container(width=14),
+                ft.Container(
+                    width=72, height=72, border_radius=12,
+                    bgcolor="#ffffff", opacity=0.07),
+                ft.Container(width=20),
+                ft.Column([
+                    _bar(200, 14, 0.16),
+                    ft.Container(height=6),
+                    _bar(120, 10),
+                    ft.Container(height=10),
+                    _bar(360, 9),
+                    ft.Container(height=10),
+                    ft.Row([
+                        _bar(70, 18), ft.Container(width=6),
+                        _bar(80, 18), ft.Container(width=6),
+                        _bar(60, 18),
+                    ]),
+                ], spacing=4, expand=True),
+            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+        )
 
     def _launch_author_fetch(self, items, token: int):
         with self._fetch_lock:
