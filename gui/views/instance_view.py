@@ -854,6 +854,87 @@ class _ContentTab:
                 args=(need, token), daemon=True
             ).start()
 
+def _check_updates_batch(self, items, token: int):
+    if not self._alive or token != self._refresh_token:
+        return
+    try:
+        from config.constants import MODRINTH_API_BASE_URL, HTTP_TIMEOUT_SECONDS, USER_AGENT
+        base = MODRINTH_API_BASE_URL; timeout = HTTP_TIMEOUT_SECONDS; ua = USER_AGENT
+    except Exception:
+        base = "https://api.modrinth.com/v2"; timeout = 15; ua = "PyLauncher/1.0"
+
+    def post(url, payload):
+        data = json.dumps(payload).encode()
+        req  = urllib.request.Request(url, data=data, headers={
+            "User-Agent": ua, "Content-Type": "application/json",
+            "Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read())
+
+    def get(url):
+        req = urllib.request.Request(url, headers={
+            "User-Agent": ua, "Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read())
+
+    # Solo items que tienen pid en caché y no han sido chequeados
+    with self._fetch_lock:
+        to_check = [
+            i for i in items
+            if i["path"] in self._pid_cache
+            and i["path"] not in self._update_cache
+        ]
+
+    if not to_check:
+        return
+
+    mc_ver = self.profile.version_id
+    loader = self._read_loader()
+
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def check_one(item):
+        path = item["path"]
+        pid  = self._pid_cache.get(path)
+        if not pid:
+            return path, None
+        try:
+            # Obtener la última versión compatible
+            url = (f"{base}/project/{pid}/version"
+                   f"?game_versions=[\"{mc_ver}\"]"
+                   f"&loaders=[\"{loader}\"]")
+            versions = get(url)
+            if not versions:
+                return path, None
+            latest = versions[0]  # Modrinth devuelve newest first
+            latest_id = latest.get("id", "")
+
+            # Comparar con SHA1 del archivo instalado
+            installed_sha1 = _sha1(path)
+            for vfile in latest.get("files", []):
+                if vfile.get("hashes", {}).get("sha1") == installed_sha1:
+                    return path, None  # Ya está actualizado
+            # SHA1 no coincide → hay update disponible
+            latest_number = latest.get("version_number", "")
+            return path, latest_number or latest_id
+        except Exception:
+            return path, None
+
+    found_updates = False
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        futures = [ex.submit(check_one, i) for i in to_check]
+        for future in as_completed(futures):
+            if not self._alive or token != self._refresh_token:
+                return
+            path, update_ver = future.result()
+            with self._fetch_lock:
+                self._update_cache[path] = update_ver
+            if update_ver:
+                found_updates = True
+
+    if found_updates and self._alive and token == self._refresh_token:
+        self.page.run_thread(lambda t=token: self._redraw_list(t))
+
     # ── Fetch autores ─────────────────────────────────────────────────────────
     def _fetch_authors_for_projects(self, path_pid_list, token: int):
         if not self._alive or token != self._refresh_token:
