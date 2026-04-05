@@ -340,112 +340,137 @@ class _ContentTab:
         self._build()
 
     def _build(self):
-        self._filter_btns = {}
-        filter_row = ft.Row(spacing=6)
+        self._filter_chips = {}
+        chip_row = ft.Row(spacing=4)
         for f in self.FILTERS:
-            btn = self._make_filter_btn(f)
-            self._filter_btns[f] = btn
-            filter_row.controls.append(btn)
+            chip = self._make_chip(f)
+            self._filter_chips[f] = chip
+            chip_row.controls.append(chip)
 
+        total = len(self._collect_items())
         self._search_field = ft.TextField(
-            hint_text="Buscar proyectos...",
-            hint_style=ft.TextStyle(color=TEXT_DIM),
+            hint_text=f"Search {total} projects...",
+            hint_style=ft.TextStyle(color=TEXT_DIM, size=12),
             color=TEXT_PRI, bgcolor=INPUT_BG,
             border_color=BORDER, focused_border_color=GREEN,
-            border_radius=20, height=38, width=240,
-            content_padding=ft.padding.symmetric(horizontal=14, vertical=6),
-            prefix_icon=ft.icons.SEARCH,
+            border_radius=8, height=44, expand=True,
+            content_padding=ft.padding.symmetric(horizontal=16, vertical=10),
+            prefix_icon=ft.icons.SEARCH_ROUNDED,
+            text_size=12,
             on_change=self._on_search,
         )
+
         self._sort_dd = ft.Dropdown(
             color=TEXT_PRI, bgcolor=INPUT_BG,
             border_color=BORDER, focused_border_color=GREEN,
-            border_radius=8, width=170, height=38,
+            border_radius=8, width=180, height=36,
             options=[
-                ft.dropdown.Option("name",    "Alphabetical"),
+                ft.dropdown.Option("name",    "Oldest first"),
                 ft.dropdown.Option("status",  "Status"),
                 ft.dropdown.Option("version", "Version"),
             ],
             value="name",
-            content_padding=ft.padding.symmetric(horizontal=10, vertical=6),
+            content_padding=ft.padding.symmetric(horizontal=12, vertical=6),
+            text_style=ft.TextStyle(size=11),
             on_change=self._on_sort,
         )
 
         toolbar = ft.Container(
             bgcolor=CARD_BG,
-            padding=ft.padding.symmetric(horizontal=24, vertical=12),
+            padding=ft.padding.symmetric(horizontal=20, vertical=14),
             border=ft.border.only(bottom=ft.BorderSide(1, BORDER)),
-            content=ft.Row([
-                filter_row,
-                ft.Container(expand=True),
-                self._search_field,
-                ft.Container(width=8),
-                self._sort_dd,
-                ft.Container(width=12),
-                ft.ElevatedButton(
-                    "Browse content",
-                    bgcolor=GREEN, color=TEXT_INV,
-                    style=ft.ButtonStyle(
-                        shape=ft.RoundedRectangleBorder(radius=8),
-                        padding=ft.padding.symmetric(horizontal=14, vertical=8),
+            content=ft.Column([
+                ft.Row([
+                    self._search_field,
+                    ft.Container(width=8),
+                    ft.ElevatedButton(
+                        "Browse content",
+                        icon=ft.icons.TRAVEL_EXPLORE_ROUNDED,
+                        bgcolor=GREEN, color=TEXT_INV,
+                        style=ft.ButtonStyle(
+                            shape=ft.RoundedRectangleBorder(radius=8),
+                            padding=ft.padding.symmetric(horizontal=16, vertical=10),
+                        ),
+                        on_click=self._on_browse,
                     ),
-                    on_click=self._on_browse,
-                ),
-                ft.Container(width=8),
-                ft.OutlinedButton(
-                    "Upload files",
-                    style=ft.ButtonStyle(
-                        shape=ft.RoundedRectangleBorder(radius=8),
-                        side=ft.BorderSide(1, BORDER), color=TEXT_SEC,
-                        padding=ft.padding.symmetric(horizontal=14, vertical=8),
+                    ft.Container(width=6),
+                    ft.OutlinedButton(
+                        "Upload files",
+                        icon=ft.icons.UPLOAD_FILE_ROUNDED,
+                        style=ft.ButtonStyle(
+                            shape=ft.RoundedRectangleBorder(radius=8),
+                            side=ft.BorderSide(1, BORDER), color=TEXT_SEC,
+                            padding=ft.padding.symmetric(horizontal=14, vertical=10),
+                        ),
+                        on_click=self._on_upload,
                     ),
-                    on_click=self._on_upload,
-                ),
-                ft.Container(width=8),
-                ft.OutlinedButton(
-                    "Update all",
-                    style=ft.ButtonStyle(
-                        shape=ft.RoundedRectangleBorder(radius=8),
-                        side=ft.BorderSide(1, BORDER), color=TEXT_SEC,
-                        padding=ft.padding.symmetric(horizontal=14, vertical=8),
+                ]),
+                ft.Container(height=10),
+                ft.Row([
+                    chip_row,
+                    ft.Container(expand=True),
+                    self._sort_dd,
+                    ft.Container(width=4),
+                    ft.TextButton(
+                        "Update all",
+                        icon=ft.icons.DOWNLOAD_ROUNDED,
+                        style=ft.ButtonStyle(
+                            color=GREEN,
+                            padding=ft.padding.symmetric(horizontal=8),
+                        ),
+                        on_click=lambda e: self.app.snack("Update all - proximamente"),
                     ),
-                    on_click=lambda e: self.app.snack("Update all - proximamente"),
-                ),
-            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                    ft.TextButton(
+                        "Refresh",
+                        icon=ft.icons.REFRESH_ROUNDED,
+                        style=ft.ButtonStyle(
+                            color=TEXT_SEC,
+                            padding=ft.padding.symmetric(horizontal=8),
+                        ),
+                        on_click=lambda e: self._refresh(),
+                    ),
+                ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+            ], spacing=0),
         )
 
         col_hdr = ft.Container(
-            bgcolor=CARD_BG,
-            padding=ft.padding.only(left=80, right=24, top=6, bottom=6),
+            bgcolor=BG,
+            padding=ft.padding.only(left=88, right=20, top=8, bottom=8),
+            border=ft.border.only(bottom=ft.BorderSide(1, BORDER)),
             content=ft.Row([
-                ft.Text("Project", color=TEXT_DIM, size=9, expand=True),
-                ft.Text("Version", color=TEXT_DIM, size=9, width=160,
-                        text_align=ft.TextAlign.CENTER),
-                ft.Text("Actions", color=TEXT_DIM, size=9, width=120,
+                ft.Text("Project", color=TEXT_DIM, size=9,
+                        weight=ft.FontWeight.BOLD, expand=True),
+                ft.Text("Version", color=TEXT_DIM, size=9,
+                        weight=ft.FontWeight.BOLD, width=220),
+                ft.Text("Actions", color=TEXT_DIM, size=9,
+                        weight=ft.FontWeight.BOLD, width=100,
                         text_align=ft.TextAlign.RIGHT),
             ]),
         )
 
         self._count_lbl = ft.Text("", color=TEXT_DIM, size=9)
-        self._empty_lbl = ft.Text(
-            "Sin contenido en esta categoria.",
-            color=TEXT_DIM, size=11, visible=False,
-            text_align=ft.TextAlign.CENTER,
+        self._empty_lbl = ft.Container(
+            visible=False, expand=True, alignment=ft.alignment.center,
+            content=ft.Column([
+                ft.Icon(ft.icons.INBOX_ROUNDED, size=48, color=TEXT_DIM),
+                ft.Container(height=8),
+                ft.Text("No content in this instance", color=TEXT_SEC, size=13,
+                        weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER),
+                ft.Text("Click 'Browse content' to add mods, shaders or resource packs.",
+                        color=TEXT_DIM, size=10, text_align=ft.TextAlign.CENTER),
+            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4),
         )
-        self._list_col = ft.Column(spacing=2, scroll=ft.ScrollMode.AUTO, expand=True)
+        self._list_col = ft.Column(spacing=0, scroll=ft.ScrollMode.AUTO, expand=True)
 
         self.root = ft.Column([
             toolbar,
             col_hdr,
             ft.Container(
                 expand=True,
-                padding=ft.padding.symmetric(horizontal=16, vertical=12),
-                content=ft.Column([
-                    ft.Row([self._count_lbl]),
-                    ft.Container(height=6),
-                    self._empty_lbl,
+                content=ft.Stack([
                     self._list_col,
-                ], spacing=0, expand=True),
+                    self._empty_lbl,
+                ]),
             ),
         ], spacing=0, expand=True)
 
