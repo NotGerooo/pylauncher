@@ -953,6 +953,12 @@ class _ContentTab:
             self.app.snack(str(ex), error=True)
 
     def _on_browse(self, e):
+        discover = self.app._views.get("discover")
+        if not discover:
+            from gui.views.discover_view import DiscoverView
+            discover = DiscoverView(self.page, self.app)
+            self.app._views["discover"] = discover
+        discover.set_source_profile(self.profile)
         self.app._show_view("discover")
 
     def _read_loader(self):
