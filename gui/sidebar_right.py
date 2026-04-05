@@ -496,7 +496,7 @@ class SidebarRight:
         for opt_label, opt_value in options:
             if opt_value is None:
                 display = (f"Auto  ·  {auto_loader.capitalize()}"
-                        if auto_loader and auto_loader != "vanilla" else "Auto")
+                          if auto_loader and auto_loader != "vanilla" else "Auto")
                 is_sel  = self._discover_loader is None or self._discover_loader == opt_value
                 ico     = ft.icons.TUNE_ROUNDED
                 ico_col = GREEN if is_sel else TEXT_DIM
