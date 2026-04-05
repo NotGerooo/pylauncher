@@ -1322,7 +1322,7 @@ class _ContentTab:
         # ── More ──────────────────────────────────────────────────────────────────
         def on_more(e, _path=path, _pid=pid, _disp=disp):
             def _hoverable(icon, label, action, color=TEXT_PRI):
-                item = ft.Container(
+                _c = ft.Container(          # ← cambiado de "item" a "_c"
                     bgcolor="transparent", border_radius=8,
                     padding=ft.padding.symmetric(horizontal=16, vertical=12),
                     on_click=action,
@@ -1333,12 +1333,12 @@ class _ContentTab:
                         ft.Text(label, color=color, size=13),
                     ], spacing=0, tight=True),
                 )
-                item.on_hover = lambda ev, c=item: (
+                _c.on_hover = lambda ev, c=_c: (
                     setattr(c, "bgcolor",
                             INPUT_BG if ev.data == "true" else "transparent")
                     or c.update()
                 )
-                return item
+                return _c
 
             # Botón "Install update" solo si hay update disponible
             update_item = None
