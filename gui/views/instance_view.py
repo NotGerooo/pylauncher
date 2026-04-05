@@ -634,91 +634,60 @@ class _ContentTab:
             items.sort(key=lambda i: i["version"].lower())
         return items
 
-            def _refresh(self):
-            self._refresh_token += 1
-            token = self._refresh_token
+    def _refresh(self):
+                self._refresh_token += 1
+                token = self._refresh_token
 
-            self._list_col.controls.clear()
-            self._empty_lbl.visible = False
-            try:
-                self._list_col.update()
-                self._empty_lbl.update()
-            except Exception:
-                pass
+                self._list_col.controls.clear()
+                self._empty_lbl.visible = False
+                try:
+                    self._list_col.update()
+                    self._empty_lbl.update()
+                except Exception:
+                    pass
 
-            def background_work():
-                if token != self._refresh_token:
-                    return
-                items = self._sorted(self._collect_items())
-                if token != self._refresh_token:
-                    return
-
-                # Dibuja directo en el hilo de background con invoke_async / call_later
-                def _draw():
+                def background_work():
                     if token != self._refresh_token:
                         return
-                    self._list_col.controls.clear()
-                    self._empty_lbl.visible = (len(items) == 0)
-                    self._search_field.hint_text = f"Search {len(items)} projects..."
-                    for item in items:
-                        self._list_col.controls.append(self._make_row(item))
-                    try:
-                        self._list_col.update()
-                        self._empty_lbl.update()
-                        self._search_field.update()
-                    except Exception:
-                        pass
+                    items = self._sorted(self._collect_items())
+                    if token != self._refresh_token:
+                        return
 
-                    with self._fetch_lock:
-                        missing_icons = [i for i in items if i["path"] not in self._icon_cache]
-                    if missing_icons:
+                    # Dibuja directo en el hilo de background con invoke_async / call_later
+                    def _draw():
+                        if token != self._refresh_token:
+                            return
+                        self._list_col.controls.clear()
+                        self._empty_lbl.visible = (len(items) == 0)
+                        self._search_field.hint_text = f"Search {len(items)} projects..."
+                        for item in items:
+                            self._list_col.controls.append(self._make_row(item))
+                        try:
+                            self._list_col.update()
+                            self._empty_lbl.update()
+                            self._search_field.update()
+                        except Exception:
+                            pass
+
+                        with self._fetch_lock:
+                            missing_icons = [i for i in items if i["path"] not in self._icon_cache]
+                        if missing_icons:
+                            threading.Thread(
+                                target=self._fetch_icons_batch,
+                                args=(missing_icons, token), daemon=True
+                            ).start()
+                        else:
+                            self._launch_author_fetch(items, token)
+
                         threading.Thread(
-                            target=self._fetch_icons_batch,
-                            args=(missing_icons, token), daemon=True
+                            target=self._check_updates_batch,
+                            args=(items, token), daemon=True
                         ).start()
-                    else:
-                        self._launch_author_fetch(items, token)
 
-                    threading.Thread(
-                        target=self._check_updates_batch,
-                        args=(items, token), daemon=True
-                    ).start()
+                    self.page.update()   # asegura que el hilo UI esté vivo
+                    _draw()
 
-                self.page.update()   # asegura que el hilo UI esté vivo
-                _draw()
-
-            threading.Thread(target=background_work, daemon=True).start()
-
-        def _draw(items):
-            if token != self._refresh_token:
-                return
-            self._list_col.controls.clear()
-            self._empty_lbl.visible = (len(items) == 0)
-            self._search_field.hint_text = f"Search {len(items)} projects..."
-            for item in items:
-                self._list_col.controls.append(self._make_row(item))
-            try:
-                self._list_col.update()
-                self._empty_lbl.update()
-                self._search_field.update()
-            except Exception:
-                pass
-
-            with self._fetch_lock:
-                missing_icons = [i for i in items if i["path"] not in self._icon_cache]
-            if missing_icons:
-                threading.Thread(
-                    target=self._fetch_icons_batch,
-                    args=(missing_icons, token), daemon=True
-                ).start()
-            else:
-                self._launch_author_fetch(items, token)
-
-            # Lanzar update checker en paralelo
-            threading.Thread(
-                target=self._check_updates_batch,
-                args=(items, token), daemon=True
-            ).start()
+                threading.Thread(target=background_work, daemon=True).start()
 
     def _on_check(self, path: str, checked: bool):
         if checked:
