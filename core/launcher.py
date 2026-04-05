@@ -16,6 +16,7 @@ Solo recibe datos y lanza el juego.
 """
 
 import os
+import json
 import subprocess
 import threading
 
@@ -61,26 +62,6 @@ class LauncherEngine:
         version_data: dict,
         on_output=None,
     ) -> subprocess.Popen:
-        """
-        Lanza Minecraft para un perfil y sesión dados.
-
-        Primero busca si el perfil tiene un loader activo. Si lo tiene,
-        carga los datos de la versión del loader en vez de la vanilla y
-        construye el classpath con esa versión.
-
-        Args:
-            profile      : Perfil con la configuración del juego
-            session      : Sesión del jugador (offline u online)
-            version_data : JSON de metadatos de la versión base (vanilla)
-            on_output    : callback(line: str) para recibir output en tiempo real
-
-        Returns:
-            Proceso subprocess.Popen activo
-
-        Raises:
-            LaunchError: Si Java no se encuentra, el JAR no existe, o el
-                         loader está instalado pero su JSON no se encuentra
-        """
         log.info(
             f"=== Lanzando Minecraft {profile.version_id} "
             f"para '{session.username}' ==="
@@ -127,10 +108,6 @@ class LauncherEngine:
         session: PlayerSession,
         version_data: dict,
     ) -> str:
-        """
-        Retorna el comando completo como string sin ejecutarlo.
-        Útil para debug y para mostrarlo en la UI.
-        """
         launch_version_id, launch_version_data = self._resolve_launch_version(
             profile, version_data
         )
@@ -159,25 +136,28 @@ class LauncherEngine:
         base_version_data: dict,
     ) -> tuple[str, dict]:
 
-        # load_loader_meta devuelve un dict (o {}) con la meta del loader del perfil
         meta = self._loader_manager.load_loader_meta(profile.game_dir)
-
         loader_type = meta.get("loader", "vanilla")
 
         if not meta or loader_type == "vanilla":
             log.info("Sin loader activo — lanzando Minecraft vanilla")
             return profile.version_id, base_version_data
 
-        loader_version_id = meta.get("install_id")
+        log.info(
+            f"Loader detectado: {loader_type} "
+            f"({meta.get('loader_version')})"
+        )
 
+        # ── Fabric / Quilt: usan main_class y extra_libs del loader_meta ──────
+        if loader_type in ("fabric", "quilt"):
+            return self._resolve_fabric_like(
+                profile, base_version_data, meta, loader_type)
+
+        # ── Forge / NeoForge: buscan JSON en versions_dir ─────────────────────
+        loader_version_id = meta.get("install_id")
         if not loader_version_id:
             log.info("Sin install_id en loader_meta — lanzando vanilla")
             return profile.version_id, base_version_data
-
-        log.info(
-            f"Loader detectado: {loader_type} "
-            f"({meta.get('loader_version')}) → versión '{loader_version_id}'"
-        )
 
         loader_json_path = os.path.join(
             self._settings.versions_dir,
@@ -192,37 +172,91 @@ class LauncherEngine:
                 f"Solución: reinstala el loader."
             )
 
-        import json
         with open(loader_json_path, "r", encoding="utf-8") as f:
             loader_version_data = json.load(f)
 
         loader_version_data = self._merge_libraries(base_version_data, loader_version_data)
         return loader_version_id, loader_version_data
 
+    def _resolve_fabric_like(
+        self,
+        profile: Profile,
+        base_version_data: dict,
+        meta: dict,
+        loader_type: str,
+    ) -> tuple[str, dict]:
+        """
+        Resuelve la versión de lanzamiento para Fabric y Quilt.
+
+        Estos loaders guardan main_class y extra_libs directamente en
+        loader_meta.json. Si además guardaron un JSON en versions_dir
+        (install_id presente), lo usa. Si no, construye los datos
+        a partir de base_version_data + meta.
+        """
+        import copy
+
+        # Intentar usar JSON guardado en disco si existe
+        install_id = meta.get("install_id")
+        if install_id:
+            loader_json_path = os.path.join(
+                self._settings.versions_dir,
+                install_id,
+                f"{install_id}.json",
+            )
+            if os.path.isfile(loader_json_path):
+                log.info(f"Usando JSON de {loader_type}: {loader_json_path}")
+                with open(loader_json_path, "r", encoding="utf-8") as f:
+                    loader_version_data = json.load(f)
+                loader_version_data = self._merge_libraries(
+                    base_version_data, loader_version_data)
+                return install_id, loader_version_data
+
+        # Fallback: construir version_data desde base + meta
+        log.info(
+            f"{loader_type.capitalize()} sin JSON en disco — "
+            f"usando main_class y extra_libs del loader_meta"
+        )
+
+        main_class = meta.get("main_class", "")
+        extra_libs = meta.get("extra_libs", [])
+
+        if not main_class:
+            raise LaunchError(
+                f"El loader {loader_type} no tiene main_class en loader_meta.json.\n"
+                f"Solución: reinstala el loader."
+            )
+
+        # Clonar base_version_data y sobreescribir mainClass
+        merged = copy.deepcopy(base_version_data)
+        merged["mainClass"] = main_class
+
+        # Agregar las libs del loader al classpath como entradas "extra"
+        # Las convertimos al formato de library dict que espera _build_classpath
+        base_libs = list(base_version_data.get("libraries", []))
+        extra_lib_dicts = [
+            {"name": f"__extra__:{os.path.basename(p)}:0",
+             "__path__": p}
+            for p in extra_libs
+            if os.path.isfile(p)
+        ]
+        merged["libraries"] = base_libs + extra_lib_dicts
+        merged["__extra_classpaths__"] = [
+            p for p in extra_libs if os.path.isfile(p)
+        ]
+
+        return profile.version_id, merged
+
     def _merge_libraries(
         self,
         base_data: dict,
         loader_data: dict,
     ) -> dict:
-        """
-        Fusiona las librerías del JSON vanilla con las del JSON del loader.
-
-        Por qué es necesario:
-        Fabric y Quilt exponen su propio JSON de versión pero NO incluyen
-        las librerías base de Minecraft, solo las suyas propias. Sin fusionar,
-        el classpath quedaría incompleto y el juego no arrancaría.
-
-        Returns:
-            Copia del loader_data con la lista de librerías combinada.
-        """
         import copy
         merged = copy.deepcopy(loader_data)
 
         base_libs   = base_data.get("libraries", [])
         loader_libs = loader_data.get("libraries", [])
 
-        # Usamos el "name" de cada librería como clave para deduplicar.
-        # Las librerías del loader tienen prioridad si hay conflicto de nombre.
         lib_map = {}
         for lib in base_libs:
             lib_map[lib.get("name", "")] = lib
@@ -239,21 +273,12 @@ class LauncherEngine:
     # ── Construcción del comando ──────────────────────────────────────────────
 
     def _build_jvm_args(self, profile: Profile, client_jar: str, version_data: dict) -> list[str]:
-        """
-        Construye los argumentos de la JVM.
-
-        Incluye:
-        - Memoria mínima (512 MB fija) y máxima (configurada en el perfil)
-        - Flags de rendimiento G1GC recomendados para Minecraft
-        - Ruta de librerías nativas del juego
-        - Ruta del JAR del cliente (requerida por algunos loaders)
-        """
         ram = profile.ram_mb
         natives_dir = os.path.join(
             self._settings.versions_dir,
             profile.version_id,
             "natives"
-        ) # Asume que los natives ya fueron extraídos durante la instalación
+        )
 
         return [
             "-Xms512m",
@@ -274,12 +299,9 @@ class LauncherEngine:
         session: PlayerSession,
         version_data: dict,
     ) -> list[str]:
-        # Si el loader no tiene assetIndex, buscar en el JSON vanilla base
         assets_index = version_data.get("assetIndex", {}).get("id", "")
-        
+
         if not assets_index:
-            # Intentar leer del JSON vanilla directamente
-            import json
             vanilla_json = os.path.join(
                 self._settings.versions_dir,
                 profile.version_id,
@@ -310,9 +332,7 @@ class LauncherEngine:
 
         raw_args = self._extract_game_arguments(version_data)
 
-        # Si el version_data del loader no tiene game args, usar los del vanilla
         if not raw_args:
-            import json
             vanilla_json = os.path.join(
                 self._settings.versions_dir,
                 profile.version_id,
@@ -332,31 +352,34 @@ class LauncherEngine:
         return resolved
 
     def _extract_game_arguments(self, version_data: dict) -> list[str]:
-        """
-        Extrae la lista de argumentos del juego del JSON de versión.
-        Maneja tanto el formato nuevo (1.13+) como el viejo (pre-1.13).
-        """
-        # Formato nuevo
         if "arguments" in version_data:
             result = []
             for arg in version_data["arguments"].get("game", []):
                 if isinstance(arg, str):
                     result.append(arg)
-                # Los dicts son argumentos condicionales — los ignoramos por ahora
             return result
 
-        # Formato viejo
         if "minecraftArguments" in version_data:
             return version_data["minecraftArguments"].split()
 
         return []
-    
+
     def _build_classpath(self, version_id: str, version_data: dict) -> str:
         separator = ";" if os.name == "nt" else ":"
         paths = []
         seen = set()
 
+        # Extra classpaths de Fabric/Quilt (rutas absolutas directas)
+        for extra_path in version_data.get("__extra_classpaths__", []):
+            if extra_path not in seen and os.path.isfile(extra_path):
+                paths.append(extra_path)
+                seen.add(extra_path)
+
         for lib in version_data.get("libraries", []):
+            # Libs extras inyectadas por _resolve_fabric_like (ya en __extra_classpaths__)
+            if lib.get("name", "").startswith("__extra__:"):
+                continue
+
             artifact = lib.get("downloads", {}).get("artifact", {})
             path = artifact.get("path", "")
 
@@ -368,11 +391,9 @@ class LauncherEngine:
                         group       = parts[0].replace(".", "/")
                         artifact_id = parts[1]
                         version     = parts[2]
-                        path = os.path.join(
-                            group.replace(".", "/"),
-                            artifact_id,
-                            version,
-                            f"{artifact_id}-{version}.jar"
+                        path = (
+                            f"{group}/{artifact_id}/{version}"
+                            f"/{artifact_id}-{version}.jar"
                         )
 
             if not path or path in seen:
@@ -388,7 +409,8 @@ class LauncherEngine:
                 log.debug(f"Librería no encontrada: {lib_path}")
 
         client_jar = self._resolve_client_jar(version_id)
-        paths.append(client_jar)
+        if client_jar not in seen:
+            paths.append(client_jar)
 
         log.debug(f"Classpath con {len(paths)} entradas")
         return separator.join(paths)
@@ -396,7 +418,6 @@ class LauncherEngine:
     # ── Ejecución del proceso ─────────────────────────────────────────────────
 
     def _start_process(self, command, working_dir, on_output=None):
-        import subprocess
         os.makedirs(working_dir, exist_ok=True)
 
         kwargs = dict(
@@ -409,7 +430,6 @@ class LauncherEngine:
         )
 
         if os.name == "nt":
-            import ctypes
             kwargs["creationflags"] = (
                 subprocess.CREATE_NO_WINDOW |
                 subprocess.DETACHED_PROCESS
@@ -426,19 +446,7 @@ class LauncherEngine:
         except OSError as e:
             raise LaunchError(f"Error al iniciar el proceso: {e}")
 
-    def _start_output_reader(
-        self,
-        process: subprocess.Popen,
-        on_output,
-    ):
-        """
-        Lanza un hilo daemon que lee el output de Minecraft en tiempo real.
-
-        Por qué un hilo separado:
-        Si leyéramos el output en el hilo principal, el launcher se congelaría
-        esperando que el juego termine. Con un hilo daemon, el launcher sigue
-        respondiendo mientras el juego está corriendo.
-        """
+    def _start_output_reader(self, process: subprocess.Popen, on_output):
         def _reader():
             try:
                 for line in process.stdout:
@@ -457,19 +465,16 @@ class LauncherEngine:
     def _resolve_java(self, profile: Profile) -> str:
         from managers.java_manager import JavaNotFoundError, JavaVersionError
 
-        # 1. Java específico del perfil
         if profile.java_path and os.path.isfile(profile.java_path):
             log.debug(f"Java del perfil: {profile.java_path}")
             return profile.java_path
 
-        # 2. Leer el componente requerido por esta versión de MC
-        import json
         vanilla_json = os.path.join(
             self._settings.versions_dir,
             profile.version_id,
             f"{profile.version_id}.json",
         )
-        java_component = "java-runtime-gamma"  # default Java 21
+        java_component = "java-runtime-gamma"
         if os.path.isfile(vanilla_json):
             try:
                 with open(vanilla_json, "r", encoding="utf-8") as f:
@@ -488,32 +493,22 @@ class LauncherEngine:
             raise LaunchError(f"Java no disponible: {e}")
 
     def _resolve_client_jar(self, version_id: str) -> str:
-        """
-        Retorna la ruta al JAR del cliente de Minecraft para esta versión.
-
-        Raises:
-            LaunchError: Si el JAR no está en disco (versión no instalada)
-        """
         jar_path = os.path.join(
             self._settings.versions_dir,
             version_id,
             f"{version_id}.jar",
         )
 
-        # Los loaders (Fabric, Quilt) no tienen JAR propio —
-        # usan el JAR de la versión vanilla base.
         if not os.path.isfile(jar_path):
             parts        = version_id.split("-")
-            base_version = parts[0]  # "1.20.4" de "1.20.4-fabric-0.15.7"
+            base_version = parts[0]
             base_jar     = os.path.join(
                 self._settings.versions_dir,
                 base_version,
                 f"{base_version}.jar",
             )
             if os.path.isfile(base_jar):
-                log.debug(
-                    f"JAR del loader no existe — usando JAR base: {base_jar}"
-                )
+                log.debug(f"JAR del loader no existe — usando JAR base: {base_jar}")
                 return base_jar
 
             raise LaunchError(
