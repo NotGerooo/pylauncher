@@ -293,6 +293,10 @@ class JavaManager:
         runtime_dir_comp = os.path.join(self._settings.minecraft_dir, "runtime", component)
         os.makedirs(runtime_dir_comp, exist_ok=True)
 
+        total = len(files)
+        downloaded = 0
+        log.info(f"Descargando Java {component}: {total} archivos...")
+
         for file_path, file_info in files.items():
             file_type = file_info.get("type", "")
             dest = os.path.join(runtime_dir_comp, *file_path.split("/"))
