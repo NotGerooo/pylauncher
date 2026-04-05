@@ -460,7 +460,7 @@ class _ContentTab:
                         color=TEXT_DIM, size=10, text_align=ft.TextAlign.CENTER),
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4),
         )
-        self._list_col = ft.Column(spacing=0, scroll=ft.ScrollMode.AUTO, expand=True)
+        self._list_col = ft.Column(spacing=8, scroll=ft.ScrollMode.AUTO, expand=True)
 
         self.root = ft.Column([
             toolbar,
