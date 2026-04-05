@@ -5,7 +5,6 @@ import json
 import threading
 import urllib.request
 import urllib.parse
-import base64
 
 import flet as ft
 from gui.theme import (
@@ -26,57 +25,19 @@ _URL_MODPACKS = (
     '&facets=[[%22project_type:modpack%22]]'
 )
 
-# Paletas de color para placeholders (gradientes por índice)
-_PLACEHOLDER_GRADIENTS = [
-    ("#1a1f2e", "#2d6a4f"),  # verde bosque
-    ("#1a1a2e", "#16213e"),  # azul noche
-    ("#2d1b69", "#11998e"),  # morado-teal
-    ("#1e3c72", "#2a5298"),  # azul océano
-    ("#373b44", "#4286f4"),  # gris-azul
-    ("#200122", "#6f0000"),  # rojo oscuro
-    ("#0f2027", "#203a43"),  # slate
-    ("#1a1a1a", "#4a4e69"),  # antracita morado
-    ("#134e5e", "#71b280"),  # teal-verde
-    ("#0d0d0d", "#434343"),  # negro grafito
+# (gradiente_inicio, gradiente_fin, color_acento)
+_PALETTES = [
+    ("#0f2d1a", "#1a5c32", "#4ade80"),   # verde bosque
+    ("#0d1b3e", "#1a2f6b", "#60a5fa"),   # azul noche
+    ("#1e0a3c", "#3b1278", "#a78bfa"),   # morado profundo
+    ("#0a1f3d", "#0e4a7a", "#38bdf8"),   # azul océano
+    ("#1a0d00", "#5c2800", "#fb923c"),   # naranja quemado
+    ("#0d2626", "#0e5555", "#2dd4bf"),   # teal oscuro
+    ("#1f0a0a", "#6b1212", "#f87171"),   # rojo carmesí
+    ("#1a1208", "#5c3d08", "#fbbf24"),   # dorado oscuro
+    ("#0a1a0a", "#1a4a1a", "#86efac"),   # verde pino
+    ("#1a0a1f", "#4a1060", "#e879f9"),   # magenta oscuro
 ]
-
-# SVG inline para banner placeholder — generado con gradiente dinámico
-def _make_banner_svg(color1: str, color2: str, kind: str = "mod") -> str:
-    icon_path = (
-        # Cubo/modpack
-        "M50,15 L80,31 L80,63 L50,79 L20,63 L20,31 Z "
-        "M50,15 L50,47 M80,31 L50,47 M20,31 L50,47"
-        if kind == "modpack"
-        # Pieza de puzzle/mod
-        else "M20,30 L45,30 C45,30 42,20 50,20 C58,20 55,30 55,30 "
-             "L80,30 L80,55 C80,55 90,52 90,60 C90,68 80,65 80,65 "
-             "L80,75 L20,75 L20,65 C20,65 10,68 10,60 C10,52 20,55 20,55 Z"
-    )
-    stroke_color = "#4ade80" if kind == "mod" else "#60a5fa"
-    return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="260" height="130" viewBox="0 0 260 130">'
-        f'  <defs>'
-        f'    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">'
-        f'      <stop offset="0%" style="stop-color:{color1};stop-opacity:1" />'
-        f'      <stop offset="100%" style="stop-color:{color2};stop-opacity:1" />'
-        f'    </linearGradient>'
-        f'    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">'
-        f'      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>'
-        f'    </pattern>'
-        f'  </defs>'
-        f'  <rect width="260" height="130" fill="url(#bg)"/>'
-        f'  <rect width="260" height="130" fill="url(#grid)"/>'
-        f'  <g transform="translate(110, 18) scale(0.77)">'
-        f'    <path d="{icon_path}" fill="none" stroke="{stroke_color}" stroke-width="2.5"'
-        f'      stroke-linejoin="round" stroke-linecap="round" opacity="0.85"/>'
-        f'  </g>'
-        f'  <rect width="260" height="130" fill="url(#bg)" opacity="0.15"/>'
-        f'</svg>'
-    )
-
-def _svg_to_data_uri(svg: str) -> str:
-    encoded = base64.b64encode(svg.encode("utf-8")).decode("utf-8")
-    return f"data:image/svg+xml;base64,{encoded}"
 
 
 def _fmt(n: int) -> str:
@@ -89,7 +50,7 @@ def _fmt(n: int) -> str:
 
 def _get(url: str) -> dict | list:
     req = urllib.request.Request(url, headers=_HEADERS)
-    with urllib.request.urlopen(req, timeout=10) as r:
+    with urllib.request.urlopen(req, timeout=15) as r:
         return json.loads(r.read().decode())
 
 
@@ -97,21 +58,107 @@ def _fetch_with_gallery(search_url: str) -> list[dict]:
     hits = _get(search_url).get("hits", [])
     if not hits:
         return []
-
-    ids = [h["project_id"] for h in hits]
+    ids       = [h["project_id"] for h in hits]
     ids_param = urllib.parse.quote(json.dumps(ids))
-    bulk_url = f"https://api.modrinth.com/v2/projects?ids={ids_param}"
-    projects = {p["id"]: p for p in _get(bulk_url)}
-
+    bulk_url  = f"https://api.modrinth.com/v2/projects?ids={ids_param}"
+    projects  = {p["id"]: p for p in _get(bulk_url)}
     for hit in hits:
-        proj = projects.get(hit["project_id"], {})
+        proj    = projects.get(hit["project_id"], {})
         gallery = proj.get("gallery") or []
         featured = next((g["url"] for g in gallery if g.get("featured")), None)
         fallback = gallery[0]["url"] if gallery else None
         hit["_banner"] = featured or fallback or hit.get("featured_gallery") or ""
-
     return hits
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Placeholders usando sólo ft.Container + ft.Column/Row (sin Stack posicional)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _banner_placeholder(idx: int, kind: str = "mod") -> ft.Container:
+    """
+    Banner 260×130 con gradiente, badge de tipo e ícono central.
+    Usa sólo Column/Row para evitar bugs de posicionamiento absoluto en Stack.
+    """
+    c1, c2, accent = _PALETTES[idx % len(_PALETTES)]
+    ico = ft.icons.WIDGETS_OUTLINED if kind == "modpack" else ft.icons.EXTENSION_OUTLINED
+    label = "MODPACK" if kind == "modpack" else "MOD"
+
+    # Fila superior: badge tipo alineado a la derecha
+    top_row = ft.Row(
+        [
+            ft.Container(expand=True),          # spacer
+            ft.Container(
+                content=ft.Text(
+                    label, size=9,
+                    color=ft.colors.with_opacity(0.8, accent),
+                    weight=ft.FontWeight.W_700,
+                    letter_spacing=1.5,
+                ),
+                padding=ft.padding.symmetric(horizontal=8, vertical=4),
+                bgcolor=ft.colors.with_opacity(0.18, accent),
+                border_radius=4,
+                border=ft.border.all(1, ft.colors.with_opacity(0.25, accent)),
+            ),
+        ],
+    )
+
+    # Centro: ícono con halo circular
+    center = ft.Row(
+        [
+            ft.Container(
+                width=56, height=56,
+                border_radius=28,
+                bgcolor=ft.colors.with_opacity(0.15, accent),
+                border=ft.border.all(1, ft.colors.with_opacity(0.3, accent)),
+                content=ft.Icon(ico, color=accent, size=26),
+                alignment=ft.alignment.center,
+            )
+        ],
+        alignment=ft.MainAxisAlignment.CENTER,
+    )
+
+    return ft.Container(
+        width=260, height=130,
+        border_radius=ft.border_radius.only(top_left=10, top_right=10),
+        clip_behavior=ft.ClipBehavior.HARD_EDGE,
+        gradient=ft.LinearGradient(
+            begin=ft.alignment.top_left,
+            end=ft.alignment.bottom_right,
+            colors=[c1, c2],
+        ),
+        content=ft.Column(
+            [
+                ft.Container(content=top_row, padding=ft.padding.only(right=10, top=8)),
+                ft.Container(content=center, expand=True),
+                ft.Container(height=8),          # padding inferior
+            ],
+            spacing=0,
+            expand=True,
+        ),
+    )
+
+
+def _icon_placeholder(idx: int, kind: str = "mod") -> ft.Container:
+    """Ícono 40×40 con gradiente."""
+    c1, c2, accent = _PALETTES[idx % len(_PALETTES)]
+    ico = ft.icons.WIDGETS_OUTLINED if kind == "modpack" else ft.icons.EXTENSION_OUTLINED
+    return ft.Container(
+        width=40, height=40,
+        border_radius=ft.border_radius.all(8),
+        gradient=ft.LinearGradient(
+            begin=ft.alignment.top_left,
+            end=ft.alignment.bottom_right,
+            colors=[c1, c2],
+        ),
+        content=ft.Icon(ico, color=accent, size=20),
+        alignment=ft.alignment.center,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Vista principal
+# ─────────────────────────────────────────────────────────────────────────────
 
 class HomeView:
     def __init__(self, page: ft.Page, app):
@@ -132,64 +179,11 @@ class HomeView:
                 [
                     self._build_header(),
                     ft.Divider(height=1, color=BORDER, thickness=1),
-
-                    # ── Sección Mods ──────────────────────────────────────
-                    ft.Row(
-                        [
-                            ft.Row(
-                                [
-                                    ft.Container(
-                                        width=4, height=18,
-                                        bgcolor=GREEN,
-                                        border_radius=2,
-                                    ),
-                                    ft.Text(
-                                        "Mods populares", color=TEXT_PRI,
-                                        size=15, weight=ft.FontWeight.W_600,
-                                    ),
-                                ],
-                                spacing=10,
-                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                            ),
-                            self._mods_status,
-                        ],
-                        spacing=14,
-                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                    ),
-                    ft.Container(
-                        content=self._mods_row,
-                        height=340,
-                    ),
-
+                    self._section_title("Mods populares",     GREEN,      self._mods_status),
+                    ft.Container(content=self._mods_row,  height=340),
                     ft.Divider(height=1, color=BORDER, thickness=1),
-
-                    # ── Sección Modpacks ──────────────────────────────────
-                    ft.Row(
-                        [
-                            ft.Row(
-                                [
-                                    ft.Container(
-                                        width=4, height=18,
-                                        bgcolor="#60a5fa",
-                                        border_radius=2,
-                                    ),
-                                    ft.Text(
-                                        "Modpacks populares", color=TEXT_PRI,
-                                        size=15, weight=ft.FontWeight.W_600,
-                                    ),
-                                ],
-                                spacing=10,
-                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                            ),
-                            self._packs_status,
-                        ],
-                        spacing=14,
-                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                    ),
-                    ft.Container(
-                        content=self._packs_row,
-                        height=340,
-                    ),
+                    self._section_title("Modpacks populares", "#60a5fa",  self._packs_status),
+                    ft.Container(content=self._packs_row, height=340),
                 ],
                 spacing=14,
                 expand=True,
@@ -208,24 +202,17 @@ class HomeView:
                         [
                             ft.Row(
                                 [
-                                    ft.Icon(
-                                        ft.icons.ROCKET_LAUNCH_ROUNDED,
-                                        color=GREEN, size=28,
-                                    ),
-                                    ft.Text(
-                                        "PyLauncher",
-                                        size=28,
-                                        weight=ft.FontWeight.BOLD,
-                                        color=TEXT_PRI,
-                                    ),
+                                    ft.Icon(ft.icons.ROCKET_LAUNCH_ROUNDED,
+                                            color=GREEN, size=26),
+                                    ft.Text("PyLauncher", size=26,
+                                            weight=ft.FontWeight.BOLD, color=TEXT_PRI),
                                 ],
                                 spacing=10,
                                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                             ),
                             ft.Text(
                                 "Descubre y gestiona tus mods favoritos de Minecraft",
-                                color=TEXT_SEC,
-                                size=13,
+                                color=TEXT_SEC, size=13,
                             ),
                         ],
                         spacing=4,
@@ -235,19 +222,17 @@ class HomeView:
                         content=ft.Row(
                             [
                                 ft.Icon(ft.icons.EXPLORE_OUTLINED, size=16, color=BG),
-                                ft.Text(
-                                    "Explorar mods",
-                                    size=13,
-                                    weight=ft.FontWeight.W_600,
-                                    color=BG,
-                                ),
+                                ft.Text("Explorar mods", size=13,
+                                        weight=ft.FontWeight.W_600, color=BG),
                             ],
                             spacing=6,
                         ),
                         on_click=self._go_to_discover,
                         style=ft.ButtonStyle(
-                            bgcolor={ft.MaterialState.DEFAULT: GREEN,
-                                     ft.MaterialState.HOVERED: "#22c55e"},
+                            bgcolor={
+                                ft.MaterialState.DEFAULT: GREEN,
+                                ft.MaterialState.HOVERED: "#22c55e",
+                            },
                             shape=ft.RoundedRectangleBorder(radius=8),
                             padding=ft.padding.symmetric(horizontal=18, vertical=12),
                             elevation=0,
@@ -260,10 +245,28 @@ class HomeView:
             ),
         )
 
+    @staticmethod
+    def _section_title(label: str, accent: str, status: ft.Text) -> ft.Row:
+        return ft.Row(
+            [
+                ft.Row(
+                    [
+                        ft.Container(width=4, height=18, bgcolor=accent, border_radius=2),
+                        ft.Text(label, color=TEXT_PRI, size=15,
+                                weight=ft.FontWeight.W_600),
+                    ],
+                    spacing=10,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+                status,
+            ],
+            spacing=14,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        )
+
     # ── Navegación ────────────────────────────────────────────────────────────
 
     def _go_to_discover(self, _e):
-        """Navega a la vista de descubrimiento/exploración de mods."""
         for dest in ("discover", "mods", "browse", "search"):
             try:
                 self.app.navigate(dest)
@@ -311,47 +314,43 @@ class HomeView:
         follows    = _fmt(mod.get("follows", 0))
         cats       = mod.get("display_categories") or mod.get("categories") or []
         cat_label  = cats[0].capitalize() if cats else ""
+        accent     = GREEN if kind == "mod" else "#60a5fa"
+        ph_idx     = idx % len(_PALETTES)
 
-        # Colores del placeholder según índice cíclico
-        grad = _PLACEHOLDER_GRADIENTS[idx % len(_PLACEHOLDER_GRADIENTS)]
-
-        # Banner
+        # Banner ──────────────────────────────────────────────────────────────
+        ph_banner = _banner_placeholder(ph_idx, kind)
         if banner_url:
             banner: ft.Control = ft.Image(
                 src=banner_url, width=260, height=130,
                 fit=ft.ImageFit.COVER,
                 border_radius=ft.border_radius.only(top_left=10, top_right=10),
-                error_content=self._make_svg_banner(grad, kind),
+                error_content=ph_banner,
             )
         else:
-            banner = self._make_svg_banner(grad, kind)
+            banner = ph_banner
 
-        # Ícono
+        # Ícono ───────────────────────────────────────────────────────────────
+        ph_icon = _icon_placeholder(ph_idx, kind)
         if icon_url:
-            icon: ft.Control = ft.Image(
+            icon_ctrl: ft.Control = ft.Image(
                 src=icon_url, width=40, height=40,
                 border_radius=ft.border_radius.all(8),
                 fit=ft.ImageFit.COVER,
-                error_content=self._make_svg_icon(grad, kind),
+                error_content=ph_icon,
             )
         else:
-            icon = self._make_svg_icon(grad, kind)
+            icon_ctrl = ph_icon
 
-        # Stats row
-        accent = GREEN if kind == "mod" else "#60a5fa"
+        # Stats ───────────────────────────────────────────────────────────────
         stat_items: list[ft.Control] = [
             ft.Row(
-                [
-                    ft.Icon(ft.icons.DOWNLOAD_OUTLINED, size=12, color=TEXT_DIM),
-                    ft.Text(downloads, size=11, color=TEXT_DIM),
-                ],
+                [ft.Icon(ft.icons.DOWNLOAD_OUTLINED, size=12, color=TEXT_DIM),
+                 ft.Text(downloads, size=11, color=TEXT_DIM)],
                 spacing=3,
             ),
             ft.Row(
-                [
-                    ft.Icon(ft.icons.FAVORITE_BORDER, size=12, color=TEXT_DIM),
-                    ft.Text(follows, size=11, color=TEXT_DIM),
-                ],
+                [ft.Icon(ft.icons.FAVORITE_BORDER, size=12, color=TEXT_DIM),
+                 ft.Text(follows, size=11, color=TEXT_DIM)],
                 spacing=3,
             ),
         ]
@@ -373,23 +372,16 @@ class HomeView:
                 [
                     ft.Row(
                         [
-                            icon,
-                            ft.Text(
-                                title, size=13,
-                                weight=ft.FontWeight.BOLD,
-                                color=TEXT_PRI, expand=True,
-                                overflow=ft.TextOverflow.ELLIPSIS,
-                                max_lines=1,
-                            ),
+                            icon_ctrl,
+                            ft.Text(title, size=13, weight=ft.FontWeight.BOLD,
+                                    color=TEXT_PRI, expand=True,
+                                    overflow=ft.TextOverflow.ELLIPSIS, max_lines=1),
                         ],
                         spacing=9,
                         vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
-                    ft.Text(
-                        desc, size=11, color=TEXT_SEC,
-                        max_lines=3,
-                        overflow=ft.TextOverflow.ELLIPSIS,
-                    ),
+                    ft.Text(desc, size=11, color=TEXT_SEC,
+                            max_lines=3, overflow=ft.TextOverflow.ELLIPSIS),
                     ft.Row(stat_items, spacing=8),
                 ],
                 spacing=7,
@@ -397,58 +389,14 @@ class HomeView:
         )
 
         card = ft.Container(
-            width=260,
-            bgcolor=CARD_BG,
+            width=260, bgcolor=CARD_BG,
             border_radius=10,
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
             border=ft.border.all(1, BORDER),
             content=ft.Column([banner, body], spacing=0),
-            animate_opacity=200,
         )
         card.on_hover = lambda e, c=card: self._on_card_hover(e, c)
         return card
-
-    # ── Placeholders SVG ──────────────────────────────────────────────────────
-
-    @staticmethod
-    def _make_svg_banner(
-        grad: tuple[str, str],
-        kind: str = "mod",
-    ) -> ft.Container:
-        """Banner placeholder con gradiente SVG y patrón de cuadrícula."""
-        svg = _make_banner_svg(grad[0], grad[1], kind)
-        data_uri = _svg_to_data_uri(svg)
-        return ft.Container(
-            width=260, height=130,
-            border_radius=ft.border_radius.only(top_left=10, top_right=10),
-            clip_behavior=ft.ClipBehavior.HARD_EDGE,
-            content=ft.Image(
-                src=data_uri,
-                width=260, height=130,
-                fit=ft.ImageFit.COVER,
-            ),
-        )
-
-    @staticmethod
-    def _make_svg_icon(
-        grad: tuple[str, str],
-        kind: str = "mod",
-    ) -> ft.Container:
-        """Ícono placeholder con gradiente SVG pequeño."""
-        ico = ft.icons.WIDGETS_OUTLINED if kind == "modpack" else ft.icons.EXTENSION_OUTLINED
-        # Ícono con fondo gradiente usando Container + stack
-        accent = "#60a5fa" if kind == "modpack" else "#4ade80"
-        return ft.Container(
-            width=40, height=40,
-            border_radius=ft.border_radius.all(8),
-            gradient=ft.LinearGradient(
-                begin=ft.alignment.top_left,
-                end=ft.alignment.bottom_right,
-                colors=[grad[0], grad[1]],
-            ),
-            content=ft.Icon(ico, color=accent, size=20),
-            alignment=ft.alignment.center,
-        )
 
     # ── Hover ─────────────────────────────────────────────────────────────────
 
