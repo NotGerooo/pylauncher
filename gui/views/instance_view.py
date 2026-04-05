@@ -339,6 +339,7 @@ class _ContentTab:
         self._author_cache: dict[str, dict | None] = {}
         self._pid_cache:    dict[str, str]          = {}
         self._fetch_lock = threading.Lock()
+        self._update_cache: dict[str, str | None] = {}  # path -> latest_version_id or None
 
         # Versión del refresh — cancela redraws de fetches anteriores
         self._refresh_token = 0
