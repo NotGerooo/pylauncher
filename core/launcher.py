@@ -455,23 +455,35 @@ class LauncherEngine:
     # ── Helpers de rutas ─────────────────────────────────────────────────────
 
     def _resolve_java(self, profile: Profile) -> str:
-        """
-        Decide qué Java usar en este orden de prioridad:
-        1. Java específico configurado en el perfil
-        2. Java global del launcher (Settings)
-        3. Java autodetectado por JavaManager
-
-        Raises:
-            LaunchError: Si no se encuentra ningún Java válido
-        """
         from managers.java_manager import JavaNotFoundError, JavaVersionError
 
+        # 1. Java específico del perfil
         if profile.java_path and os.path.isfile(profile.java_path):
             log.debug(f"Java del perfil: {profile.java_path}")
             return profile.java_path
 
+        # 2. Leer el componente requerido por esta versión de MC
+        import json
+        vanilla_json = os.path.join(
+            self._settings.versions_dir,
+            profile.version_id,
+            f"{profile.version_id}.json",
+        )
+        java_component = "java-runtime-gamma"  # default Java 21
+        if os.path.isfile(vanilla_json):
+            try:
+                with open(vanilla_json, "r", encoding="utf-8") as f:
+                    vdata = json.load(f)
+                java_component = vdata.get("javaVersion", {}).get(
+                    "component", "java-runtime-gamma"
+                )
+            except Exception:
+                pass
+
+        log.debug(f"Componente Java requerido: {java_component}")
+
         try:
-            return self._java_manager.get_java_path()
+            return self._java_manager.get_java_path_for_component(java_component)
         except (JavaNotFoundError, JavaVersionError) as e:
             raise LaunchError(f"Java no disponible: {e}")
 
