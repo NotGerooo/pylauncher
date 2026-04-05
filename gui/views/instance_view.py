@@ -524,6 +524,7 @@ class _ContentTab:
                         alignment=ft.alignment.bottom_center,
                         padding=ft.padding.only(bottom=20),
                         content=self._bulk_bar,
+                        ignore_interactions=True,   # ← esto
                     ),
                 ]),
             ),
