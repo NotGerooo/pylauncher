@@ -1375,8 +1375,8 @@ class _ContentTab:
                         self.app.snack("Path copied."))),
                 ft.Divider(height=1, color=BORDER),
                 _hoverable(ft.icons.DELETE_OUTLINE_ROUNDED, "Delete",
-                    lambda e: (self.page.close(sheet),
-                        self._delete(item)), color=ACCENT_RED),
+                    lambda e, _i=item: (self.page.close(sheet),
+                        self._delete(_i)), color=ACCENT_RED),
             ]
 
             sheet = ft.BottomSheet(
