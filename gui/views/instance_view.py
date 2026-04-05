@@ -638,23 +638,34 @@ class _ContentTab:
         self._refresh_token += 1
         token = self._refresh_token
 
-        # Limpiar lista inmediatamente (no bloquea)
+        items = self._sorted(self._collect_items())
+
         self._list_col.controls.clear()
-        self._empty_lbl.visible = False
+        self._empty_lbl.visible = (len(items) == 0)
+        self._search_field.hint_text = f"Search {len(items)} projects..."
+        for item in items:
+            self._list_col.controls.append(self._make_row(item))
         try:
             self._list_col.update()
             self._empty_lbl.update()
+            self._search_field.update()
         except Exception:
             pass
 
-        # Todo lo pesado va al background
-        def background_work():
-            if token != self._refresh_token:
-                return
-            items = self._sorted(self._collect_items())
-            if token != self._refresh_token:
-                return
-            self.page.run_thread(lambda: _draw(items))
+        with self._fetch_lock:
+            missing_icons = [i for i in items if i["path"] not in self._icon_cache]
+        if missing_icons:
+            threading.Thread(
+                target=self._fetch_icons_batch,
+                args=(missing_icons, token), daemon=True
+            ).start()
+        else:
+            self._launch_author_fetch(items, token)
+
+        threading.Thread(
+            target=self._check_updates_batch,
+            args=(items, token), daemon=True
+        ).start()
 
         def _draw(items):
             if token != self._refresh_token:
