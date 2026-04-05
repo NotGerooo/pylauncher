@@ -467,7 +467,7 @@ class SidebarRight:
             self._hide_toggle_lbl.update()
         except Exception:
             pass
-        self._fire_filter_change()
+        self._on_filter_change()
 
     # ── Loader section ────────────────────────────────────────────────────────
     def _detect_loader_from_profile(self, profile) -> str | None:
