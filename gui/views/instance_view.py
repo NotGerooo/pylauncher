@@ -628,56 +628,56 @@ class _ContentTab:
                 args=(items, token), daemon=True
             ).start()
 
-def _on_check(self, path: str, checked: bool):
-    if checked:
-        self._selected_paths.add(path)
-    else:
-        self._selected_paths.discard(path)
-    self._update_bulk_bar()
+    def _on_check(self, path: str, checked: bool):
+        if checked:
+            self._selected_paths.add(path)
+        else:
+            self._selected_paths.discard(path)
+        self._update_bulk_bar()
 
-def _update_bulk_bar(self):
-    count = len(self._selected_paths)
-    if count == 0:
-        self._bulk_bar.visible = False
-    else:
-        self._bulk_count_lbl.value = f"{count} selected"
-        self._bulk_bar.visible = True
-    try:
-        self._bulk_bar.update()
-    except Exception:
-        pass
+    def _update_bulk_bar(self):
+        count = len(self._selected_paths)
+        if count == 0:
+            self._bulk_bar.visible = False
+        else:
+            self._bulk_count_lbl.value = f"{count} selected"
+            self._bulk_bar.visible = True
+        try:
+            self._bulk_bar.update()
+        except Exception:
+            pass
 
-def _bulk_enable(self, e):
-    for path in list(self._selected_paths):
-        if path.endswith(".disabled"):
-            new_path = path.removesuffix(".disabled")
-            try:
-                os.rename(path, new_path)
-                with self._fetch_lock:
-                    for cache in (self._icon_cache, self._author_cache,
-                                  self._pid_cache, self._update_cache):
-                        if path in cache:
-                            cache[new_path] = cache.pop(path)
-            except OSError:
-                pass
-    self._selected_paths.clear()
-    self._refresh()
+    def _bulk_enable(self, e):
+        for path in list(self._selected_paths):
+            if path.endswith(".disabled"):
+                new_path = path.removesuffix(".disabled")
+                try:
+                    os.rename(path, new_path)
+                    with self._fetch_lock:
+                        for cache in (self._icon_cache, self._author_cache,
+                                    self._pid_cache, self._update_cache):
+                            if path in cache:
+                                cache[new_path] = cache.pop(path)
+                except OSError:
+                    pass
+        self._selected_paths.clear()
+        self._refresh()
 
-def _bulk_disable(self, e):
-    for path in list(self._selected_paths):
-        if not path.endswith(".disabled"):
-            new_path = path + ".disabled"
-            try:
-                os.rename(path, new_path)
-                with self._fetch_lock:
-                    for cache in (self._icon_cache, self._author_cache,
-                                  self._pid_cache, self._update_cache):
-                        if path in cache:
-                            cache[new_path] = cache.pop(path)
-            except OSError:
-                pass
-    self._selected_paths.clear()
-    self._refresh()
+    def _bulk_disable(self, e):
+        for path in list(self._selected_paths):
+            if not path.endswith(".disabled"):
+                new_path = path + ".disabled"
+                try:
+                    os.rename(path, new_path)
+                    with self._fetch_lock:
+                        for cache in (self._icon_cache, self._author_cache,
+                                    self._pid_cache, self._update_cache):
+                            if path in cache:
+                                cache[new_path] = cache.pop(path)
+                except OSError:
+                    pass
+        self._selected_paths.clear()
+        self._refresh()
 
     def _bulk_delete(self, e):
         count = len(self._selected_paths)
