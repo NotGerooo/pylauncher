@@ -87,70 +87,77 @@ class InstanceView:
         icon_label = LOADER_ICONS.get(loader, "Game")
 
         self._play_btn = ft.ElevatedButton(
-            "> Play",
+            "Play",
+            icon=ft.icons.PLAY_ARROW_ROUNDED,
             bgcolor=GREEN, color=TEXT_INV,
             style=ft.ButtonStyle(
                 shape=ft.RoundedRectangleBorder(radius=8),
-                padding=ft.padding.symmetric(horizontal=20, vertical=12),
+                padding=ft.padding.symmetric(horizontal=24, vertical=14),
             ),
             on_click=self._on_play,
         )
 
         header = ft.Container(
             bgcolor=CARD_BG,
-            padding=ft.padding.symmetric(horizontal=28, vertical=16),
+            padding=ft.padding.symmetric(horizontal=28, vertical=20),
             border=ft.border.only(bottom=ft.BorderSide(1, BORDER)),
             content=ft.Row([
-                ft.IconButton(
-                    icon=ft.icons.ARROW_BACK_IOS_NEW_ROUNDED,
-                    icon_color=TEXT_DIM, icon_size=18,
-                    tooltip="Volver a Biblioteca",
-                    on_click=lambda e: self.app._show_view("library"),
-                ),
-                ft.Container(width=8),
                 ft.Container(
-                    width=44, height=44, border_radius=10,
+                    width=64, height=64, border_radius=14,
                     bgcolor=CARD2_BG, alignment=ft.alignment.center,
-                    content=ft.Text(icon_label, size=11, color=TEXT_SEC),
+                    content=ft.Icon(ft.icons.WIDGETS_ROUNDED, size=32, color=TEXT_SEC),
                 ),
-                ft.Container(width=14),
+                ft.Container(width=18),
                 ft.Column([
-                    ft.Text(self.profile.name, color=TEXT_PRI, size=16,
+                    ft.Text(self.profile.name, color=TEXT_PRI, size=20,
                             weight=ft.FontWeight.BOLD),
-                    ft.Text(
-                        f"{loader.capitalize()}  -  Minecraft {self.profile.version_id}"
-                        f"  -  {self.profile.ram_mb} MB RAM",
-                        color=TEXT_DIM, size=9),
-                ], spacing=3),
+                    ft.Row([
+                        ft.Text(loader.capitalize(), color=GREEN, size=11,
+                                weight=ft.FontWeight.W_500),
+                        ft.Text("  •  ", color=TEXT_DIM, size=11),
+                        ft.Text(f"Minecraft {self.profile.version_id}",
+                                color=TEXT_SEC, size=11),
+                        ft.Text("  •  ", color=TEXT_DIM, size=11),
+                        ft.Text("Never played", color=TEXT_DIM, size=11),
+                    ], spacing=0),
+                ], spacing=6, expand=True),
                 ft.Container(expand=True),
                 ft.IconButton(
-                    icon=ft.icons.SETTINGS_OUTLINED,
+                    icon=ft.icons.SETTINGS_ROUNDED,
                     icon_color=TEXT_DIM, icon_size=20,
                     tooltip="Editar instancia",
                     on_click=lambda e: self._open_edit(),
                 ),
-                ft.Container(width=8),
+                ft.Container(width=4),
                 self._play_btn,
             ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
         )
 
         tabs_data = [
-            ("content", "Content"),
-            ("files",   "Files"),
-            ("worlds",  "Worlds"),
-            ("logs",    "Logs"),
+            ("content", "Content", ft.icons.EXTENSION_ROUNDED),
+            ("files",   "Files",   ft.icons.FOLDER_ROUNDED),
+            ("worlds",  "Worlds",  ft.icons.PUBLIC_ROUNDED),
+            ("logs",    "Logs",    ft.icons.TERMINAL_ROUNDED),
         ]
         self._tab_btns = {}
-        tab_row = ft.Row(spacing=0)
-        for tid, tlabel in tabs_data:
-            btn = self._make_tab_btn(tid, tlabel)
+        tab_row = ft.Row(spacing=6, controls=[
+            ft.IconButton(
+                icon=ft.icons.ARROW_BACK_IOS_NEW_ROUNDED,
+                icon_color=TEXT_DIM, icon_size=16,
+                tooltip="Volver a Biblioteca",
+                on_click=lambda e: self.app._show_view("library"),
+            ),
+            ft.Container(width=4),
+        ])
+        for tid, tlabel, ticon in tabs_data:
+            btn = self._make_tab_btn(tid, tlabel, ticon)
             self._tab_btns[tid] = btn
             tab_row.controls.append(btn)
 
         tab_bar = ft.Container(
             bgcolor=CARD_BG,
             border=ft.border.only(bottom=ft.BorderSide(1, BORDER)),
-            padding=ft.padding.only(left=24, right=24),
+            padding=ft.padding.symmetric(horizontal=20, vertical=10),
             content=tab_row,
         )
 
@@ -161,21 +168,30 @@ class InstanceView:
             controls=[header, tab_bar, self._tab_area],
         )
 
-    def _make_tab_btn(self, tid, label):
+    def _make_tab_btn(self, tid, label, icon):
         active = tid == self._active_tab
-        text = ft.Text(label, color=GREEN if active else TEXT_SEC, size=10,
-                       weight=ft.FontWeight.BOLD if active else ft.FontWeight.NORMAL)
-        ind = ft.Container(height=2, border_radius=1,
-                           bgcolor=GREEN if active else "transparent")
         btn = ft.Container(
-            padding=ft.padding.symmetric(horizontal=18, vertical=12),
+            bgcolor=GREEN if active else "transparent",
+            border_radius=20,
+            padding=ft.padding.symmetric(horizontal=16, vertical=8),
+            animate=ft.animation.Animation(150, ft.AnimationCurve.EASE_OUT),
             on_click=lambda e, t=tid: self._switch_tab(t),
-            content=ft.Column([text, ind], spacing=4, tight=True),
+            content=ft.Row([
+                ft.Icon(icon, size=14,
+                        color=TEXT_INV if active else TEXT_SEC),
+                ft.Container(width=6),
+                ft.Text(label,
+                        color=TEXT_INV if active else TEXT_SEC,
+                        size=11, weight=ft.FontWeight.W_600),
+            ], spacing=0, tight=True),
         )
-        btn._text = text
-        btn._ind  = ind
+        btn.on_hover = lambda e, b=btn, t=tid: (
+            None if t == self._active_tab else (
+                setattr(b, "bgcolor", CARD2_BG if e.data == "true" else "transparent")
+                or b.update()
+            )
+        )
         return btn
-
     def _switch_tab(self, tid):
         self._active_tab = tid
         for t, btn in self._tab_btns.items():
