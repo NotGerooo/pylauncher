@@ -251,12 +251,14 @@ class InstanceView:
             session      = self.app.auth_service.create_offline_session(username)
             version_data = self.app.version_manager.get_version_data(self.profile.version_id)
         except Exception as ex:
-            self.app.snack(str(ex), error=True)
-            return
-
-        self._play_btn.disabled = True
-        try: self._play_btn.update()
-        except Exception: pass
+            _ex = ex  # capturar antes de que salga del scope
+            log.error(f"Launch error: {_ex}")
+            def err():
+                self._play_btn.disabled = False
+                try: self._play_btn.update()
+                except Exception: pass
+                self.app.snack(str(_ex), error=True)
+            self.page.run_thread(err)
 
         def run():
             try:
