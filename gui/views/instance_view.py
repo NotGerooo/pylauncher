@@ -568,28 +568,34 @@ class _ContentTab:
         return items
 
     def _refresh(self):
-        # Incrementar token — fetches en curso con token viejo no harán redraw
         self._refresh_token += 1
         token = self._refresh_token
 
-        items = self._sorted(self._collect_items())
+        # Mostrar estado de carga inmediatamente en UI thread
+        self._list_col.controls.clear()
+        self._empty_lbl.visible = False
+        for _ in range(4):
+            self._list_col.controls.append(self._skeleton_card())
+        try:
+            self._list_col.update()
+            self._empty_lbl.update()
+        except Exception:
+            pass
 
-        # Dibujar lista con lo que hay en caché ahora mismo (inmediato, sin bloquear)
-        self._draw_list(items)
+        # Mover filesystem + build de cards a background
+        def do_in_background():
+            if token != self._refresh_token:
+                return
+            items = self._sorted(self._collect_items())
+            if token != self._refresh_token:
+                return
+            self.page.run_thread(lambda: self._draw_list(items, token))
 
-        # Lanzar fetch de íconos/autores en background
-        with self._fetch_lock:
-            missing = [i for i in items if i["path"] not in self._icon_cache]
+        threading.Thread(target=do_in_background, daemon=True).start()
 
-        if missing:
-            threading.Thread(
-                target=self._fetch_icons_batch,
-                args=(missing, token), daemon=True
-            ).start()
-        else:
-            self._launch_author_fetch(items, token)
-
-    def _draw_list(self, items):
+    def _draw_list(self, items, token=None):
+        if token is not None and token != self._refresh_token:
+            return
         self._list_col.controls.clear()
         self._empty_lbl.visible = len(items) == 0
         self._search_field.hint_text = f"Search {len(items)} projects..."
@@ -601,6 +607,20 @@ class _ContentTab:
             self._search_field.update()
         except Exception:
             pass
+
+        # Fetch de iconos solo si hay items
+        if items:
+            with self._fetch_lock:
+                missing = [i for i in items if i["path"] not in self._icon_cache]
+            if missing:
+                threading.Thread(
+                    target=self._fetch_icons_batch,
+                    args=(missing, token or self._refresh_token),
+                    daemon=True
+                ).start()
+            else:
+                self._launch_author_fetch(
+                    items, token or self._refresh_token)
 
     def _redraw_list(self, token: int):
         """Llamado desde hilo de background via page.run_thread. Ignora tokens viejos."""
