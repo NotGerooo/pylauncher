@@ -256,10 +256,10 @@ class JavaManager:
         return self._get_embedded_java_path() is not None
 
     def get_java_path_for_component(self, component: str) -> str:
-        """Obtiene Java para un componente específico requerido por la versión de MC."""
+        """Obtiene Java para el componente exacto requerido por la versión de MC."""
         runtime_dir = os.path.join(self._settings.minecraft_dir, "runtime")
         comp_dir = os.path.join(runtime_dir, component)
-        
+
         if os.path.isdir(comp_dir):
             java_exe = self._find_java_in_dir(comp_dir)
             if java_exe:
@@ -267,11 +267,68 @@ class JavaManager:
                 if is_valid:
                     log.info(f"Usando Java embebido: {java_exe}")
                     return java_exe
-        
-        # No está descargado — descargarlo
-        log.info(f"Componente {component} no encontrado, descargando...")
-        return self._download_component(component)
 
+        # No está — descargar ese componente específico
+        log.info(f"Componente {component} no encontrado, descargando...")
+        os_key = self._get_mojang_os_key()
+        manifest = self._fetch_json(_MOJANG_JAVA_MANIFEST)
+        comp_list = manifest.get(os_key, {}).get(component, [])
+
+        if not comp_list:
+            log.warning(f"{component} no disponible para {os_key}, usando java-runtime-gamma")
+            component = "java-runtime-gamma"
+            comp_list = manifest.get(os_key, {}).get(component, [])
+
+        if not comp_list:
+            raise JavaNotFoundError(f"No hay Java disponible para {os_key}")
+
+        component_data = comp_list[0]
+        manifest_url = component_data.get("manifest", {}).get("url", "")
+        if not manifest_url:
+            raise JavaNotFoundError("URL del manifest de Java no encontrada.")
+
+        files_manifest = self._fetch_json(manifest_url)
+        files = files_manifest.get("files", {})
+
+        runtime_dir_comp = os.path.join(self._settings.minecraft_dir, "runtime", component)
+        os.makedirs(runtime_dir_comp, exist_ok=True)
+
+        for file_path, file_info in files.items():
+            file_type = file_info.get("type", "")
+            dest = os.path.join(runtime_dir_comp, *file_path.split("/"))
+
+            if file_type == "directory":
+                os.makedirs(dest, exist_ok=True)
+                continue
+            if file_type != "file":
+                continue
+
+            raw = file_info.get("downloads", {}).get("raw", {})
+            url = raw.get("url", "")
+            if not url:
+                continue
+
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            expected_size = raw.get("size", 0)
+            if os.path.isfile(dest) and os.path.getsize(dest) == expected_size:
+                continue
+
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "GeroLauncher/1.0"})
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    with open(dest, "wb") as f:
+                        f.write(resp.read())
+                if file_info.get("executable", False) and os.name != "nt":
+                    os.chmod(dest, 0o755)
+            except Exception as e:
+                log.debug(f"Error descargando {file_path}: {e}")
+
+        java_exe = self._find_java_in_dir(runtime_dir_comp)
+        if not java_exe:
+            raise JavaNotFoundError(f"Java descargado pero ejecutable no encontrado en {runtime_dir_comp}")
+
+        log.info(f"Java listo en: {java_exe}")
+        return java_exe
 
     # ── Métodos internos ──────────────────────────────────────────────────────
 
