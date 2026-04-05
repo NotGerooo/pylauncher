@@ -231,7 +231,7 @@ class HomeView:
                                 [
                                     ft.Icon(ft.icons.ROCKET_LAUNCH_ROUNDED,
                                             color=GREEN, size=26),
-                                    ft.Text("PyLauncher", size=26,
+                                    ft.Text("Gero´s Launcher", size=26,
                                             weight=ft.FontWeight.BOLD, color=TEXT_PRI),
                                 ],
                                 spacing=10,
