@@ -858,93 +858,82 @@ class _ContentTab:
             icon_url    = self._icon_cache.get(path)
             author_data = self._author_cache.get(path)
 
-        icon_widget = _icon(icon_url or "", disp, size=40)
+        icon_widget = _icon(icon_url or "", disp, size=46)
 
         if author_data and author_data.get("username"):
-            username     = author_data["username"]
-            avatar_url   = author_data.get("avatar_url")
-            modrinth_url = f"https://modrinth.com/user/{username}"
-
-            avatar_widget = (
-                ft.Image(src=avatar_url, width=14, height=14,
-                         border_radius=7, fit=ft.ImageFit.COVER)
+            username   = author_data["username"]
+            avatar_url = author_data.get("avatar_url")
+            av = (
+                ft.Image(src=avatar_url, width=15, height=15,
+                        border_radius=8, fit=ft.ImageFit.COVER)
                 if avatar_url else
                 ft.Container(
-                    width=14, height=14, border_radius=7, bgcolor=CARD2_BG,
+                    width=15, height=15, border_radius=8, bgcolor=CARD2_BG,
                     alignment=ft.alignment.center,
-                    content=ft.Text(username[0].upper(), size=7, color=TEXT_DIM,
-                                    text_align=ft.TextAlign.CENTER),
+                    content=ft.Text(username[0].upper(), size=7, color=TEXT_DIM),
                 )
             )
-            author_widget = ft.GestureDetector(
+            author_row = ft.GestureDetector(
                 mouse_cursor=ft.MouseCursor.CLICK,
-                on_tap=lambda e, u=modrinth_url: self.page.launch_url(u),
+                on_tap=lambda e, u=f"https://modrinth.com/user/{username}":
+                    self.page.launch_url(u),
                 content=ft.Row([
-                    avatar_widget,
-                    ft.Container(width=4),
-                    ft.Text(username, color=GREEN, size=8,
+                    av, ft.Container(width=5),
+                    ft.Text(username, color=GREEN, size=9,
                             weight=ft.FontWeight.W_500),
                 ], spacing=0, tight=True),
             )
         else:
-            author_widget = ft.Container(height=0)
+            author_row = ft.Container(height=12)
 
-        type_badge = ft.Container(
-            bgcolor=CARD2_BG, border_radius=4,
-            padding=ft.padding.symmetric(horizontal=5, vertical=2),
-            content=ft.Text(item["type"], color=TEXT_DIM, size=7),
-        )
-        status_badge = ft.Container(
-            bgcolor="#1a3d2a" if is_en else CARD2_BG, border_radius=4,
-            padding=ft.padding.symmetric(horizontal=6, vertical=2),
-            content=ft.Row([
-                ft.Icon(ft.icons.CIRCLE, size=6, color=GREEN if is_en else TEXT_DIM),
-                ft.Container(width=4),
-                ft.Text("Activo" if is_en else "Desactivado",
-                        color=GREEN if is_en else TEXT_DIM, size=7),
-            ], spacing=0, tight=True),
-        )
+        version_str  = item["version"] or "—"
+        filename_str = fn if len(fn) <= 36 else fn[:34] + "…"
 
         return ft.Container(
-            bgcolor=INPUT_BG, border_radius=8,
+            bgcolor="transparent",
+            border=ft.border.only(bottom=ft.BorderSide(1, BORDER)),
             padding=ft.padding.symmetric(horizontal=16, vertical=10),
             on_hover=lambda e: (
                 setattr(e.control, "bgcolor",
-                        CARD2_BG if e.data == "true" else INPUT_BG)
+                        INPUT_BG if e.data == "true" else "transparent")
                 or e.control.update()),
             content=ft.Row([
-                ft.Checkbox(value=False, fill_color={"selected": GREEN},
-                            check_color=TEXT_INV, width=20),
+                ft.Checkbox(
+                    value=False,
+                    fill_color={"selected": GREEN},
+                    check_color=TEXT_INV, width=20,
+                ),
                 ft.Container(width=10),
                 icon_widget,
-                ft.Container(width=14),
+                ft.Container(width=16),
                 ft.Column([
-                    ft.Row([
-                        ft.Text(disp, color=TEXT_PRI, size=10,
-                                weight=ft.FontWeight.BOLD,
-                                overflow=ft.TextOverflow.ELLIPSIS, expand=True),
-                        type_badge,
-                        ft.Container(width=4),
-                        status_badge,
-                    ], spacing=4),
-                    author_widget,
+                    ft.Text(disp, color=TEXT_PRI, size=11,
+                            weight=ft.FontWeight.BOLD,
+                            overflow=ft.TextOverflow.ELLIPSIS),
+                    author_row,
                 ], spacing=3, expand=True),
-                ft.Text(item["version"] or "-", color=TEXT_SEC, size=9,
-                        width=160, text_align=ft.TextAlign.CENTER),
+                ft.Column([
+                    ft.Text(version_str, color=TEXT_PRI, size=10,
+                            weight=ft.FontWeight.W_500),
+                    ft.Text(filename_str, color=TEXT_DIM, size=8,
+                            overflow=ft.TextOverflow.ELLIPSIS),
+                ], spacing=2, width=220),
                 ft.Row([
                     ft.IconButton(
                         icon=ft.icons.TOGGLE_ON if is_en else ft.icons.TOGGLE_OFF,
-                        icon_color=GREEN if is_en else TEXT_DIM, icon_size=22,
+                        icon_color=GREEN if is_en else TEXT_DIM,
+                        icon_size=30,
                         tooltip="Deshabilitar" if is_en else "Habilitar",
                         on_click=lambda e, i=item: self._toggle(i),
                     ),
                     ft.IconButton(
-                        icon=ft.icons.DELETE_OUTLINE,
-                        icon_color=ACCENT_RED, icon_size=18,
+                        icon=ft.icons.DELETE_OUTLINE_ROUNDED,
+                        icon_color=TEXT_DIM, icon_size=18,
                         tooltip="Eliminar",
                         on_click=lambda e, i=item: self._delete(i),
                     ),
-                ], spacing=0, width=90),
+                ], spacing=0, width=100,
+                alignment=ft.MainAxisAlignment.END),
             ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
         )
 
