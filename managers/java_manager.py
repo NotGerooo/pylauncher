@@ -271,7 +271,6 @@ class JavaManager:
                     log.info(f"Usando Java embebido: {java_exe}")
                     return java_exe
 
-        # No está — descargar ese componente específico
         log.info(f"Componente {component} no encontrado, descargando...")
         os_key = self._get_mojang_os_key()
         manifest = self._fetch_json(_MOJANG_JAVA_MANIFEST)
@@ -285,8 +284,7 @@ class JavaManager:
         if not comp_list:
             raise JavaNotFoundError(f"No hay Java disponible para {os_key}")
 
-        component_data = comp_list[0]
-        manifest_url = component_data.get("manifest", {}).get("url", "")
+        manifest_url = comp_list[0].get("manifest", {}).get("url", "")
         if not manifest_url:
             raise JavaNotFoundError("URL del manifest de Java no encontrada.")
 
@@ -296,39 +294,55 @@ class JavaManager:
         runtime_dir_comp = os.path.join(self._settings.minecraft_dir, "runtime", component)
         os.makedirs(runtime_dir_comp, exist_ok=True)
 
-        total = len(files)
-        downloaded = 0
-        log.info(f"Descargando Java {component}: {total} archivos...")
-
+        # Crear directorios primero
         for file_path, file_info in files.items():
-            file_type = file_info.get("type", "")
-            dest = os.path.join(runtime_dir_comp, *file_path.split("/"))
+            if file_info.get("type") == "directory":
+                os.makedirs(os.path.join(runtime_dir_comp, *file_path.split("/")), exist_ok=True)
 
-            if file_type == "directory":
-                os.makedirs(dest, exist_ok=True)
+        # Construir lista de archivos a descargar
+        to_download = []
+        for file_path, file_info in files.items():
+            if file_info.get("type") != "file":
                 continue
-            if file_type != "file":
-                continue
-
             raw = file_info.get("downloads", {}).get("raw", {})
             url = raw.get("url", "")
             if not url:
                 continue
-
-            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            dest = os.path.join(runtime_dir_comp, *file_path.split("/"))
             expected_size = raw.get("size", 0)
             if os.path.isfile(dest) and os.path.getsize(dest) == expected_size:
                 continue
+            to_download.append((file_path, url, dest, file_info.get("executable", False)))
 
+        total = len(to_download)
+        log.info(f"Descargando Java {component}: {total} archivos...")
+
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        import threading
+        counter = [0]
+        lock = threading.Lock()
+
+        def download_one(args):
+            file_path, url, dest, executable = args
             try:
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
                 req = urllib.request.Request(url, headers={"User-Agent": "GeroLauncher/1.0"})
                 with urllib.request.urlopen(req, timeout=30) as resp:
                     with open(dest, "wb") as f:
                         f.write(resp.read())
-                if file_info.get("executable", False) and os.name != "nt":
+                if executable and os.name != "nt":
                     os.chmod(dest, 0o755)
+                with lock:
+                    counter[0] += 1
+                    if counter[0] % 50 == 0:
+                        log.info(f"Java: {counter[0]}/{total} archivos...")
             except Exception as e:
                 log.debug(f"Error descargando {file_path}: {e}")
+
+        with ThreadPoolExecutor(max_workers=16) as ex:
+            list(ex.map(download_one, to_download))
+
+        log.info(f"Java descargado completo: {counter[0]}/{total} archivos")
 
         java_exe = self._find_java_in_dir(runtime_dir_comp)
         if not java_exe:
