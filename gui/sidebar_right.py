@@ -1044,7 +1044,10 @@ class SidebarRight:
                 meta_parts.append(ft.Text("·", color=TEXT_DIM, size=8))
             meta_parts.append(ft.Text(item["date"], color=TEXT_DIM, size=8))
         if item.get("downloads"):
-            from .home_view import _fmt  # reusa la función de formato
+            def _fmt(n):
+                if n >= 1_000_000: return f"{n/1_000_000:.1f}M"
+                if n >= 1_000: return f"{n/1_000:.1f}K"
+                return str(n)
             if meta_parts:
                 meta_parts.append(ft.Text("·", color=TEXT_DIM, size=8))
             meta_parts.append(ft.Icon(ft.icons.DOWNLOAD_OUTLINED,
