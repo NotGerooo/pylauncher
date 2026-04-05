@@ -2,12 +2,14 @@
 """
 gui/sidebar_right.py
 Dos modos:
-  • Normal  — cuenta activa + feed de noticias
+  • Normal  — cuenta activa + feed de noticias (rediseñado premium)
   • Discover — panel de filtros elegante con iconos por categoría
 """
 import threading
 import urllib.request
 import json
+import hashlib
+import os
 import flet as ft
 
 from gui.theme import (
@@ -19,7 +21,32 @@ from utils.logger import get_logger
 
 log = get_logger()
 
-# ── Categorías con iconos por tipo de proyecto ────────────────────────────────
+# ── Caché de imágenes ──────────────────────────────────────────────────────────
+_CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "cache", "images")
+os.makedirs(_CACHE_DIR, exist_ok=True)
+
+_HEADERS = {"User-Agent": "PyLauncher/1.0"}
+
+def _cached_src(url: str) -> str:
+    if not url:
+        return ""
+    ext  = os.path.splitext(url.split("?")[0])[-1][:5] or ".png"
+    name = hashlib.md5(url.encode()).hexdigest() + ext
+    path = os.path.join(_CACHE_DIR, name)
+    if os.path.exists(path):
+        return path
+    try:
+        req = urllib.request.Request(url, headers=_HEADERS)
+        with urllib.request.urlopen(req, timeout=8) as r:
+            data = r.read()
+        with open(path, "wb") as f:
+            f.write(data)
+        return path
+    except Exception:
+        return url
+
+
+# ── Categorías ────────────────────────────────────────────────────────────────
 _CAT_ICONS = {
     "Adventure":      ft.icons.EXPLORE_ROUNDED,
     "Atmosphere":     ft.icons.CLOUD_ROUNDED,
@@ -49,7 +76,7 @@ _CAT_ICONS = {
     "Quests":         ft.icons.CHECKLIST_ROUNDED,
     "Realistic":      ft.icons.LANDSCAPE_ROUNDED,
     "Sci-Fi":         ft.icons.ROCKET_LAUNCH_ROUNDED,
-    "Semi-realistic":  ft.icons.NATURE_ROUNDED,
+    "Semi-realistic": ft.icons.NATURE_ROUNDED,
     "Skyblock":       ft.icons.CLOUD_CIRCLE_ROUNDED,
     "Social":         ft.icons.FORUM_ROUNDED,
     "Storage":        ft.icons.INVENTORY_ROUNDED,
@@ -105,12 +132,23 @@ _LOADER_COLORS = {
     "quilt":    "#b39ddb",
 }
 
+# ── Paletas tipo noticia ───────────────────────────────────────────────────────
+_NEWS_TYPE_STYLE: dict[str, dict] = {
+    "release":  {"label": "RELEASE",  "color": GREEN,     "icon": ft.icons.NEW_RELEASES_ROUNDED,    "bg": "#0f2d1a"},
+    "snapshot": {"label": "SNAPSHOT", "color": "#4dabf7", "icon": ft.icons.SCIENCE_ROUNDED,          "bg": "#0d1b3e"},
+    "old_beta": {"label": "BETA",     "color": "#ffa94d", "icon": ft.icons.HISTORY_ROUNDED,          "bg": "#2d1a00"},
+    "old_alpha":{"label": "ALPHA",    "color": "#ff6b6b", "icon": ft.icons.FIND_IN_PAGE_ROUNDED,     "bg": "#2d0a0a"},
+    "mod":      {"label": "MOD",      "color": "#a9e34b", "icon": ft.icons.EXTENSION_ROUNDED,        "bg": "#1a2d00"},
+    "modpack":  {"label": "MODPACK",  "color": "#60a5fa", "icon": ft.icons.WIDGETS_ROUNDED,          "bg": "#0a1a2d"},
+    "latest":   {"label": "LATEST",   "color": GREEN,     "icon": ft.icons.STAR_ROUNDED,             "bg": "#0f2d1a"},
+}
+
 
 class SidebarRight:
     def __init__(self, app):
         self.app  = app
         self.page = app.page
-        
+
         self._excluded_cats: set = set()
         self._discover_mode      = False
         self._on_filter_change   = None
@@ -153,81 +191,203 @@ class SidebarRight:
             pass
 
     # ═══════════════════════════════════════════════════════════════════════
-    #  NORMAL MODE
+    #  NORMAL MODE — Account + News (rediseñado)
     # ═══════════════════════════════════════════════════════════════════════
     def _build_normal_content(self):
-        self._avatar_text = ft.Text("??", color=TEXT_INV, size=13,
-                                    weight=ft.FontWeight.BOLD)
-        self._avatar_box  = ft.Container(
-            width=42, height=42, border_radius=21,
-            bgcolor=GREEN, alignment=ft.alignment.center,
-            content=self._avatar_text,
+        # ── Avatar con glow ───────────────────────────────────────────────
+        self._avatar_initials = ft.Text(
+            "??", color=TEXT_INV, size=14, weight=ft.FontWeight.BOLD,
         )
-        self._username_lbl = ft.Text("—", color=TEXT_PRI, size=11,
-                                     weight=ft.FontWeight.BOLD)
-        self._dot      = ft.Container(width=7, height=7, border_radius=4,
-                                      bgcolor=TEXT_DIM)
-        self._mode_lbl = ft.Text("Sin cuenta", color=TEXT_DIM, size=9)
+        self._avatar_inner = ft.Container(
+            width=46, height=46, border_radius=23,
+            bgcolor=GREEN,
+            alignment=ft.alignment.center,
+            content=self._avatar_initials,
+            animate=ft.animation.Animation(300, ft.AnimationCurve.EASE_OUT),
+        )
+        # Anillo de glow exterior
+        self._avatar_glow = ft.Container(
+            width=54, height=54, border_radius=27,
+            bgcolor="transparent",
+            border=ft.border.all(2, ft.colors.with_opacity(0.5, GREEN)),
+            shadow=[ft.BoxShadow(
+                spread_radius=0, blur_radius=14,
+                color=ft.colors.with_opacity(0.4, GREEN),
+                offset=ft.Offset(0, 0),
+            )],
+            content=ft.Container(
+                width=50, height=50, border_radius=25,
+                bgcolor="transparent",
+                alignment=ft.alignment.center,
+                content=self._avatar_inner,
+            ),
+            alignment=ft.alignment.center,
+            animate=ft.animation.Animation(400, ft.AnimationCurve.EASE_OUT),
+        )
+        self._avatar_glow_ref = self._avatar_glow   # para actualizar el shadow
 
-        account_section = ft.Container(
+        # ── Status dot animado ────────────────────────────────────────────
+        self._status_dot = ft.Container(
+            width=9, height=9, border_radius=5,
+            bgcolor=TEXT_DIM,
+            shadow=[ft.BoxShadow(
+                spread_radius=0, blur_radius=6,
+                color=ft.colors.with_opacity(0.0, GREEN),
+                offset=ft.Offset(0, 0),
+            )],
+            animate=ft.animation.Animation(400, ft.AnimationCurve.EASE_OUT),
+        )
+        self._username_lbl = ft.Text(
+            "—", color=TEXT_PRI, size=13,
+            weight=ft.FontWeight.BOLD,
+        )
+        self._mode_lbl = ft.Text(
+            "Sin cuenta", color=TEXT_DIM, size=10,
+        )
+
+        # ── Badge tipo cuenta ─────────────────────────────────────────────
+        self._account_badge = ft.Container(
+            content=ft.Text("OFFLINE", size=8, color=TEXT_DIM,
+                            weight=ft.FontWeight.W_700),
+            padding=ft.padding.symmetric(horizontal=7, vertical=3),
+            bgcolor=INPUT_BG,
+            border_radius=4,
+            border=ft.border.all(1, BORDER),
+            animate=ft.animation.Animation(300, ft.AnimationCurve.EASE_OUT),
+        )
+
+        # ── Botón cambiar cuenta con hover ────────────────────────────────
+        manage_btn = ft.Container(
+            content=ft.Row([
+                ft.Icon(ft.icons.MANAGE_ACCOUNTS_ROUNDED, size=13, color=TEXT_DIM),
+                ft.Container(width=6),
+                ft.Text("Gestionar cuentas", color=TEXT_SEC, size=10),
+                ft.Container(expand=True),
+                ft.Icon(ft.icons.CHEVRON_RIGHT_ROUNDED, size=14, color=TEXT_DIM),
+            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+            padding=ft.padding.symmetric(horizontal=18, vertical=10),
+            border_radius=0,
+            animate=ft.animation.Animation(150, ft.AnimationCurve.EASE_OUT),
+            on_click=lambda e: self.app._show_view("accounts"),
+        )
+        manage_btn.on_hover = lambda e, c=manage_btn: (
+            setattr(c, "bgcolor", CARD2_BG if e.data == "true" else "transparent")
+            or c.update()
+        )
+
+        # ── Card de cuenta con gradiente sutil ────────────────────────────
+        account_card = ft.Container(
             padding=ft.padding.all(18),
+            gradient=ft.LinearGradient(
+                begin=ft.alignment.top_left,
+                end=ft.alignment.bottom_right,
+                colors=[SIDEBAR_BG, CARD2_BG],
+            ),
             content=ft.Column([
-                ft.Text("JUGANDO COMO", color=TEXT_DIM, size=8,
-                        weight=ft.FontWeight.BOLD),
-                ft.Container(height=12),
                 ft.Row([
-                    self._avatar_box,
-                    ft.Container(width=12),
+                    ft.Container(
+                        width=3, height=14,
+                        bgcolor=GREEN, border_radius=2,
+                        shadow=[ft.BoxShadow(
+                            spread_radius=0, blur_radius=8,
+                            color=ft.colors.with_opacity(0.6, GREEN),
+                            offset=ft.Offset(0, 0),
+                        )],
+                    ),
+                    ft.Container(width=8),
+                    ft.Text("JUGANDO COMO", color=TEXT_DIM, size=8,
+                            weight=ft.FontWeight.BOLD),
+                ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                ft.Container(height=14),
+                ft.Row([
+                    self._avatar_glow,
+                    ft.Container(width=14),
                     ft.Column([
                         self._username_lbl,
+                        ft.Container(height=4),
                         ft.Row([
-                            self._dot,
-                            ft.Container(width=5),
+                            self._status_dot,
+                            ft.Container(width=6),
                             self._mode_lbl,
-                        ], spacing=0),
-                    ], spacing=3, expand=True),
-                ]),
-                ft.Container(height=8),
-                ft.TextButton(
-                    "Gestionar cuentas →",
-                    style=ft.ButtonStyle(
-                        color=TEXT_SEC,
-                        overlay_color=ft.colors.with_opacity(0.08, GREEN),
-                    ),
-                    on_click=lambda e: self.app._show_view("accounts"),
-                ),
+                            ft.Container(width=8),
+                            self._account_badge,
+                        ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                    ], spacing=0, expand=True),
+                ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
             ], spacing=0),
         )
 
-        self._news_count_lbl = ft.Text("cargando…", color=TEXT_DIM, size=7)
-        self._news_col = ft.Column(
-            spacing=0, scroll=ft.ScrollMode.AUTO, expand=True)
-        self._news_col.controls.append(
-            ft.Container(
-                padding=ft.padding.all(14),
-                content=ft.Text("Conectando…", color=TEXT_DIM, size=9),
-            )
+        # ── News header ───────────────────────────────────────────────────
+        self._news_count_badge = ft.Container(
+            content=ft.Text("…", size=8, color=TEXT_DIM,
+                            weight=ft.FontWeight.W_600),
+            padding=ft.padding.symmetric(horizontal=7, vertical=3),
+            bgcolor=INPUT_BG,
+            border_radius=10,
+            border=ft.border.all(1, BORDER),
+        )
+        news_header = ft.Container(
+            padding=ft.padding.only(left=18, right=18, top=14, bottom=10),
+            content=ft.Row([
+                ft.Container(
+                    width=3, height=14,
+                    bgcolor="#4dabf7", border_radius=2,
+                    shadow=[ft.BoxShadow(
+                        spread_radius=0, blur_radius=8,
+                        color=ft.colors.with_opacity(0.5, "#4dabf7"),
+                        offset=ft.Offset(0, 0),
+                    )],
+                ),
+                ft.Container(width=8),
+                ft.Text("NOTICIAS", color=TEXT_DIM, size=8,
+                        weight=ft.FontWeight.BOLD),
+                ft.Container(expand=True),
+                self._news_count_badge,
+            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
         )
 
+        # ── Loading skeleton ──────────────────────────────────────────────
+        self._news_col = ft.Column(spacing=0, scroll=ft.ScrollMode.AUTO, expand=True)
+        self._news_col.controls.append(self._build_skeleton())
+
         self._normal_col = ft.Column([
-            account_section,
-            ft.Divider(height=1, color=BORDER),
-            ft.Column([
-                ft.Container(
-                    padding=ft.padding.only(left=18, right=18, top=14, bottom=8),
-                    content=ft.Row([
-                        ft.Text("NOTICIAS", color=TEXT_DIM, size=8,
-                                weight=ft.FontWeight.BOLD),
-                        ft.Container(expand=True),
-                        self._news_count_lbl,
-                    ]),
-                ),
-                ft.Container(expand=True, content=self._news_col),
-            ], spacing=0, expand=True),
+            account_card,
+            manage_btn,
+            ft.Divider(height=1, color=BORDER, thickness=1),
+            news_header,
+            ft.Container(content=self._news_col, expand=True),
         ], spacing=0, expand=True)
 
+    # ── Skeleton loader ───────────────────────────────────────────────────────
+    def _build_skeleton(self) -> ft.Column:
+        def _skel(w: int, h: int, radius: int = 4) -> ft.Container:
+            return ft.Container(
+                width=w, height=h, border_radius=radius,
+                bgcolor=CARD2_BG,
+                animate_opacity=ft.animation.Animation(800, ft.AnimationCurve.EASE_IN_OUT),
+            )
+
+        items = []
+        for _ in range(5):
+            items.append(ft.Container(
+                padding=ft.padding.symmetric(horizontal=14, vertical=10),
+                content=ft.Row([
+                    _skel(36, 36, 8),
+                    ft.Container(width=10),
+                    ft.Column([
+                        _skel(120, 8),
+                        ft.Container(height=6),
+                        _skel(80, 8),
+                        ft.Container(height=5),
+                        _skel(160, 7),
+                    ], spacing=0),
+                ], vertical_alignment=ft.CrossAxisAlignment.START),
+            ))
+            items.append(ft.Divider(height=1, color=BORDER))
+        return ft.Column(items, spacing=0)
+
     # ═══════════════════════════════════════════════════════════════════════
-    #  DISCOVER MODE
+    #  DISCOVER MODE (sin cambios)
     # ═══════════════════════════════════════════════════════════════════════
     def set_discover_mode(self, active: bool, profile=None,
                           tab_type: str = "mod", on_change=None):
@@ -237,7 +397,7 @@ class SidebarRight:
         self._selected_cats.clear()
         self._excluded_cats.clear()
         self._hide_installed  = False
-        self._discover_loader = None  # None = auto (usa el del perfil)
+        self._discover_loader = None
 
         if active:
             self._discover_tab_type = tab_type
@@ -266,17 +426,13 @@ class SidebarRight:
             "loader":         loader,
         }
 
-    # ── Build discover panel ──────────────────────────────────────────────────
     def _build_discover_col(self, profile, tab_type: str) -> ft.Column:
-        # Detect version and loader from profile
-        mc_ver     = getattr(profile, "version_id", None) if profile else None
+        mc_ver      = getattr(profile, "version_id", None) if profile else None
         auto_loader = self._detect_loader_from_profile(profile)
         self._discover_loader = auto_loader
-
-        ver_display = mc_ver or "—"
+        ver_display    = mc_ver or "—"
         loader_display = auto_loader.capitalize() if auto_loader else "—"
 
-        # ── Profile info banner ───────────────────────────────────────────
         prof_name = getattr(profile, "name", None) if profile else None
         if prof_name:
             profile_banner = ft.Container(
@@ -286,8 +442,7 @@ class SidebarRight:
                 content=ft.Row([
                     ft.Container(
                         width=36, height=36, border_radius=8,
-                        bgcolor=INPUT_BG,
-                        alignment=ft.alignment.center,
+                        bgcolor=INPUT_BG, alignment=ft.alignment.center,
                         content=ft.Icon(ft.icons.WIDGETS_ROUNDED,
                                         size=18, color=TEXT_SEC),
                     ),
@@ -316,23 +471,18 @@ class SidebarRight:
         else:
             profile_banner = ft.Container(height=0)
 
-        # ── Hide installed toggle ─────────────────────────────────────────
         self._hide_toggle_dot = ft.Container(
             width=16, height=16, border_radius=8,
             bgcolor=CARD2_BG,
             border=ft.border.all(1.5, BORDER_BRIGHT),
             animate=ft.animation.Animation(150, ft.AnimationCurve.EASE_OUT),
         )
-        self._hide_toggle_lbl = ft.Text(
-            "Hide installed", color=TEXT_SEC, size=11)
-
+        self._hide_toggle_lbl = ft.Text("Hide installed", color=TEXT_SEC, size=11)
         hide_row = ft.Container(
             padding=ft.padding.symmetric(horizontal=18, vertical=12),
-            border_radius=0,
             on_click=self._toggle_hide_installed,
             content=ft.Row([
-                ft.Icon(ft.icons.VISIBILITY_OFF_OUTLINED,
-                        size=15, color=TEXT_DIM),
+                ft.Icon(ft.icons.VISIBILITY_OFF_OUTLINED, size=15, color=TEXT_DIM),
                 ft.Container(width=10),
                 self._hide_toggle_lbl,
                 ft.Container(expand=True),
@@ -340,23 +490,19 @@ class SidebarRight:
             ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
         )
         hide_row.on_hover = lambda e, c=hide_row: (
-            setattr(c, "bgcolor",
-                    CARD2_BG if e.data == "true" else "transparent")
+            setattr(c, "bgcolor", CARD2_BG if e.data == "true" else "transparent")
             or c.update()
         )
 
-        # ── Game version section ──────────────────────────────────────────
         self._ver_body = ft.Container(
             visible=self._ver_expanded,
             padding=ft.padding.only(left=18, right=18, bottom=14),
             content=ft.Container(
-                bgcolor=INPUT_BG,
-                border=ft.border.all(1, BORDER),
+                bgcolor=INPUT_BG, border=ft.border.all(1, BORDER),
                 border_radius=8,
                 padding=ft.padding.symmetric(horizontal=14, vertical=10),
                 content=ft.Row([
-                    ft.Icon(ft.icons.VIDEOGAME_ASSET_ROUNDED,
-                            size=14, color=TEXT_DIM),
+                    ft.Icon(ft.icons.VIDEOGAME_ASSET_ROUNDED, size=14, color=TEXT_DIM),
                     ft.Container(width=10),
                     ft.Text(ver_display, color=TEXT_PRI, size=12,
                             weight=ft.FontWeight.W_500),
@@ -379,7 +525,6 @@ class SidebarRight:
             self._ver_arrow, self._toggle_ver)
         self._ver_section = ft.Column([ver_hdr, self._ver_body], spacing=0)
 
-        # ── Loader section ────────────────────────────────────────────────
         self._loader_body = ft.Column(spacing=1, visible=self._loader_expanded)
         self._rebuild_loader_section(profile)
         self._loader_body_container = ft.Container(
@@ -395,10 +540,8 @@ class SidebarRight:
         loader_hdr = self._section_header(
             "Loader", ft.icons.EXTENSION_ROUNDED,
             self._loader_arrow, self._toggle_loader)
-        self._loader_section = ft.Column([
-            loader_hdr, self._loader_body_container], spacing=0)
+        self._loader_section = ft.Column([loader_hdr, self._loader_body_container], spacing=0)
 
-        # ── Category section ──────────────────────────────────────────────
         self._cat_col = ft.Column(spacing=1)
         self._cat_body_container = ft.Container(
             padding=ft.padding.only(left=18, right=18, bottom=14),
@@ -413,13 +556,11 @@ class SidebarRight:
         cat_hdr = self._section_header(
             "Category", ft.icons.CATEGORY_ROUNDED,
             self._cat_arrow, self._toggle_cat)
-        self._cat_section = ft.Column([
-            cat_hdr, self._cat_body_container], spacing=0)
+        self._cat_section = ft.Column([cat_hdr, self._cat_body_container], spacing=0)
         self._rebuild_cat_section()
 
         return ft.Column([
-            profile_banner,
-            hide_row,
+            profile_banner, hide_row,
             ft.Divider(height=1, color=BORDER),
             ft.Column([
                 self._ver_section,
@@ -430,9 +571,7 @@ class SidebarRight:
             ], spacing=0, scroll=ft.ScrollMode.AUTO, expand=True),
         ], spacing=0, expand=True)
 
-    # ── Section header ────────────────────────────────────────────────────────
-    def _section_header(self, title: str, icon, arrow_ctrl,
-                        on_toggle) -> ft.Container:
+    def _section_header(self, title, icon, arrow_ctrl, on_toggle) -> ft.Container:
         hdr = ft.Container(
             padding=ft.padding.symmetric(horizontal=18, vertical=12),
             on_click=on_toggle,
@@ -445,13 +584,11 @@ class SidebarRight:
             ]),
         )
         hdr.on_hover = lambda e, h=hdr: (
-            setattr(h, "bgcolor",
-                    CARD2_BG if e.data == "true" else "transparent")
+            setattr(h, "bgcolor", CARD2_BG if e.data == "true" else "transparent")
             or h.update()
         )
         return hdr
 
-    # ── Hide installed toggle ─────────────────────────────────────────────────
     def _toggle_hide_installed(self, e):
         self._hide_installed = not self._hide_installed
         if self._hide_installed:
@@ -470,11 +607,9 @@ class SidebarRight:
         if callable(self._on_filter_change):
             self._on_filter_change()
 
-    # ── Loader section ────────────────────────────────────────────────────────
     def _detect_loader_from_profile(self, profile) -> str | None:
         if not profile:
             return None
-        import os
         meta_path = os.path.join(
             getattr(profile, "game_dir", ""), "loader_meta.json")
         if os.path.isfile(meta_path):
@@ -492,13 +627,12 @@ class SidebarRight:
     def _rebuild_loader_section(self, profile):
         auto_loader = self._detect_loader_from_profile(profile)
         self._loader_body.controls.clear()
-
         options = [("(auto)", None)] + [(l, l) for l in LOADERS]
         for opt_label, opt_value in options:
             if opt_value is None:
                 display = (f"Auto  ·  {auto_loader.capitalize()}"
-                          if auto_loader and auto_loader != "vanilla" else "Auto")
-                is_sel  = self._discover_loader is None or self._discover_loader == opt_value
+                           if auto_loader and auto_loader != "vanilla" else "Auto")
+                is_sel  = self._discover_loader is None
                 ico     = ft.icons.TUNE_ROUNDED
                 ico_col = GREEN if is_sel else TEXT_DIM
             else:
@@ -507,35 +641,27 @@ class SidebarRight:
                 ico     = _LOADER_ICONS.get(opt_value, ft.icons.EXTENSION_ROUNDED)
                 ico_col = (_LOADER_COLORS.get(opt_value, TEXT_SEC)
                            if is_sel else TEXT_DIM)
-
             dot = ft.Container(
                 width=8, height=8, border_radius=4,
                 bgcolor=GREEN if is_sel else "transparent",
                 border=ft.border.all(1.5, GREEN if is_sel else BORDER_BRIGHT),
                 animate=ft.animation.Animation(120, ft.AnimationCurve.EASE_OUT),
             )
-            lbl = ft.Text(
-                display,
-                color=TEXT_PRI if is_sel else TEXT_SEC,
-                size=11,
-                weight=ft.FontWeight.W_500 if is_sel else ft.FontWeight.W_400,
-            )
+            lbl = ft.Text(display, color=TEXT_PRI if is_sel else TEXT_SEC, size=11,
+                          weight=ft.FontWeight.W_500 if is_sel else ft.FontWeight.W_400)
             row = ft.Container(
                 padding=ft.padding.symmetric(horizontal=10, vertical=8),
                 border_radius=7,
                 content=ft.Row([
                     ft.Icon(ico, size=14, color=ico_col),
-                    ft.Container(width=10),
-                    lbl,
-                    ft.Container(expand=True),
-                    dot,
+                    ft.Container(width=10), lbl,
+                    ft.Container(expand=True), dot,
                 ], spacing=0, vertical_alignment=ft.CrossAxisAlignment.CENTER),
             )
             v = opt_value
             row.on_click = lambda e, val=v: self._on_loader_click(val)
             row.on_hover = lambda e, r=row: (
-                setattr(r, "bgcolor",
-                        INPUT_BG if e.data == "true" else "transparent")
+                setattr(r, "bgcolor", INPUT_BG if e.data == "true" else "transparent")
                 or r.update()
             )
             self._loader_body.controls.append(row)
@@ -550,7 +676,6 @@ class SidebarRight:
         if callable(self._on_filter_change):
             self._on_filter_change()
 
-    # ── Category section ──────────────────────────────────────────────────────
     def _rebuild_cat_section(self):
         if not hasattr(self, "_cat_col"):
             return
@@ -567,33 +692,24 @@ class SidebarRight:
         is_sel  = cat in self._selected_cats
         is_excl = cat in self._excluded_cats
         ico     = _CAT_ICONS.get(cat, ft.icons.LABEL_ROUNDED)
-
-        check = ft.Icon(ft.icons.CHECK_ROUNDED, size=14, color=GREEN,
-                        visible=is_sel)
-        block_icon = ft.Icon(ft.icons.BLOCK_ROUNDED, size=14,
-                            color="#e05555" if is_excl else "#e05555")
+        check     = ft.Icon(ft.icons.CHECK_ROUNDED, size=14, color=GREEN, visible=is_sel)
+        block_icon = ft.Icon(ft.icons.BLOCK_ROUNDED, size=14, color="#e05555")
         block_btn = ft.Container(
             width=22, height=22, border_radius=11,
             bgcolor=ft.colors.with_opacity(0.15, "#e05555") if is_excl else "transparent",
-            alignment=ft.alignment.center,
-            visible=is_excl,  # visible si excluido, o en hover
-            content=block_icon,
+            alignment=ft.alignment.center, visible=is_excl, content=block_icon,
         )
         ico_ctrl = ft.Icon(ico, size=14,
-                        color=GREEN if is_sel else
-                        (TEXT_DIM if not is_excl else "#e05555"))
-        lbl = ft.Text(
-            cat,
-            color=TEXT_PRI if is_sel else (TEXT_SEC if not is_excl else "#e05555"),
-            size=11,
-            weight=ft.FontWeight.W_600 if is_sel else ft.FontWeight.W_400,
-        )
+                           color=GREEN if is_sel else (TEXT_DIM if not is_excl else "#e05555"))
+        lbl = ft.Text(cat,
+                      color=TEXT_PRI if is_sel else (TEXT_SEC if not is_excl else "#e05555"),
+                      size=11,
+                      weight=ft.FontWeight.W_600 if is_sel else ft.FontWeight.W_400)
         row = ft.Container(
             padding=ft.padding.symmetric(horizontal=10, vertical=8),
             border_radius=7,
             bgcolor=(ft.colors.with_opacity(0.06, GREEN) if is_sel else
-                    ft.colors.with_opacity(0.06, "#e05555") if is_excl else
-                    "transparent"),
+                     ft.colors.with_opacity(0.06, "#e05555") if is_excl else "transparent"),
             animate=ft.animation.Animation(120, ft.AnimationCurve.EASE_OUT),
             content=ft.Row([
                 ico_ctrl, ft.Container(width=10), lbl,
@@ -603,19 +719,16 @@ class SidebarRight:
         )
 
         def _refresh_ui(sel, excl):
-            check.visible    = sel
-            block_btn.visible = excl or (row._hovered if hasattr(row, "_hovered") else False)
-            block_btn.bgcolor = (ft.colors.with_opacity(0.15, "#e05555")
-                                if excl else "transparent")
-            ico_ctrl.color   = GREEN if sel else ("#e05555" if excl else TEXT_DIM)
-            lbl.color        = TEXT_PRI if sel else ("#e05555" if excl else TEXT_SEC)
-            lbl.weight       = ft.FontWeight.W_600 if sel else ft.FontWeight.W_400
-            row.bgcolor      = (ft.colors.with_opacity(0.06, GREEN) if sel else
-                                ft.colors.with_opacity(0.06, "#e05555") if excl else
-                                "transparent")
+            check.visible     = sel
+            block_btn.visible = excl
+            block_btn.bgcolor = (ft.colors.with_opacity(0.15, "#e05555") if excl else "transparent")
+            ico_ctrl.color    = GREEN if sel else ("#e05555" if excl else TEXT_DIM)
+            lbl.color         = TEXT_PRI if sel else ("#e05555" if excl else TEXT_SEC)
+            lbl.weight        = ft.FontWeight.W_600 if sel else ft.FontWeight.W_400
+            row.bgcolor       = (ft.colors.with_opacity(0.06, GREEN) if sel else
+                                 ft.colors.with_opacity(0.06, "#e05555") if excl else "transparent")
             try:
-                check.update(); block_btn.update(); ico_ctrl.update()
-                lbl.update(); row.update()
+                check.update(); block_btn.update(); ico_ctrl.update(); lbl.update(); row.update()
             except Exception:
                 pass
 
@@ -623,33 +736,21 @@ class SidebarRight:
             excl = c in self._excluded_cats
             sel  = c in self._selected_cats
             if excl:
-                # excluido → normal
-                self._excluded_cats.discard(c)
-                _refresh_ui(False, False)
+                self._excluded_cats.discard(c); _refresh_ui(False, False)
             elif sel:
-                # seleccionado → normal
-                self._selected_cats.discard(c)
-                _refresh_ui(False, False)
+                self._selected_cats.discard(c); _refresh_ui(False, False)
             else:
-                # normal → seleccionado
-                self._selected_cats.add(c)
-                _refresh_ui(True, False)
+                self._selected_cats.add(c); _refresh_ui(True, False)
             if callable(self._on_filter_change):
                 self._on_filter_change()
 
         def _block_click(e, c=cat):
-            e.stop_propagation = True
-            sel = c in self._selected_cats
             excl = c in self._excluded_cats
             if excl:
-                # ya excluido → quitar exclusión
-                self._excluded_cats.discard(c)
-                _refresh_ui(False, False)
+                self._excluded_cats.discard(c); _refresh_ui(False, False)
             else:
-                # seleccionado o normal → excluir
                 self._selected_cats.discard(c)
-                self._excluded_cats.add(c)
-                _refresh_ui(False, True)
+                self._excluded_cats.add(c); _refresh_ui(False, True)
             if callable(self._on_filter_change):
                 self._on_filter_change()
 
@@ -659,13 +760,11 @@ class SidebarRight:
             if e.data == "true":
                 block_btn.visible = True
                 row.bgcolor = (ft.colors.with_opacity(0.10, GREEN) if sel else
-                            ft.colors.with_opacity(0.10, "#e05555") if excl else
-                            INPUT_BG)
+                               ft.colors.with_opacity(0.10, "#e05555") if excl else INPUT_BG)
             else:
-                block_btn.visible = excl  # solo queda visible si está excluido
+                block_btn.visible = excl
                 row.bgcolor = (ft.colors.with_opacity(0.06, GREEN) if sel else
-                            ft.colors.with_opacity(0.06, "#e05555") if excl else
-                            "transparent")
+                               ft.colors.with_opacity(0.06, "#e05555") if excl else "transparent")
             try:
                 block_btn.update(); row.update()
             except Exception:
@@ -676,7 +775,6 @@ class SidebarRight:
         row.on_hover = _hover
         return row
 
-    # ── Toggle sections ───────────────────────────────────────────────────────
     def _toggle_ver(self, e):
         self._ver_expanded = not self._ver_expanded
         self._ver_body.visible = self._ver_expanded
@@ -684,8 +782,7 @@ class SidebarRight:
                                 if self._ver_expanded
                                 else ft.icons.KEYBOARD_ARROW_DOWN_ROUNDED)
         try:
-            self._ver_body.update()
-            self._ver_arrow.update()
+            self._ver_body.update(); self._ver_arrow.update()
         except Exception:
             pass
 
@@ -696,8 +793,7 @@ class SidebarRight:
                                    if self._loader_expanded
                                    else ft.icons.KEYBOARD_ARROW_DOWN_ROUNDED)
         try:
-            self._loader_body_container.update()
-            self._loader_arrow.update()
+            self._loader_body_container.update(); self._loader_arrow.update()
         except Exception:
             pass
 
@@ -708,13 +804,12 @@ class SidebarRight:
                                 if self._cat_expanded
                                 else ft.icons.KEYBOARD_ARROW_DOWN_ROUNDED)
         try:
-            self._cat_body_container.update()
-            self._cat_arrow.update()
+            self._cat_body_container.update(); self._cat_arrow.update()
         except Exception:
             pass
 
     # ═══════════════════════════════════════════════════════════════════════
-    #  CUENTA
+    #  CUENTA — refresh
     # ═══════════════════════════════════════════════════════════════════════
     def refresh_account(self):
         try:
@@ -728,82 +823,137 @@ class SidebarRight:
         if acc:
             name     = acc.username
             is_ms    = getattr(acc, "is_microsoft", False)
-            mode_txt = "Microsoft" if is_ms else "Offline"
-            dot_col  = GREEN if is_ms else TEXT_DIM
+            mode_txt = "Microsoft"  if is_ms else "Offline"
+            dot_col  = GREEN        if is_ms else "#ffa94d"
+            badge_lbl = "MICROSOFT" if is_ms else "OFFLINE"
+            badge_col = GREEN       if is_ms else "#ffa94d"
+            glow_col  = GREEN       if is_ms else "#ffa94d"
         else:
-            name     = "Sin cuenta"
-            mode_txt = "Offline"
-            dot_col  = TEXT_DIM
+            name      = "Sin cuenta"
+            mode_txt  = "Offline"
+            dot_col   = TEXT_DIM
+            badge_lbl = "OFFLINE"
+            badge_col = TEXT_DIM
+            glow_col  = TEXT_DIM
 
         color    = AVATAR_PALETTE[abs(hash(name)) % len(AVATAR_PALETTE)]
         initials = (name[:2] if len(name) >= 2 else name).upper()
 
-        self._username_lbl.value = name
-        self._mode_lbl.value     = mode_txt
-        self._dot.bgcolor        = dot_col
-        self._avatar_text.value  = initials
-        self._avatar_box.bgcolor = color
+        self._username_lbl.value     = name
+        self._mode_lbl.value         = mode_txt
+        self._avatar_initials.value  = initials
+        self._avatar_inner.bgcolor   = color
+
+        # Actualizar dot + glow
+        self._status_dot.bgcolor = dot_col
+        self._status_dot.shadow  = [ft.BoxShadow(
+            spread_radius=0, blur_radius=8,
+            color=ft.colors.with_opacity(0.7, dot_col),
+            offset=ft.Offset(0, 0),
+        )]
+
+        # Actualizar glow del avatar
+        self._avatar_glow.border = ft.border.all(
+            2, ft.colors.with_opacity(0.5, glow_col))
+        self._avatar_glow.shadow = [ft.BoxShadow(
+            spread_radius=0, blur_radius=16,
+            color=ft.colors.with_opacity(0.35, glow_col),
+            offset=ft.Offset(0, 0),
+        )]
+
+        # Badge
+        self._account_badge.content = ft.Text(
+            badge_lbl, size=8, color=badge_col, weight=ft.FontWeight.W_700)
+        self._account_badge.border = ft.border.all(
+            1, ft.colors.with_opacity(0.3, badge_col))
+        self._account_badge.bgcolor = ft.colors.with_opacity(0.1, badge_col)
+
         try:
             self._username_lbl.update()
             self._mode_lbl.update()
-            self._dot.update()
-            self._avatar_text.update()
-            self._avatar_box.update()
+            self._avatar_initials.update()
+            self._avatar_inner.update()
+            self._status_dot.update()
+            self._avatar_glow.update()
+            self._account_badge.update()
         except Exception:
             pass
 
     # ═══════════════════════════════════════════════════════════════════════
-    #  NOTICIAS
+    #  NOTICIAS — fetch + render
     # ═══════════════════════════════════════════════════════════════════════
     def _fetch_news(self):
         items = []
+
+        # ── Mojang version manifest ───────────────────────────────────────
         try:
             req = urllib.request.Request(
                 "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json",
-                headers={"User-Agent": "GerosLauncher/0.2.0"})
-            with urllib.request.urlopen(req, timeout=8) as r:
+                headers={"User-Agent": "PyLauncher/1.0"})
+            with urllib.request.urlopen(req, timeout=10) as r:
                 data = json.loads(r.read().decode())
+
             latest_r = data["latest"]["release"]
             latest_s = data["latest"]["snapshot"]
             items.append({
-                "tag": "⭐ Release", "tag_color": GREEN,
-                "title": f"Latest release: {latest_r}",
-                "body":  f"Snapshot: {latest_s}",
-                "source": "Mojang", "url": None,
+                "kind":   "latest",
+                "title":  f"Minecraft {latest_r}",
+                "body":   f"Último snapshot: {latest_s}",
+                "date":   "",
+                "source": "Mojang",
+                "image":  None,
+                "url":    None,
+                "mc_ver": latest_r,
             })
+
             type_map = {
-                "release":   ("🟢 Release",  GREEN),
-                "snapshot":  ("🔵 Snapshot", "#4dabf7"),
-                "old_beta":  ("🟡 Beta",     "#ffa94d"),
-                "old_alpha": ("🔴 Alpha",    "#ff6b6b"),
+                "release":   "release",
+                "snapshot":  "snapshot",
+                "old_beta":  "old_beta",
+                "old_alpha": "old_alpha",
             }
-            for v in data["versions"][:4]:
-                tag, tc = type_map.get(v["type"], (v["type"], TEXT_SEC))
+            for v in data["versions"][:6]:
+                kind = type_map.get(v["type"], "snapshot")
                 items.append({
-                    "tag": tag, "tag_color": tc,
-                    "title": f"Minecraft {v['id']}",
-                    "body":  v.get("releaseTime", "")[:10],
-                    "source": "Mojang", "url": None,
+                    "kind":   kind,
+                    "title":  f"Minecraft {v['id']}",
+                    "body":   None,
+                    "date":   v.get("releaseTime", "")[:10],
+                    "source": "Mojang",
+                    "image":  None,
+                    "url":    None,
+                    "mc_ver": v["id"],
                 })
         except Exception as ex:
             log.warning(f"News Mojang: {ex}")
 
+        # ── Modrinth mods recientes ───────────────────────────────────────
         try:
-            req2 = urllib.request.Request(
-                "https://api.modrinth.com/v2/search"
-                "?limit=3&index=updated&facets=[[%22project_type:mod%22]]",
-                headers={"User-Agent": "GerosLauncher/0.2.0"})
-            with urllib.request.urlopen(req2, timeout=8) as r:
-                mdata = json.loads(r.read().decode())
-            for hit in mdata.get("hits", []):
-                desc = hit.get("description", "")
-                items.append({
-                    "tag": "🧩 Mod", "tag_color": "#a9e34b",
-                    "title": hit.get("title", "Mod"),
-                    "body":  (desc[:60] + "…") if len(desc) > 60 else desc,
-                    "source": "Modrinth",
-                    "url":   f"https://modrinth.com/mod/{hit.get('slug', '')}",
-                })
+            for project_type, kind in [("mod", "mod"), ("modpack", "modpack")]:
+                url = (
+                    f"https://api.modrinth.com/v2/search"
+                    f"?limit=5&index=updated"
+                    f'&facets=[[%22project_type:{project_type}%22]]'
+                )
+                req2 = urllib.request.Request(url, headers={"User-Agent": "PyLauncher/1.0"})
+                with urllib.request.urlopen(req2, timeout=10) as r:
+                    mdata = json.loads(r.read().decode())
+                for hit in mdata.get("hits", []):
+                    desc = hit.get("description", "")
+                    # Descarga imagen en background
+                    icon_url = hit.get("icon_url") or ""
+                    cached   = _cached_src(icon_url) if icon_url else None
+                    items.append({
+                        "kind":   kind,
+                        "title":  hit.get("title", "?"),
+                        "body":   (desc[:70] + "…") if len(desc) > 70 else desc,
+                        "date":   (hit.get("date_modified") or "")[:10],
+                        "source": "Modrinth",
+                        "image":  cached,
+                        "url":    f"https://modrinth.com/{project_type}/{hit.get('slug', '')}",
+                        "mc_ver": None,
+                        "downloads": hit.get("downloads", 0),
+                    })
         except Exception as ex:
             log.warning(f"News Modrinth: {ex}")
 
@@ -814,48 +964,166 @@ class SidebarRight:
         if not items:
             self._news_col.controls.append(
                 ft.Container(
-                    padding=ft.padding.all(14),
-                    content=ft.Text("Sin conexión.", color=TEXT_DIM, size=9),
+                    padding=ft.padding.all(18),
+                    content=ft.Column([
+                        ft.Icon(ft.icons.WIFI_OFF_ROUNDED, color=TEXT_DIM, size=28),
+                        ft.Container(height=8),
+                        ft.Text("Sin conexión", color=TEXT_DIM, size=11,
+                                text_align=ft.TextAlign.CENTER),
+                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
                 )
             )
-            self._news_count_lbl.value = "sin conexión"
-        else:
-            self._news_count_lbl.value = str(len(items))
-            for i, item in enumerate(items):
-                if i > 0:
-                    self._news_col.controls.append(
-                        ft.Divider(height=1, color=BORDER))
-                self._news_col.controls.append(self._make_news_card(item))
+            self._update_news_count(0)
+            return
+
+        self._update_news_count(len(items))
+        for i, item in enumerate(items):
+            if i > 0:
+                self._news_col.controls.append(
+                    ft.Divider(height=1, color=BORDER, thickness=1))
+            self._news_col.controls.append(self._make_news_card(item))
+
         try:
             self._news_col.update()
-            self._news_count_lbl.update()
         except Exception:
             pass
 
+    def _update_news_count(self, count: int):
+        self._news_count_badge.content = ft.Text(
+            str(count), size=8, color=TEXT_SEC, weight=ft.FontWeight.W_600)
+        try:
+            self._news_count_badge.update()
+        except Exception:
+            pass
+
+    # ── News card ─────────────────────────────────────────────────────────────
     def _make_news_card(self, item: dict) -> ft.Container:
+        kind    = item.get("kind", "release")
+        style   = _NEWS_TYPE_STYLE.get(kind, _NEWS_TYPE_STYLE["release"])
+        color   = style["color"]
+        icon    = style["icon"]
+        bg_tint = style["bg"]
+        label   = style["label"]
         has_url = bool(item.get("url"))
-        return ft.Container(
-            padding=ft.padding.symmetric(horizontal=18, vertical=10),
-            bgcolor=SIDEBAR_BG, border_radius=4,
+
+        # ── Thumbnail / icon ──────────────────────────────────────────────
+        img_src = item.get("image")
+        if img_src:
+            thumb: ft.Control = ft.Container(
+                width=38, height=38, border_radius=9,
+                clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                shadow=[ft.BoxShadow(
+                    spread_radius=0, blur_radius=8,
+                    color=ft.colors.with_opacity(0.3, color),
+                    offset=ft.Offset(0, 2),
+                )],
+                content=ft.Image(
+                    src=img_src, width=38, height=38,
+                    fit=ft.ImageFit.COVER,
+                    error_content=self._icon_fallback(icon, color, bg_tint),
+                ),
+            )
+        else:
+            thumb = self._icon_fallback(icon, color, bg_tint, size=38)
+
+        # ── Badge tipo ────────────────────────────────────────────────────
+        badge = ft.Container(
+            content=ft.Text(label, size=8, color=color, weight=ft.FontWeight.W_700),
+            padding=ft.padding.symmetric(horizontal=6, vertical=2),
+            bgcolor=ft.colors.with_opacity(0.15, color),
+            border_radius=4,
+            border=ft.border.all(1, ft.colors.with_opacity(0.3, color)),
+        )
+
+        # ── Date / source ─────────────────────────────────────────────────
+        meta_parts: list[ft.Control] = []
+        if item.get("source"):
+            meta_parts.append(ft.Text(item["source"], color=TEXT_DIM, size=8))
+        if item.get("date"):
+            if meta_parts:
+                meta_parts.append(ft.Text("·", color=TEXT_DIM, size=8))
+            meta_parts.append(ft.Text(item["date"], color=TEXT_DIM, size=8))
+        if item.get("downloads"):
+            from .home_view import _fmt  # reusa la función de formato
+            if meta_parts:
+                meta_parts.append(ft.Text("·", color=TEXT_DIM, size=8))
+            meta_parts.append(ft.Icon(ft.icons.DOWNLOAD_OUTLINED,
+                                      size=10, color=TEXT_DIM))
+            meta_parts.append(ft.Text(_fmt(item["downloads"]), color=TEXT_DIM, size=8))
+
+        meta_row = ft.Row(meta_parts, spacing=4,
+                          vertical_alignment=ft.CrossAxisAlignment.CENTER)
+
+        # ── Card body ─────────────────────────────────────────────────────
+        card = ft.Container(
+            padding=ft.padding.symmetric(horizontal=12, vertical=10),
+            border_radius=0,
+            animate=ft.animation.Animation(180, ft.AnimationCurve.EASE_OUT),
             on_click=(
                 lambda e, u=item["url"]: __import__("webbrowser").open(u)
             ) if has_url else None,
-            on_hover=lambda e: (
-                setattr(e.control, "bgcolor",
-                        CARD_BG if e.data == "true" else SIDEBAR_BG)
-                or e.control.update()
-            ),
-            content=ft.Column([
-                ft.Row([
-                    ft.Text(item["tag"], color=item.get("tag_color", GREEN),
-                            size=8, weight=ft.FontWeight.BOLD, expand=True),
-                    ft.Text(item["source"], color=TEXT_DIM, size=7),
-                ]),
-                ft.Text(item["title"], color=TEXT_PRI, size=9,
+            content=ft.Row([
+                thumb,
+                ft.Container(width=10),
+                ft.Column([
+                    ft.Row([
+                        badge,
+                        ft.Container(expand=True),
+                        meta_row,
+                    ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                    ft.Container(height=4),
+                    ft.Text(
+                        item.get("title", ""),
+                        color=TEXT_PRI, size=11,
                         weight=ft.FontWeight.BOLD,
-                        overflow=ft.TextOverflow.ELLIPSIS, max_lines=2),
-                ft.Text(item.get("body", ""), color=TEXT_SEC, size=8,
-                        overflow=ft.TextOverflow.ELLIPSIS)
-                if item.get("body") else ft.Container(height=0),
-            ], spacing=2),
+                        overflow=ft.TextOverflow.ELLIPSIS, max_lines=2,
+                    ),
+                    *(
+                        [ft.Text(
+                            item["body"], color=TEXT_SEC, size=9,
+                            overflow=ft.TextOverflow.ELLIPSIS, max_lines=2,
+                        )]
+                        if item.get("body") else []
+                    ),
+                ], spacing=0, expand=True),
+            ], vertical_alignment=ft.CrossAxisAlignment.START),
+        )
+
+        # Hover: fondo tintado + glow borde izquierdo
+        def _hover(e, c=card, col=color, bg=bg_tint):
+            if e.data == "true":
+                c.bgcolor = ft.colors.with_opacity(0.06, col)
+                c.border  = ft.border.only(
+                    left=ft.BorderSide(2, ft.colors.with_opacity(0.7, col)))
+            else:
+                c.bgcolor = "transparent"
+                c.border  = None
+            try:
+                c.update()
+            except Exception:
+                pass
+
+        card.on_hover = _hover
+        return card
+
+    @staticmethod
+    def _icon_fallback(icon, color: str, bg: str,
+                       size: int = 38) -> ft.Container:
+        """Fallback cuadrado con gradiente + ícono centrado."""
+        return ft.Container(
+            width=size, height=size, border_radius=9,
+            gradient=ft.LinearGradient(
+                begin=ft.alignment.top_left,
+                end=ft.alignment.bottom_right,
+                colors=[bg, ft.colors.with_opacity(0.6, bg)],
+            ),
+            border=ft.border.all(1, ft.colors.with_opacity(0.2, color)),
+            shadow=[ft.BoxShadow(
+                spread_radius=0, blur_radius=6,
+                color=ft.colors.with_opacity(0.2, color),
+                offset=ft.Offset(0, 2),
+            )],
+            content=ft.Icon(icon, color=ft.colors.with_opacity(0.8, color),
+                            size=size // 2 - 1),
+            alignment=ft.alignment.center,
         )
