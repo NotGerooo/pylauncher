@@ -1,7 +1,7 @@
 """
 gui/views/accounts_view.py — Gestión de cuentas
 Cuentas offline y autenticación Microsoft OAuth.
-Skin 3D CSS · Glow sutil · Gestión de skins offline · Device Flow UI
+Skin body 2D · Glow sutil · Gestión de skins offline · Device Flow UI
 """
 import threading
 import flet as ft
@@ -27,90 +27,6 @@ def _body_url(username: str, uuid: str | None = None, size: int = 256) -> str:
     return f"https://minotar.net/body/{username}/{size}"
 
 
-def _skin_3d_html(username: str, uuid: str | None = None,
-                  width: int = 160, height: int = 220,
-                  glow: str = "#4ade80") -> str:
-    """HTML con skinview3d (CDN). Walk + auto-rotación + sombra de suelo."""
-    skin_url = (
-        f"https://crafatar.com/skins/{uuid}"
-        if uuid and uuid != "offline"
-        else f"https://minotar.net/skin/{username}"
-    )
-    cape_js = (
-        f'viewer.loadCape("https://crafatar.com/capes/{uuid}");'
-        if uuid and uuid != "offline"
-        else ""
-    )
-    return f"""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-  * {{ margin:0; padding:0; box-sizing:border-box; }}
-  html, body {{
-    width:{width}px; height:{height}px;
-    background:transparent;
-    overflow:hidden;
-    display:flex; align-items:center; justify-content:center;
-  }}
-  canvas {{
-    display:block;
-    filter: drop-shadow(0 0 8px {glow}66);
-    animation: floatY 3.2s ease-in-out infinite;
-  }}
-  @keyframes floatY {{
-    0%,100% {{ transform:translateY(0px); }}
-    50%      {{ transform:translateY(-7px); }}
-  }}
-  #shadow {{
-    position:absolute;
-    bottom:8px; left:50%;
-    transform:translateX(-50%);
-    width:50px; height:8px;
-    border-radius:50%;
-    background:radial-gradient(ellipse, {glow}44 0%, transparent 70%);
-    animation: shadowPulse 3.2s ease-in-out infinite;
-  }}
-  @keyframes shadowPulse {{
-    0%,100% {{ opacity:0.7; transform:translateX(-50%) scaleX(1); }}
-    50%      {{ opacity:0.3; transform:translateX(-50%) scaleX(0.7); }}
-  }}
-</style>
-</head>
-<body>
-<canvas id="c"></canvas>
-<div id="shadow"></div>
-<script src="https://cdn.jsdelivr.net/npm/skinview3d@2.2.1/bundles/skinview3d.min.js"></script>
-<script>
-(function() {{
-  try {{
-    var v = new skinview3d.SkinViewer({{
-      canvas: document.getElementById("c"),
-      width:  {width},
-      height: {height},
-      skin:   "{skin_url}",
-    }});
-    {cape_js}
-    v.fov = 50;
-    v.zoom = 0.9;
-    v.autoRotate = true;
-    v.autoRotateSpeed = 0.8;
-    v.animation = new skinview3d.WalkingAnimation();
-    v.animation.speed = 0.65;
-    v.renderer.setClearColor(0x000000, 0);
-  }} catch(err) {{
-    document.body.style.color = "{glow}";
-    document.body.style.font = "bold 12px monospace";
-    document.body.style.textAlign = "center";
-    document.body.style.paddingTop = "80px";
-    document.body.innerText = "Skin no disponible";
-  }}
-}})();
-</script>
-</body>
-</html>"""
-
-
 # ── Paleta Microsoft ──────────────────────────────────────────────────────────
 MS_BLUE   = "#4dabf7"
 MS_BG     = "#0a1929"
@@ -134,7 +50,6 @@ class AccountsView:
     #  BUILD
     # ═══════════════════════════════════════════════════════════════════════════
     def _build(self):
-        # FilePicker para skins offline
         self._skin_picker = ft.FilePicker(on_result=self._on_skin_picked)
         self.page.overlay.append(self._skin_picker)
         self.page.update()
@@ -418,7 +333,7 @@ class AccountsView:
         )
 
     # ═══════════════════════════════════════════════════════════════════════════
-    #  HERO — cuenta activa con skin 3D (WebView skinview3d)
+    #  HERO — cuenta activa con skin body 2D
     # ═══════════════════════════════════════════════════════════════════════════
     def _build_hero(self, acc) -> ft.Container:
         if not acc:
@@ -431,16 +346,11 @@ class AccountsView:
         initials = (name[:2]).upper()
         glow_col = GREEN if is_ms else OFFLINE_COLOR
 
-        # ── Skin 3D via WebView (skinview3d CDN) ────────────────────────────
-        skin_html = _skin_3d_html(name, uuid, 150, 210, glow_col)
-        skin_3d = ft.WebView(
-            url=f"data:text/html;charset=utf-8,{skin_html}",
-            width=150, height=210,
-            expand=False,
-        )
+        label_txt = "Microsoft" if is_ms else "Offline"
+        label_col = MS_BLUE if is_ms else OFFLINE_COLOR
+        label_bg  = ft.colors.with_opacity(0.14, label_col)
 
-        # Fallback: imagen body 2D por si WebView no carga
-        skin_fallback = ft.Image(
+        skin_body = ft.Image(
             src=_body_url(name, uuid, 256),
             width=120, height=200,
             fit=ft.ImageFit.CONTAIN,
@@ -453,22 +363,16 @@ class AccountsView:
             ),
         )
 
-        label_txt = "Microsoft" if is_ms else "Offline"
-        label_col = MS_BLUE if is_ms else OFFLINE_COLOR
-        label_bg  = ft.colors.with_opacity(0.14, label_col)
-
         return ft.Container(
             height=210,
             border_radius=20,
             border=ft.border.all(1, ft.colors.with_opacity(0.25, glow_col)),
-            # Glow exterior muy sutil — no tapa texto
             shadow=[
                 ft.BoxShadow(spread_radius=0, blur_radius=20,
                              color=ft.colors.with_opacity(0.12, glow_col),
                              offset=ft.Offset(0, 6)),
             ],
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
-            # Gradiente suave de fondo
             gradient=ft.LinearGradient(
                 begin=ft.alignment.top_left,
                 end=ft.alignment.bottom_right,
@@ -479,7 +383,7 @@ class AccountsView:
                 ],
             ),
             content=ft.Row([
-                # ── Skin 3D ─────────────────────────────────────────────────
+                # ── Skin body ────────────────────────────────────────────────
                 ft.Container(
                     width=160, height=210,
                     alignment=ft.alignment.center,
@@ -499,7 +403,7 @@ class AccountsView:
                         ft.Container(
                             width=160, height=210,
                             alignment=ft.alignment.center,
-                            content=skin_3d,
+                            content=skin_body,
                         ),
                     ]),
                 ),
@@ -517,12 +421,8 @@ class AccountsView:
                                 weight=ft.FontWeight.BOLD),
                     ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
                     ft.Container(height=8),
-                    # Nombre con fondo sólido para legibilidad total
-                    ft.Container(
-                        content=ft.Text(name, color=TEXT_PRI, size=22,
-                                        weight=ft.FontWeight.BOLD),
-                        bgcolor=ft.colors.with_opacity(0.0, CARD_BG),
-                    ),
+                    ft.Text(name, color=TEXT_PRI, size=22,
+                            weight=ft.FontWeight.BOLD),
                     ft.Container(height=10),
                     ft.Row([
                         self._small_badge(label_txt.upper(), label_col, label_bg),
@@ -532,7 +432,6 @@ class AccountsView:
                     ]),
                     ft.Container(height=12),
                     ft.Container(
-                        bgcolor=ft.colors.with_opacity(0.08, CARD_BG),
                         border=ft.border.all(1, ft.colors.with_opacity(0.18, TEXT_DIM)),
                         border_radius=8,
                         padding=ft.padding.symmetric(horizontal=10, vertical=5),
@@ -590,14 +489,14 @@ class AccountsView:
         )
 
     # ═══════════════════════════════════════════════════════════════════════════
-    #  ACCOUNT CARD — skin body + botón de skin para offline
+    #  ACCOUNT CARD
     # ═══════════════════════════════════════════════════════════════════════════
     def _make_account_card(self, acc, is_active: bool) -> ft.Container:
-        name     = acc.username
-        uuid     = getattr(acc, "uuid", None) or getattr(acc, "id", None)
-        is_ms    = getattr(acc, "is_microsoft", False)
-        col      = AVATAR_PALETTE[abs(hash(name)) % len(AVATAR_PALETTE)]
-        initials = (name[:2]).upper()
+        name      = acc.username
+        uuid      = getattr(acc, "uuid", None) or getattr(acc, "id", None)
+        is_ms     = getattr(acc, "is_microsoft", False)
+        col       = AVATAR_PALETTE[abs(hash(name)) % len(AVATAR_PALETTE)]
+        initials  = (name[:2]).upper()
         skin_path = getattr(acc, "skin_path", None)
 
         glow_col  = GREEN if is_active else TEXT_DIM
@@ -605,7 +504,6 @@ class AccountsView:
         label_bg  = ft.colors.with_opacity(0.12, label_col)
         label_txt = "Microsoft" if is_ms else "Offline"
 
-        # ── Panel izquierdo: skin body ───────────────────────────────────────
         skin_panel = ft.Container(
             width=70,
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
@@ -644,7 +542,6 @@ class AccountsView:
             ]),
         )
 
-        # Head
         head = ft.Container(
             width=40, height=40, border_radius=9,
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
@@ -678,7 +575,6 @@ class AccountsView:
             )],
         )
 
-        # ── Acciones ─────────────────────────────────────────────────────────
         actions: list[ft.Control] = []
 
         if not is_active:
@@ -702,16 +598,15 @@ class AccountsView:
             )
             actions.append(act_btn)
 
-        # Botón skin (solo para cuentas offline)
         if not is_ms:
-            skin_icon = ft.icons.IMAGE_ROUNDED if not skin_path else ft.icons.CHECK_CIRCLE_OUTLINE_ROUNDED
-            skin_color = OFFLINE_COLOR if not skin_path else GREEN
+            skin_icon  = ft.icons.CHECK_CIRCLE_OUTLINE_ROUNDED if skin_path else ft.icons.IMAGE_ROUNDED
+            skin_color = GREEN if skin_path else OFFLINE_COLOR
             skin_btn = ft.Container(
                 width=30, height=30, border_radius=8,
                 bgcolor="transparent",
                 border=ft.border.all(1, BORDER),
                 alignment=ft.alignment.center,
-                tooltip="Cambiar skin" if not skin_path else "Cambiar/quitar skin",
+                tooltip="Cambiar/quitar skin" if skin_path else "Cambiar skin",
                 content=ft.Icon(skin_icon, size=14, color=skin_color),
                 on_click=lambda e, a=acc: self._open_skin_menu(a),
                 animate=ft.animation.Animation(150, ft.AnimationCurve.EASE_OUT),
@@ -742,7 +637,6 @@ class AccountsView:
         )
         actions.append(del_btn)
 
-        # ── Card completa ─────────────────────────────────────────────────────
         card = ft.Container(
             bgcolor=(ft.colors.with_opacity(0.07, GREEN) if is_active else INPUT_BG),
             border=ft.border.all(
@@ -821,7 +715,6 @@ class AccountsView:
     #  SKIN MANAGEMENT (offline)
     # ═══════════════════════════════════════════════════════════════════════════
     def _open_skin_menu(self, acc):
-        """Muestra un diálogo para subir o quitar skin a una cuenta offline."""
         skin_path = getattr(acc, "skin_path", None)
 
         def _pick(e):
