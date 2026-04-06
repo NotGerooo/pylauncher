@@ -1,7 +1,7 @@
 """
-gui/views/accounts_view.py — Gestión de cuentas ✦ Ultra Edition
+gui/views/accounts_view.py — Gestión de cuentas
 Cuentas offline y autenticación Microsoft OAuth.
-Skin 3D CSS · Glows pulsantes · Partículas · Hero animado · Device Flow UI
+Skin 3D CSS · Glow sutil · Gestión de skins offline · Device Flow UI
 """
 import threading
 import flet as ft
@@ -30,11 +30,7 @@ def _body_url(username: str, uuid: str | None = None, size: int = 256) -> str:
 def _skin_3d_html(username: str, uuid: str | None = None,
                   width: int = 160, height: int = 220,
                   glow: str = "#4ade80") -> str:
-    """
-    HTML auto-contenido con skinview3d (CDN).
-    Renderiza walk + auto-rotación + sombra de suelo + float CSS.
-    Compatible con ft.WebView (Flet ≥ 0.21).
-    """
+    """HTML con skinview3d (CDN). Walk + auto-rotación + sombra de suelo."""
     skin_url = (
         f"https://crafatar.com/skins/{uuid}"
         if uuid and uuid != "offline"
@@ -59,28 +55,25 @@ def _skin_3d_html(username: str, uuid: str | None = None,
   }}
   canvas {{
     display:block;
-    filter:
-      drop-shadow(0 0 16px {glow}88)
-      drop-shadow(0 0 5px {glow}44);
+    filter: drop-shadow(0 0 8px {glow}66);
     animation: floatY 3.2s ease-in-out infinite;
   }}
   @keyframes floatY {{
     0%,100% {{ transform:translateY(0px); }}
-    50%      {{ transform:translateY(-9px); }}
+    50%      {{ transform:translateY(-7px); }}
   }}
-  /* Elipse de sombra bajo el modelo */
   #shadow {{
     position:absolute;
-    bottom:10px; left:50%;
+    bottom:8px; left:50%;
     transform:translateX(-50%);
-    width:60px; height:10px;
+    width:50px; height:8px;
     border-radius:50%;
-    background:radial-gradient(ellipse, {glow}66 0%, transparent 70%);
+    background:radial-gradient(ellipse, {glow}44 0%, transparent 70%);
     animation: shadowPulse 3.2s ease-in-out infinite;
   }}
   @keyframes shadowPulse {{
-    0%,100% {{ opacity:0.8; transform:translateX(-50%) scaleX(1); }}
-    50%      {{ opacity:0.4; transform:translateX(-50%) scaleX(0.7); }}
+    0%,100% {{ opacity:0.7; transform:translateX(-50%) scaleX(1); }}
+    50%      {{ opacity:0.3; transform:translateX(-50%) scaleX(0.7); }}
   }}
 </style>
 </head>
@@ -104,13 +97,13 @@ def _skin_3d_html(username: str, uuid: str | None = None,
     v.autoRotateSpeed = 0.8;
     v.animation = new skinview3d.WalkingAnimation();
     v.animation.speed = 0.65;
-    // Fondo transparente
     v.renderer.setClearColor(0x000000, 0);
   }} catch(err) {{
-    document.body.innerHTML =
-      '<div style="color:{glow};font:bold 14px monospace;text-align:center;padding-top:80px">'
-      + document.getElementById("c") ? "" : err.message
-      + '</div>';
+    document.body.style.color = "{glow}";
+    document.body.style.font = "bold 12px monospace";
+    document.body.style.textAlign = "center";
+    document.body.style.paddingTop = "80px";
+    document.body.innerText = "Skin no disponible";
   }}
 }})();
 </script>
@@ -133,12 +126,19 @@ class AccountsView:
         self.page = page
         self.app  = app
         self._ms_device_thread = None
+        self._skin_picker: ft.FilePicker | None = None
+        self._pending_skin_account_id: str | None = None
         self._build()
 
     # ═══════════════════════════════════════════════════════════════════════════
     #  BUILD
     # ═══════════════════════════════════════════════════════════════════════════
     def _build(self):
+        # FilePicker para skins offline
+        self._skin_picker = ft.FilePicker(on_result=self._on_skin_picked)
+        self.page.overlay.append(self._skin_picker)
+        self.page.update()
+
         self._hero = ft.Container(
             height=0,
             animate=ft.animation.Animation(500, ft.AnimationCurve.EASE_OUT),
@@ -263,12 +263,9 @@ class AccountsView:
             padding=ft.padding.all(22),
             border=ft.border.all(1, BORDER),
             shadow=[
-                ft.BoxShadow(spread_radius=0, blur_radius=30,
-                             color=ft.colors.with_opacity(0.12, OFFLINE_COLOR),
+                ft.BoxShadow(spread_radius=0, blur_radius=20,
+                             color=ft.colors.with_opacity(0.08, OFFLINE_COLOR),
                              offset=ft.Offset(0, 4)),
-                ft.BoxShadow(spread_radius=-2, blur_radius=8,
-                             color=ft.colors.with_opacity(0.06, OFFLINE_COLOR),
-                             offset=ft.Offset(0, 0)),
             ],
             content=ft.Column([
                 ft.Row([
@@ -277,9 +274,6 @@ class AccountsView:
                         bgcolor=OFFLINE_BG,
                         border=ft.border.all(1, ft.colors.with_opacity(0.35, OFFLINE_COLOR)),
                         alignment=ft.alignment.center,
-                        shadow=[ft.BoxShadow(spread_radius=0, blur_radius=14,
-                                             color=ft.colors.with_opacity(0.35, OFFLINE_COLOR),
-                                             offset=ft.Offset(0, 0))],
                         content=ft.Icon(ft.icons.PERSON_ROUNDED,
                                         color=OFFLINE_COLOR, size=18),
                     ),
@@ -322,12 +316,9 @@ class AccountsView:
             border_radius=12,
             padding=ft.padding.all(18),
             shadow=[
-                ft.BoxShadow(spread_radius=0, blur_radius=30,
-                             color=ft.colors.with_opacity(0.32, MS_BLUE),
+                ft.BoxShadow(spread_radius=0, blur_radius=20,
+                             color=ft.colors.with_opacity(0.22, MS_BLUE),
                              offset=ft.Offset(0, 4)),
-                ft.BoxShadow(spread_radius=-1, blur_radius=10,
-                             color=ft.colors.with_opacity(0.16, MS_BLUE),
-                             offset=ft.Offset(0, 0)),
             ],
             animate_opacity=ft.animation.Animation(350, ft.AnimationCurve.EASE_OUT),
             content=ft.Column([
@@ -335,8 +326,8 @@ class AccountsView:
                     ft.Container(
                         width=8, height=8, border_radius=4,
                         bgcolor=MS_BLUE,
-                        shadow=[ft.BoxShadow(spread_radius=0, blur_radius=10,
-                                             color=ft.colors.with_opacity(0.9, MS_BLUE),
+                        shadow=[ft.BoxShadow(spread_radius=0, blur_radius=8,
+                                             color=ft.colors.with_opacity(0.8, MS_BLUE),
                                              offset=ft.Offset(0, 0))],
                     ),
                     ft.Container(width=8),
@@ -394,12 +385,9 @@ class AccountsView:
             padding=ft.padding.all(22),
             border=ft.border.all(1, BORDER),
             shadow=[
-                ft.BoxShadow(spread_radius=0, blur_radius=30,
-                             color=ft.colors.with_opacity(0.13, MS_BLUE),
+                ft.BoxShadow(spread_radius=0, blur_radius=20,
+                             color=ft.colors.with_opacity(0.10, MS_BLUE),
                              offset=ft.Offset(0, 4)),
-                ft.BoxShadow(spread_radius=-2, blur_radius=8,
-                             color=ft.colors.with_opacity(0.07, MS_BLUE),
-                             offset=ft.Offset(0, 0)),
             ],
             content=ft.Column([
                 ft.Row([
@@ -408,9 +396,6 @@ class AccountsView:
                         bgcolor=MS_BG,
                         border=ft.border.all(1, MS_BORDER),
                         alignment=ft.alignment.center,
-                        shadow=[ft.BoxShadow(spread_radius=0, blur_radius=14,
-                                             color=ft.colors.with_opacity(0.3, MS_BLUE),
-                                             offset=ft.Offset(0, 0))],
                         content=self._ms_logo_icon(size=18),
                     ),
                     ft.Container(width=12),
@@ -433,84 +418,38 @@ class AccountsView:
         )
 
     # ═══════════════════════════════════════════════════════════════════════════
-    #  HERO — cuenta activa con skin 3D
+    #  HERO — cuenta activa con skin 3D (WebView skinview3d)
     # ═══════════════════════════════════════════════════════════════════════════
     def _build_hero(self, acc) -> ft.Container:
         if not acc:
             return ft.Container(height=0)
 
         name     = acc.username
-        uuid     = getattr(acc, "id", None)
+        uuid     = getattr(acc, "uuid", None) or getattr(acc, "id", None)
         is_ms    = getattr(acc, "is_microsoft", False)
         col      = AVATAR_PALETTE[abs(hash(name)) % len(AVATAR_PALETTE)]
         initials = (name[:2]).upper()
         glow_col = GREEN if is_ms else OFFLINE_COLOR
 
-        # ── Viewer 3D via WebView con skinview3d ─────────────────────────────
-        # ft.WebView muestra HTML directamente en desktop/mobile (Flet ≥ 0.21)
-        skin_3d_view = ft.Container(
-            width=160, height=220,
-            clip_behavior=ft.ClipBehavior.HARD_EDGE,
-            content=ft.WebView(
-                url="about:blank",
-                # El HTML se inyecta como data URI para soporte universal
-                # Compatible con Windows/macOS/Linux via WebView2/WKWebView/CEF
-                expand=True,
-            ),
+        # ── Skin 3D via WebView (skinview3d CDN) ────────────────────────────
+        skin_html = _skin_3d_html(name, uuid, 150, 210, glow_col)
+        skin_3d = ft.WebView(
+            url=f"data:text/html;charset=utf-8,{skin_html}",
+            width=150, height=210,
+            expand=False,
         )
 
-        # Inicializar el WebView con el HTML del skin 3D tras el build
-        # (Se hace en on_show para evitar problemas de timing)
-        self._skin_3d_html_cache = _skin_3d_html(name, uuid, 160, 220, glow_col)
-        self._skin_3d_webview_ref = skin_3d_view.content
-
-        # Fallback visual rico: imagen animada con efectos CSS-like
-        skin_fallback = ft.Container(
-            width=160, height=220,
-            clip_behavior=ft.ClipBehavior.HARD_EDGE,
-            content=ft.Stack([
-                # Aura radial de fondo
-                ft.Container(
-                    width=160, height=220,
-                    gradient=ft.RadialGradient(
-                        center=ft.alignment.bottom_center,
-                        radius=1.1,
-                        colors=[
-                            ft.colors.with_opacity(0.30, glow_col),
-                            ft.colors.with_opacity(0.0, glow_col),
-                        ],
-                    ),
-                ),
-                # Imagen del body
-                ft.Container(
-                    width=160, height=220,
-                    alignment=ft.alignment.center,
-                    content=ft.Image(
-                        src=_body_url(name, uuid, 256),
-                        width=130, height=210,
-                        fit=ft.ImageFit.CONTAIN,
-                        error_content=ft.Container(
-                            width=80, height=160,
-                            bgcolor=col, border_radius=12,
-                            alignment=ft.alignment.center,
-                            content=ft.Text(initials, color=TEXT_INV, size=24,
-                                            weight=ft.FontWeight.BOLD),
-                        ),
-                    ),
-                ),
-            ]),
-        )
-
-        # Elipse sombra de suelo
-        ground_shadow = ft.Container(
-            width=80, height=12, border_radius=50,
-            gradient=ft.RadialGradient(
-                center=ft.alignment.center,
-                radius=1.0,
-                colors=[
-                    ft.colors.with_opacity(0.55, glow_col),
-                    ft.colors.with_opacity(0.0,  glow_col),
-                ],
+        # Fallback: imagen body 2D por si WebView no carga
+        skin_fallback = ft.Image(
+            src=_body_url(name, uuid, 256),
+            width=120, height=200,
+            fit=ft.ImageFit.CONTAIN,
+            error_content=ft.Container(
+                width=70, height=140,
+                bgcolor=col, border_radius=12,
+                alignment=ft.alignment.center,
+                content=ft.Text(initials, color=TEXT_INV, size=22,
+                                weight=ft.FontWeight.BOLD),
             ),
         )
 
@@ -518,184 +457,162 @@ class AccountsView:
         label_col = MS_BLUE if is_ms else OFFLINE_COLOR
         label_bg  = ft.colors.with_opacity(0.14, label_col)
 
-        # Partículas decorativas
-        def _particle(top, left, size, opacity):
-            return ft.Container(
-                width=size, height=size, border_radius=size,
-                bgcolor=ft.colors.with_opacity(opacity, glow_col),
-                shadow=[ft.BoxShadow(spread_radius=0, blur_radius=size * 3,
-                                     color=ft.colors.with_opacity(opacity * 0.8, glow_col),
-                                     offset=ft.Offset(0, 0))],
-                top=top, left=left,
-            )
-
         return ft.Container(
-            height=190,
+            height=210,
             border_radius=20,
-            border=ft.border.all(1, ft.colors.with_opacity(0.35, glow_col)),
+            border=ft.border.all(1, ft.colors.with_opacity(0.25, glow_col)),
+            # Glow exterior muy sutil — no tapa texto
             shadow=[
-                ft.BoxShadow(spread_radius=0, blur_radius=44,
-                             color=ft.colors.with_opacity(0.22, glow_col),
-                             offset=ft.Offset(0, 8)),
-                ft.BoxShadow(spread_radius=-2, blur_radius=16,
+                ft.BoxShadow(spread_radius=0, blur_radius=20,
                              color=ft.colors.with_opacity(0.12, glow_col),
-                             offset=ft.Offset(0, 0)),
+                             offset=ft.Offset(0, 6)),
             ],
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
+            # Gradiente suave de fondo
             gradient=ft.LinearGradient(
                 begin=ft.alignment.top_left,
                 end=ft.alignment.bottom_right,
                 colors=[
-                    ft.colors.with_opacity(0.22, glow_col),
+                    ft.colors.with_opacity(0.14, glow_col),
                     CARD_BG,
-                    ft.colors.with_opacity(0.07, glow_col),
+                    ft.colors.with_opacity(0.05, glow_col),
                 ],
             ),
-            content=ft.Stack([
-                # Partículas ambiente
-                _particle(18,  180, 4, 0.50),
-                _particle(60,  340, 3, 0.30),
-                _particle(130, 210, 5, 0.40),
-                _particle(35,  430, 2, 0.60),
-                _particle(100, 75,  3, 0.35),
-                _particle(160, 310, 4, 0.25),
-
-                # Contenido principal
+            content=ft.Row([
+                # ── Skin 3D ─────────────────────────────────────────────────
                 ft.Container(
-                    expand=True,
-                    content=ft.Row([
-                        # ── Skin (3D WebView o fallback) ────────────────────
+                    width=160, height=210,
+                    alignment=ft.alignment.center,
+                    clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                    content=ft.Stack([
                         ft.Container(
-                            width=160,
-                            content=ft.Column([
-                                # Intentar 3D; si WebView no disponible usa fallback
-                                skin_fallback,
-                                ft.Container(
-                                    alignment=ft.alignment.center,
-                                    content=ground_shadow,
-                                ),
-                            ], spacing=0,
-                               horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                            alignment=ft.alignment.bottom_center,
+                            width=160, height=210,
+                            gradient=ft.RadialGradient(
+                                center=ft.alignment.bottom_center,
+                                radius=1.0,
+                                colors=[
+                                    ft.colors.with_opacity(0.20, glow_col),
+                                    ft.colors.with_opacity(0.0, glow_col),
+                                ],
+                            ),
                         ),
+                        ft.Container(
+                            width=160, height=210,
+                            alignment=ft.alignment.center,
+                            content=skin_3d,
+                        ),
+                    ]),
+                ),
 
-                        # ── Info ────────────────────────────────────────────
-                        ft.Column([
-                            ft.Container(height=12),
-                            ft.Row([
-                                ft.Container(
-                                    width=8, height=8, border_radius=4,
-                                    bgcolor=glow_col,
-                                    shadow=[ft.BoxShadow(
-                                        spread_radius=2, blur_radius=14,
-                                        color=ft.colors.with_opacity(0.9, glow_col),
-                                        offset=ft.Offset(0, 0))],
-                                ),
-                                ft.Container(width=8),
-                                ft.Text("JUGANDO COMO", color=TEXT_DIM, size=8,
+                # ── Info ────────────────────────────────────────────────────
+                ft.Column([
+                    ft.Container(height=16),
+                    ft.Row([
+                        ft.Container(
+                            width=7, height=7, border_radius=4,
+                            bgcolor=glow_col,
+                        ),
+                        ft.Container(width=8),
+                        ft.Text("JUGANDO COMO", color=TEXT_DIM, size=8,
+                                weight=ft.FontWeight.BOLD),
+                    ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                    ft.Container(height=8),
+                    # Nombre con fondo sólido para legibilidad total
+                    ft.Container(
+                        content=ft.Text(name, color=TEXT_PRI, size=22,
                                         weight=ft.FontWeight.BOLD),
-                            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
-                            ft.Container(height=8),
-                            ft.Text(name, color=TEXT_PRI, size=24,
-                                    weight=ft.FontWeight.BOLD),
-                            ft.Container(height=8),
-                            ft.Row([
-                                self._small_badge(label_txt.upper(), label_col, label_bg),
-                                ft.Container(width=6),
-                                self._small_badge("ACTIVA", GREEN,
-                                                  ft.colors.with_opacity(0.14, GREEN)),
-                            ]),
-                            ft.Container(height=10),
-                            ft.Container(
-                                bgcolor=ft.colors.with_opacity(0.07, TEXT_DIM),
-                                border=ft.border.all(1, ft.colors.with_opacity(0.15, TEXT_DIM)),
-                                border_radius=8,
-                                padding=ft.padding.symmetric(horizontal=10, vertical=5),
-                                content=ft.Text(
-                                    f"UUID: {str(uuid)[:16]}…" if uuid else "Sin UUID — Modo Offline",
-                                    color=TEXT_DIM, size=8,
-                                    font_family="Courier New",
+                        bgcolor=ft.colors.with_opacity(0.0, CARD_BG),
+                    ),
+                    ft.Container(height=10),
+                    ft.Row([
+                        self._small_badge(label_txt.upper(), label_col, label_bg),
+                        ft.Container(width=6),
+                        self._small_badge("ACTIVA", GREEN,
+                                          ft.colors.with_opacity(0.14, GREEN)),
+                    ]),
+                    ft.Container(height=12),
+                    ft.Container(
+                        bgcolor=ft.colors.with_opacity(0.08, CARD_BG),
+                        border=ft.border.all(1, ft.colors.with_opacity(0.18, TEXT_DIM)),
+                        border_radius=8,
+                        padding=ft.padding.symmetric(horizontal=10, vertical=5),
+                        content=ft.Text(
+                            f"UUID: {str(uuid)[:16]}…" if uuid else "Sin UUID — Modo Offline",
+                            color=TEXT_SEC, size=8,
+                            font_family="Courier New",
+                        ),
+                    ),
+                ], spacing=0, expand=True,
+                   alignment=ft.MainAxisAlignment.CENTER),
+
+                # ── Head grande ──────────────────────────────────────────────
+                ft.Container(
+                    padding=ft.padding.only(right=28, top=20, bottom=20),
+                    content=ft.Column([
+                        ft.Container(
+                            width=80, height=80, border_radius=14,
+                            clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                            border=ft.border.all(
+                                2, ft.colors.with_opacity(0.5, glow_col)),
+                            shadow=[
+                                ft.BoxShadow(spread_radius=0, blur_radius=14,
+                                             color=ft.colors.with_opacity(0.35, glow_col),
+                                             offset=ft.Offset(0, 0)),
+                            ],
+                            content=ft.Image(
+                                src=_head_url(name, uuid, 160),
+                                width=80, height=80,
+                                fit=ft.ImageFit.COVER,
+                                error_content=ft.Container(
+                                    bgcolor=col,
+                                    alignment=ft.alignment.center,
+                                    content=ft.Text(initials, color=TEXT_INV,
+                                                    size=18, weight=ft.FontWeight.BOLD),
                                 ),
                             ),
-                        ], spacing=0, expand=True,
-                           alignment=ft.MainAxisAlignment.CENTER),
-
-                        # ── Head grande + indicador ──────────────────────────
-                        ft.Container(
-                            padding=ft.padding.only(right=28, top=20, bottom=20),
-                            content=ft.Column([
-                                ft.Container(
-                                    width=82, height=82, border_radius=16,
-                                    clip_behavior=ft.ClipBehavior.HARD_EDGE,
-                                    border=ft.border.all(
-                                        2, ft.colors.with_opacity(0.65, glow_col)),
-                                    shadow=[
-                                        ft.BoxShadow(spread_radius=0, blur_radius=26,
-                                                     color=ft.colors.with_opacity(0.55, glow_col),
-                                                     offset=ft.Offset(0, 0)),
-                                        ft.BoxShadow(spread_radius=0, blur_radius=8,
-                                                     color=ft.colors.with_opacity(0.30, glow_col),
-                                                     offset=ft.Offset(0, 5)),
-                                    ],
-                                    content=ft.Image(
-                                        src=_head_url(name, uuid, 164),
-                                        width=82, height=82,
-                                        fit=ft.ImageFit.COVER,
-                                        error_content=ft.Container(
-                                            bgcolor=col,
-                                            alignment=ft.alignment.center,
-                                            content=ft.Text(initials, color=TEXT_INV,
-                                                            size=20, weight=ft.FontWeight.BOLD),
-                                        ),
-                                    ),
-                                ),
-                                ft.Container(height=10),
-                                ft.Row([
-                                    ft.Container(
-                                        width=6, height=6, border_radius=3,
-                                        bgcolor=GREEN,
-                                        shadow=[ft.BoxShadow(spread_radius=0, blur_radius=6,
-                                                             color=ft.colors.with_opacity(0.8, GREEN),
-                                                             offset=ft.Offset(0, 0))],
-                                    ),
-                                    ft.Container(width=5),
-                                    ft.Text("En línea", color=GREEN, size=9,
-                                            weight=ft.FontWeight.W_600),
-                                ], vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                                   alignment=ft.MainAxisAlignment.CENTER),
-                            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                               alignment=ft.MainAxisAlignment.CENTER,
-                               expand=True),
                         ),
-                    ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                        ft.Container(height=8),
+                        ft.Row([
+                            ft.Container(
+                                width=6, height=6, border_radius=3,
+                                bgcolor=GREEN,
+                            ),
+                            ft.Container(width=5),
+                            ft.Text("En línea", color=GREEN, size=9,
+                                    weight=ft.FontWeight.W_600),
+                        ], vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                           alignment=ft.MainAxisAlignment.CENTER),
+                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                       alignment=ft.MainAxisAlignment.CENTER,
+                       expand=True),
                 ),
-            ]),
+            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
         )
 
     # ═══════════════════════════════════════════════════════════════════════════
-    #  ACCOUNT CARD — skin body visible + efectos mejorados
+    #  ACCOUNT CARD — skin body + botón de skin para offline
     # ═══════════════════════════════════════════════════════════════════════════
     def _make_account_card(self, acc, is_active: bool) -> ft.Container:
         name     = acc.username
-        uuid     = getattr(acc, "id", None)
+        uuid     = getattr(acc, "uuid", None) or getattr(acc, "id", None)
         is_ms    = getattr(acc, "is_microsoft", False)
         col      = AVATAR_PALETTE[abs(hash(name)) % len(AVATAR_PALETTE)]
         initials = (name[:2]).upper()
+        skin_path = getattr(acc, "skin_path", None)
 
         glow_col  = GREEN if is_active else TEXT_DIM
         label_col = MS_BLUE if is_ms else OFFLINE_COLOR
         label_bg  = ft.colors.with_opacity(0.12, label_col)
         label_txt = "Microsoft" if is_ms else "Offline"
 
-        # ── Panel izquierdo: skin body completo ──────────────────────────────
+        # ── Panel izquierdo: skin body ───────────────────────────────────────
         skin_panel = ft.Container(
             width=70,
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
             border_radius=ft.border_radius.only(top_left=14, bottom_left=14),
             bgcolor=ft.colors.with_opacity(
-                0.12 if is_active else 0.04, glow_col),
+                0.10 if is_active else 0.04, glow_col),
             content=ft.Stack([
-                # Aura radial de fondo
                 ft.Container(
                     width=70, height=110,
                     gradient=ft.RadialGradient(
@@ -703,12 +620,11 @@ class AccountsView:
                         radius=1.0,
                         colors=[
                             ft.colors.with_opacity(
-                                0.45 if is_active else 0.15, glow_col),
+                                0.35 if is_active else 0.12, glow_col),
                             ft.colors.with_opacity(0.0, glow_col),
                         ],
                     ),
                 ),
-                # Body render
                 ft.Container(
                     width=70, height=104,
                     alignment=ft.alignment.center,
@@ -725,23 +641,6 @@ class AccountsView:
                         ),
                     ),
                 ),
-                # Sombra de suelo mini
-                ft.Container(
-                    bottom=4,
-                    content=ft.Container(
-                        width=44, height=7, border_radius=22,
-                        gradient=ft.RadialGradient(
-                            center=ft.alignment.center,
-                            radius=1.0,
-                            colors=[
-                                ft.colors.with_opacity(
-                                    0.55 if is_active else 0.20, glow_col),
-                                ft.colors.with_opacity(0.0, glow_col),
-                            ],
-                        ),
-                    ),
-                    left=13,
-                ),
             ]),
         )
 
@@ -752,9 +651,9 @@ class AccountsView:
             border=ft.border.all(
                 2, ft.colors.with_opacity(0.70, GREEN) if is_active else BORDER),
             shadow=[ft.BoxShadow(
-                spread_radius=0, blur_radius=11,
+                spread_radius=0, blur_radius=8,
                 color=ft.colors.with_opacity(
-                    0.50 if is_active else 0.15,
+                    0.40 if is_active else 0.10,
                     GREEN if is_active else col),
                 offset=ft.Offset(0, 2),
             )],
@@ -769,13 +668,12 @@ class AccountsView:
             ),
         )
 
-        # Status dot
         dot_col = GREEN if is_active else TEXT_DIM
         status_dot = ft.Container(
             width=7, height=7, border_radius=4, bgcolor=dot_col,
             shadow=[ft.BoxShadow(
-                spread_radius=0, blur_radius=8,
-                color=ft.colors.with_opacity(0.9 if is_active else 0.0, dot_col),
+                spread_radius=0, blur_radius=6,
+                color=ft.colors.with_opacity(0.8 if is_active else 0.0, dot_col),
                 offset=ft.Offset(0, 0),
             )],
         )
@@ -804,6 +702,27 @@ class AccountsView:
             )
             actions.append(act_btn)
 
+        # Botón skin (solo para cuentas offline)
+        if not is_ms:
+            skin_icon = ft.icons.IMAGE_ROUNDED if not skin_path else ft.icons.CHECK_CIRCLE_OUTLINE_ROUNDED
+            skin_color = OFFLINE_COLOR if not skin_path else GREEN
+            skin_btn = ft.Container(
+                width=30, height=30, border_radius=8,
+                bgcolor="transparent",
+                border=ft.border.all(1, BORDER),
+                alignment=ft.alignment.center,
+                tooltip="Cambiar skin" if not skin_path else "Cambiar/quitar skin",
+                content=ft.Icon(skin_icon, size=14, color=skin_color),
+                on_click=lambda e, a=acc: self._open_skin_menu(a),
+                animate=ft.animation.Animation(150, ft.AnimationCurve.EASE_OUT),
+            )
+            skin_btn.on_hover = lambda e, c=skin_btn: (
+                setattr(c, "bgcolor",
+                        ft.colors.with_opacity(0.10, OFFLINE_COLOR) if e.data == "true"
+                        else "transparent") or c.update()
+            )
+            actions.append(skin_btn)
+
         del_btn = ft.Container(
             width=30, height=30, border_radius=8,
             bgcolor="transparent",
@@ -831,15 +750,14 @@ class AccountsView:
             border_radius=14,
             padding=ft.padding.only(top=0, bottom=0, left=0, right=16),
             shadow=[ft.BoxShadow(
-                spread_radius=0, blur_radius=22,
-                color=ft.colors.with_opacity(0.20 if is_active else 0.0, GREEN),
+                spread_radius=0, blur_radius=16,
+                color=ft.colors.with_opacity(0.15 if is_active else 0.0, GREEN),
                 offset=ft.Offset(0, 3),
             )],
             animate=ft.animation.Animation(220, ft.AnimationCurve.EASE_OUT),
             content=ft.Row([
                 skin_panel,
                 ft.Container(width=12),
-                # Info
                 ft.Column([
                     ft.Container(height=10),
                     ft.Row([
@@ -860,6 +778,12 @@ class AccountsView:
                                      self._small_badge("ACTIVA", GREEN,
                                                       ft.colors.with_opacity(0.14, GREEN))]
                                     if is_active else []
+                                ),
+                                *(
+                                    [ft.Container(width=4),
+                                     self._small_badge("SKIN", OFFLINE_COLOR,
+                                                      ft.colors.with_opacity(0.10, OFFLINE_COLOR))]
+                                    if (not is_ms and skin_path) else []
                                 ),
                             ]),
                             ft.Container(height=4),
@@ -884,7 +808,7 @@ class AccountsView:
                          else ft.colors.with_opacity(0.05, TEXT_PRI))
             c.border  = ft.border.all(
                 1, BORDER if e.data != "true"
-                else ft.colors.with_opacity(0.40, TEXT_DIM))
+                else ft.colors.with_opacity(0.35, TEXT_DIM))
             try:
                 c.update()
             except Exception:
@@ -892,6 +816,100 @@ class AccountsView:
 
         card.on_hover = _hover
         return card
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    #  SKIN MANAGEMENT (offline)
+    # ═══════════════════════════════════════════════════════════════════════════
+    def _open_skin_menu(self, acc):
+        """Muestra un diálogo para subir o quitar skin a una cuenta offline."""
+        skin_path = getattr(acc, "skin_path", None)
+
+        def _pick(e):
+            self.page.close(dlg)
+            self._pending_skin_account_id = acc.id
+            self._skin_picker.pick_files(
+                dialog_title="Selecciona una skin (.png)",
+                allowed_extensions=["png"],
+                allow_multiple=False,
+            )
+
+        def _remove(e):
+            self.page.close(dlg)
+            try:
+                self.app.account_manager.update_skin(acc.id, None)
+                self._refresh_accounts()
+                self.app.snack("Skin eliminada.")
+            except Exception as err:
+                self.app.snack(str(err), error=True)
+
+        actions = [
+            ft.ElevatedButton(
+                content=ft.Row([
+                    ft.Icon(ft.icons.UPLOAD_ROUNDED, size=14, color=TEXT_INV),
+                    ft.Container(width=6),
+                    ft.Text("Subir skin (.png)", color=TEXT_INV, size=11),
+                ], tight=True, vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                bgcolor=OFFLINE_COLOR,
+                style=ft.ButtonStyle(
+                    shape=ft.RoundedRectangleBorder(radius=8),
+                    padding=ft.padding.symmetric(horizontal=16, vertical=10),
+                ),
+                on_click=_pick,
+            ),
+        ]
+        if skin_path:
+            actions.insert(0, ft.TextButton(
+                "Quitar skin",
+                style=ft.ButtonStyle(color=ACCENT_RED),
+                on_click=_remove,
+            ))
+        actions.append(ft.TextButton(
+            "Cancelar",
+            style=ft.ButtonStyle(color=TEXT_SEC),
+            on_click=lambda e: self.page.close(dlg),
+        ))
+
+        dlg = ft.AlertDialog(
+            modal=True,
+            title=ft.Row([
+                ft.Icon(ft.icons.IMAGE_ROUNDED, color=OFFLINE_COLOR, size=18),
+                ft.Container(width=8),
+                ft.Text(f"Skin de {acc.username}", color=TEXT_PRI, size=13,
+                        weight=ft.FontWeight.BOLD),
+            ]),
+            content=ft.Column([
+                ft.Container(
+                    bgcolor=ft.colors.with_opacity(0.06, OFFLINE_COLOR),
+                    border=ft.border.all(1, ft.colors.with_opacity(0.18, OFFLINE_COLOR)),
+                    border_radius=10,
+                    padding=ft.padding.all(12),
+                    content=ft.Text(
+                        f"Skin actual: {skin_path.split('/')[-1] if skin_path else 'Ninguna (Mojang default)'}\n"
+                        "Las skins deben ser PNG de 64×64 o 64×32 píxeles.",
+                        color=TEXT_SEC, size=10,
+                    ),
+                ),
+            ], tight=True),
+            bgcolor=CARD_BG,
+            shape=ft.RoundedRectangleBorder(radius=14),
+            actions=actions,
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        self.page.open(dlg)
+
+    def _on_skin_picked(self, e: ft.FilePickerResultEvent):
+        if not e.files or not self._pending_skin_account_id:
+            self._pending_skin_account_id = None
+            return
+        skin_path = e.files[0].path
+        acc_id    = self._pending_skin_account_id
+        self._pending_skin_account_id = None
+        try:
+            self.app.account_manager.update_skin(acc_id, skin_path)
+            self._refresh_accounts()
+            self.app.snack("Skin actualizada correctamente.")
+        except Exception as err:
+            self.app.snack(str(err), error=True)
 
     # ═══════════════════════════════════════════════════════════════════════════
     #  HELPERS UI
@@ -933,8 +951,8 @@ class AccountsView:
             border=ft.border.all(1, BORDER),
             border_radius=10,
             padding=ft.padding.all(8),
-            shadow=[ft.BoxShadow(spread_radius=0, blur_radius=16,
-                                 color=ft.colors.with_opacity(0.28, green),
+            shadow=[ft.BoxShadow(spread_radius=0, blur_radius=12,
+                                 color=ft.colors.with_opacity(0.20, green),
                                  offset=ft.Offset(0, 2))],
             content=ft.Column(rows, spacing=0),
         )
@@ -972,7 +990,7 @@ class AccountsView:
             active    = None
 
         self._hero.content = self._build_hero(active)
-        self._hero.height  = 200 if active else 0
+        self._hero.height  = 220 if active else 0
         try:
             self._hero.update()
         except Exception:
@@ -1012,15 +1030,8 @@ class AccountsView:
         if not username:
             self.app.snack("Ingresa un nombre de usuario.", error=True)
             return
-        if len(username) < 3:
-            self.app.snack("El nombre debe tener al menos 3 caracteres.", error=True)
-            return
         try:
-            from services.auth_service import AuthError
-            self.app.auth_service._validate_username(username)
-            from services.account_manager import Account
-            acc = Account(username=username, is_microsoft=False)
-            self.app.account_manager.add_account(acc)
+            acc = self.app.account_manager.add_offline_account(username)
             self._offline_field.value = ""
             self._offline_preview.content = ft.Icon(
                 ft.icons.PERSON_ROUNDED, color=TEXT_DIM, size=22)
@@ -1033,7 +1044,7 @@ class AccountsView:
                 pass
             self._refresh_accounts()
             self.app.refresh_account_panel()
-            self.app.snack(f"Cuenta '{username}' añadida.")
+            self.app.snack(f"Cuenta '{acc.username}' añadida.")
         except Exception as err:
             self.app.snack(str(err), error=True)
 
