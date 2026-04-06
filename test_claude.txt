@@ -1,1 +1,0 @@
-Hola! Este archivo fue creado por Claude directamente desde el chat. El conector de GitHub funciona correctamente.
