@@ -10,7 +10,7 @@ data/
 
 # Python
 __pycache__/
-cache/imagees
+cache/
 *.pyc
 
 # Logs
