@@ -3,6 +3,7 @@ managers/loader_manager.py — Gero's Launcher
 Instala mod loaders: Fabric, Forge, NeoForge, Quilt, Vanilla.
 Guarda loader_meta.json dentro del game_dir del perfil.
 """
+from asyncio import subprocess
 import json
 import os
 import re
@@ -239,10 +240,11 @@ def _install_forge(mc_version, loader_version, game_dir, libraries_dir, versions
     prog("Ejecutando instalador Forge (puede tardar 1-2 min)…")
     import subprocess, shutil
     java = shutil.which("java") or "java"
+    minecraft_dir = os.path.dirname(versions_dir)  # sube un nivel desde versions/
     result = subprocess.run(
-        [java, "-jar", installer, "--installClient", versions_dir],
-        capture_output=True, timeout=300
-    )
+    [java, "-jar", installer, "--installClient", minecraft_dir],
+    capture_output=True, timeout=300
+)
     if result.returncode != 0:
         log.warning(f"Instalador Forge salió con código {result.returncode}")
         log.debug(result.stderr.decode(errors="replace"))
