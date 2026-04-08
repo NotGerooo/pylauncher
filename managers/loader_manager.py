@@ -3,10 +3,11 @@ managers/loader_manager.py — Gero's Launcher
 Instala mod loaders: Fabric, Forge, NeoForge, Quilt, Vanilla.
 Guarda loader_meta.json dentro del game_dir del perfil.
 """
-from asyncio import subprocess
 import json
 import os
 import re
+import subprocess
+import shutil
 import urllib.request
 import urllib.error
 
@@ -81,6 +82,7 @@ def get_neoforge_versions(mc_version: str) -> list[str]:
         log.warning(f"NeoForge versions: {e}")
         return []
 
+
 def get_loader_versions(loader: str, mc_version: str) -> list[str]:
     if loader == "fabric":   return get_fabric_versions(mc_version)
     if loader == "quilt":    return get_quilt_versions(mc_version)
@@ -89,13 +91,34 @@ def get_loader_versions(loader: str, mc_version: str) -> list[str]:
     return []
 
 
+# ── OptiFine helpers (requeridos por optifine_service) ────────────────────────
+
+def save_optifine_version_id(game_dir: str, version_id: str):
+    """Persiste el version-id de OptiFine instalado en game_dir."""
+    os.makedirs(game_dir, exist_ok=True)
+    path = os.path.join(game_dir, "optifine_version.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump({"version_id": version_id}, f, indent=2)
+
+
+def load_optifine_version_id(game_dir: str) -> str | None:
+    """Devuelve el version-id de OptiFine guardado, o None si no existe."""
+    path = os.path.join(game_dir, "optifine_version.json")
+    if not os.path.isfile(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get("version_id")
+    except Exception:
+        return None
+
+
 # ── Instalación ───────────────────────────────────────────────────────────────
 
 class LoaderInstallError(Exception):
     pass
 
-def get_profiles(self):
-    return self._profiles
 
 def install_loader(
     loader: str,
@@ -141,15 +164,15 @@ def _install_fabric(mc_version, loader_version, game_dir, libraries_dir, prog):
     libs = profile.get("libraries", [])
     for i, lib in enumerate(libs, 1):
         prog(f"Fabric: lib {i}/{len(libs)}")
-        name  = lib.get("name", "")
-        url   = lib.get("url", "https://maven.fabricmc.net/")
-        parts = name.split(":")
+        name    = lib.get("name", "")
+        url     = lib.get("url", "https://maven.fabricmc.net/")
+        parts   = name.split(":")
         if len(parts) < 3:
             continue
         group, artifact, version = parts[0], parts[1], parts[2]
-        path   = f"{group.replace('.','/')}/{artifact}/{version}/{artifact}-{version}.jar"
-        dest   = os.path.join(libraries_dir, *path.split("/"))
-        dl_url = url.rstrip("/") + "/" + path
+        path    = f"{group.replace('.','/')}/{artifact}/{version}/{artifact}-{version}.jar"
+        dest    = os.path.join(libraries_dir, *path.split("/"))
+        dl_url  = url.rstrip("/") + "/" + path
         if not os.path.isfile(dest):
             try:
                 _download_file(dl_url, dest)
@@ -178,15 +201,15 @@ def _install_quilt(mc_version, loader_version, game_dir, libraries_dir, prog):
     libs = profile.get("libraries", [])
     for i, lib in enumerate(libs, 1):
         prog(f"Quilt: lib {i}/{len(libs)}")
-        name  = lib.get("name", "")
-        url   = lib.get("url", "https://maven.quiltmc.org/repository/release/")
-        parts = name.split(":")
+        name    = lib.get("name", "")
+        url     = lib.get("url", "https://maven.quiltmc.org/repository/release/")
+        parts   = name.split(":")
         if len(parts) < 3:
             continue
         group, artifact, version = parts[0], parts[1], parts[2]
-        path   = f"{group.replace('.','/')}/{artifact}/{version}/{artifact}-{version}.jar"
-        dest   = os.path.join(libraries_dir, *path.split("/"))
-        dl_url = url.rstrip("/") + "/" + path
+        path    = f"{group.replace('.','/')}/{artifact}/{version}/{artifact}-{version}.jar"
+        dest    = os.path.join(libraries_dir, *path.split("/"))
+        dl_url  = url.rstrip("/") + "/" + path
         if not os.path.isfile(dest):
             try:
                 _download_file(dl_url, dest)
@@ -210,18 +233,17 @@ def _install_forge(mc_version, loader_version, game_dir, libraries_dir, versions
         forge_id = loader_version
     else:
         forge_id = f"{mc_version}-{loader_version}"
- 
+
     prog(f"Descargando instalador Forge {forge_id}…")
- 
-    # Intentar URL estándar primero, luego URL alternativa sin sufijo de mc_version
+
     urls_to_try = [
+        # Mirror principal (versiones modernas)
         f"https://maven.minecraftforge.net/net/minecraftforge/forge/{forge_id}/forge-{forge_id}-installer.jar",
-        f"https://maven.minecraftforge.net/net/minecraftforge/forge/{forge_id}/forge-{forge_id}-installer.jar".replace(
-            f"-{mc_version}.jar", ".jar"
-        ),
+        # Mirror legacy (1.12.2 y anteriores)
+        f"https://files.minecraftforge.net/maven/net/minecraftforge/forge/{forge_id}/forge-{forge_id}-installer.jar",
     ]
- 
-    installer = os.path.join(versions_dir, f"forge-{forge_id}-installer.jar")
+
+    installer  = os.path.join(versions_dir, f"forge-{forge_id}-installer.jar")
     downloaded = False
     for url in urls_to_try:
         try:
@@ -230,25 +252,24 @@ def _install_forge(mc_version, loader_version, game_dir, libraries_dir, versions
             break
         except Exception as e:
             log.warning(f"URL Forge fallida: {url} — {e}")
- 
+
     if not downloaded:
         raise LoaderInstallError(
             f"No se pudo descargar el instalador de Forge {forge_id}. "
             f"Verifica que la versión exista en files.minecraftforge.net"
         )
- 
+
     prog("Ejecutando instalador Forge (puede tardar 1-2 min)…")
-    import subprocess, shutil
-    java = shutil.which("java") or "java"
-    minecraft_dir = os.path.dirname(versions_dir)  # sube un nivel desde versions/
+    java          = shutil.which("java") or "java"
+    minecraft_dir = os.path.dirname(versions_dir)  # .minecraft/, no versions/
     result = subprocess.run(
-    [java, "-jar", installer, "--installClient", minecraft_dir],
-    capture_output=True, timeout=300
-)
+        [java, "-jar", installer, "--installClient", minecraft_dir],
+        capture_output=True, timeout=300,
+    )
     if result.returncode != 0:
         log.warning(f"Instalador Forge salió con código {result.returncode}")
         log.debug(result.stderr.decode(errors="replace"))
- 
+
     meta = {
         "loader": "forge",
         "mc_version": mc_version,
@@ -260,7 +281,6 @@ def _install_forge(mc_version, loader_version, game_dir, libraries_dir, versions
     _save_loader_meta(game_dir, meta)
     prog("Forge instalado.")
     return meta
- 
 
 
 def _install_neoforge(mc_version, loader_version, game_dir, libraries_dir, versions_dir, prog):
@@ -274,10 +294,15 @@ def _install_neoforge(mc_version, loader_version, game_dir, libraries_dir, versi
         raise LoaderInstallError(f"No se pudo descargar instalador NeoForge: {e}")
 
     prog("Ejecutando instalador NeoForge (puede tardar 1-2 min)…")
-    import subprocess, shutil
-    java = shutil.which("java") or "java"
-    subprocess.run([java, "-jar", installer, "--installClient", versions_dir],
-                   capture_output=True, timeout=300)
+    java          = shutil.which("java") or "java"
+    minecraft_dir = os.path.dirname(versions_dir)  # .minecraft/, no versions/
+    result = subprocess.run(
+        [java, "-jar", installer, "--installClient", minecraft_dir],
+        capture_output=True, timeout=300,
+    )
+    if result.returncode != 0:
+        log.warning(f"Instalador NeoForge salió con código {result.returncode}")
+        log.debug(result.stderr.decode(errors="replace"))
 
     meta = {"loader": "neoforge", "mc_version": mc_version,
             "loader_version": loader_version, "main_class": None,
@@ -285,6 +310,7 @@ def _install_neoforge(mc_version, loader_version, game_dir, libraries_dir, versi
     _save_loader_meta(game_dir, meta)
     prog("NeoForge instalado.")
     return meta
+
 
 # ── loader_meta.json ──────────────────────────────────────────────────────────
 
