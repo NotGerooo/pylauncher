@@ -332,4 +332,8 @@ def clear_optifine_version_id(game_dir: str):
     meta = load_loader_meta(game_dir)
     meta.pop("optifine_version_id", None)
     _save_loader_meta(game_dir, meta)
+<<<<<<< HEAD
     log.info("OptiFine version_id eliminado de loader_meta.")
+=======
+    log.info("OptiFine version_id eliminado de loader_meta.")
+>>>>>>> 3ad0333704cbac089c4c2a9756a7d661b3bc1359
