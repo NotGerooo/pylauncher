@@ -97,6 +97,21 @@ class InstanceView:
             on_click=self._on_play,
         )
 
+        # ── Botón OptiFine en el header ────────────────────────────────────
+        optifine_installed = self._check_optifine_installed()
+        optifine_btn = ft.OutlinedButton(
+            "OptiFine ✓" if optifine_installed else "OptiFine",
+            icon=ft.icons.SPEED_ROUNDED,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                side=ft.BorderSide(1, GREEN if optifine_installed else BORDER),
+                color=GREEN if optifine_installed else TEXT_SEC,
+                padding=ft.padding.symmetric(horizontal=14, vertical=10),
+            ),
+            tooltip="Instalar / gestionar OptiFine",
+            on_click=lambda e: self._open_optifine_dialog(),
+        )
+
         header = ft.Container(
             bgcolor=CARD_BG,
             padding=ft.padding.symmetric(horizontal=28, vertical=20),
@@ -122,6 +137,8 @@ class InstanceView:
                     ], spacing=0),
                 ], spacing=6, expand=True),
                 ft.Container(expand=True),
+                optifine_btn,
+                ft.Container(width=6),
                 ft.IconButton(
                     icon=ft.icons.SETTINGS_ROUNDED,
                     icon_color=TEXT_DIM, icon_size=20,
@@ -167,6 +184,32 @@ class InstanceView:
             spacing=0, expand=True,
             controls=[header, tab_bar, self._tab_area],
         )
+
+    def _check_optifine_installed(self) -> bool:
+        """Comprueba si OptiFine está instalado en esta instancia (modo mod o standalone)."""
+        try:
+            from services.optifine_service import is_optifine_installed
+            from config.constants import VERSIONS_DIR
+            return is_optifine_installed(
+                self.profile.version_id,
+                self.profile.game_dir,
+                VERSIONS_DIR,
+            )
+        except Exception:
+            return False
+
+    def _open_optifine_dialog(self):
+        """Abre el diálogo de instalación/gestión de OptiFine."""
+        _OptiFineDialog(self.page, self.app, self.profile,
+                        on_done=lambda: self._rebuild_header())
+
+    def _rebuild_header(self):
+        """Re-construye la vista completa para reflejar cambios en OptiFine."""
+        self._build()
+        try:
+            self.root.update()
+        except Exception:
+            pass
 
     def _make_tab_btn(self, tid, label, icon):
         active = tid == self._active_tab
@@ -316,6 +359,472 @@ class InstanceView:
             except Exception:
                 pass
         return "vanilla"
+
+
+# =============================================================================
+# OptiFine Dialog
+# =============================================================================
+class _OptiFineDialog:
+    """
+    Diálogo completo de instalación de OptiFine con dos modos:
+      - Installer: ejecuta el .jar para crear una versión standalone
+      - Mod:       copia el .jar a /mods (requiere Forge)
+    """
+
+    def __init__(self, page, app, profile, on_done=None):
+        self.page     = page
+        self.app      = app
+        self.profile  = profile
+        self.on_done  = on_done
+        self._mode    = "installer"   # "installer" | "mod"
+        self._versions: list[dict] = []
+        self._selected_version: dict | None = None
+        self._build()
+
+    def _build(self):
+        loader = self._read_loader()
+
+        # ── Título ────────────────────────────────────────────────────────────
+        title_row = ft.Row([
+            ft.Container(
+                width=40, height=40, border_radius=10,
+                bgcolor="#1a2d1a",
+                border=ft.border.all(1, "#2a5a2a"),
+                alignment=ft.alignment.center,
+                content=ft.Icon(ft.icons.SPEED_ROUNDED, size=20, color=GREEN),
+            ),
+            ft.Container(width=14),
+            ft.Column([
+                ft.Text("OptiFine", color=TEXT_PRI, size=16,
+                        weight=ft.FontWeight.BOLD),
+                ft.Text(
+                    f"Minecraft {self.profile.version_id}  ·  {loader.capitalize()}",
+                    color=TEXT_DIM, size=10,
+                ),
+            ], spacing=2),
+        ], vertical_alignment=ft.CrossAxisAlignment.CENTER)
+
+        # ── Selector de modo ──────────────────────────────────────────────────
+        self._mode_installer_btn = self._mode_pill("Installer", "installer")
+        self._mode_mod_btn       = self._mode_pill("Mod (Forge)", "mod")
+        mode_row = ft.Row([
+            self._mode_installer_btn,
+            ft.Container(width=8),
+            self._mode_mod_btn,
+        ], spacing=0)
+
+        # ── Info sobre el modo ────────────────────────────────────────────────
+        self._mode_info = ft.Text(
+            self._mode_description(), color=TEXT_DIM, size=10
+        )
+
+        # ── Dropdown de versiones OptiFine ────────────────────────────────────
+        self._ver_dd = ft.Dropdown(
+            hint_text="Cargando versiones…",
+            color=TEXT_PRI, bgcolor=INPUT_BG,
+            border_color=BORDER, focused_border_color=GREEN,
+            border_radius=8, height=44,
+            content_padding=ft.padding.symmetric(horizontal=14, vertical=8),
+            text_style=ft.TextStyle(size=12),
+            options=[],
+            on_change=self._on_version_change,
+        )
+
+        # ── FilePicker para instalar desde archivo local ───────────────────────
+        self._file_picker = ft.FilePicker(on_result=self._on_file_picked)
+        self.page.overlay.append(self._file_picker)
+        self.page.update()
+
+        # ── Barra de progreso ─────────────────────────────────────────────────
+        self._progress = ft.ProgressBar(
+            value=0, color=GREEN, bgcolor=CARD2_BG,
+            border_radius=4, height=6, visible=False,
+        )
+        self._status_lbl = ft.Text("", color=TEXT_SEC, size=10)
+
+        # ── Botones de acción ─────────────────────────────────────────────────
+        self._install_btn = ft.ElevatedButton(
+            "Instalar OptiFine",
+            icon=ft.icons.DOWNLOAD_ROUNDED,
+            bgcolor=GREEN, color=TEXT_INV,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                padding=ft.padding.symmetric(horizontal=20, vertical=12),
+            ),
+            on_click=self._on_install,
+            disabled=True,
+        )
+        local_btn = ft.OutlinedButton(
+            "Instalar desde archivo…",
+            icon=ft.icons.UPLOAD_FILE_ROUNDED,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                side=ft.BorderSide(1, BORDER), color=TEXT_SEC,
+                padding=ft.padding.symmetric(horizontal=16, vertical=10),
+            ),
+            on_click=lambda e: self._file_picker.pick_files(
+                dialog_title="Seleccionar OptiFine .jar",
+                allowed_extensions=["jar"],
+            ),
+        )
+
+        # ── Desinstalar (si está instalado) ───────────────────────────────────
+        already = self._check_installed()
+        uninstall_btn = ft.TextButton(
+            "Desinstalar OptiFine",
+            icon=ft.icons.DELETE_OUTLINE_ROUNDED,
+            style=ft.ButtonStyle(color=ACCENT_RED),
+            visible=already,
+            on_click=self._on_uninstall,
+        )
+        self._installed_badge = ft.Container(
+            visible=already,
+            bgcolor="#1a3d2a",
+            border=ft.border.all(1, "#2a5a2a"),
+            border_radius=6,
+            padding=ft.padding.symmetric(horizontal=10, vertical=4),
+            content=ft.Row([
+                ft.Icon(ft.icons.CHECK_CIRCLE_ROUNDED, size=12, color=GREEN),
+                ft.Container(width=6),
+                ft.Text("OptiFine instalado", color=GREEN, size=10,
+                        weight=ft.FontWeight.W_600),
+            ], spacing=0, tight=True),
+        )
+
+        # ── Advertencia Forge ─────────────────────────────────────────────────
+        loader_lower = loader.lower()
+        forge_warning = ft.Container(
+            visible=(self._mode == "mod" and loader_lower not in ("forge", "neoforge")),
+            bgcolor="#2d1a00",
+            border=ft.border.all(1, "#5a3a00"),
+            border_radius=8,
+            padding=ft.padding.all(12),
+            content=ft.Row([
+                ft.Icon(ft.icons.WARNING_AMBER_ROUNDED, size=16, color="#ffa94d"),
+                ft.Container(width=10),
+                ft.Text(
+                    "El modo Mod requiere Forge o NeoForge.\n"
+                    "Esta instancia usa " + loader.capitalize() + ".",
+                    color="#ffa94d", size=10,
+                ),
+            ], vertical_alignment=ft.CrossAxisAlignment.START),
+        )
+        self._forge_warning = forge_warning
+
+        content = ft.Column([
+            title_row,
+            ft.Container(height=20),
+            ft.Divider(height=1, color=BORDER),
+            ft.Container(height=16),
+            ft.Text("Modo de instalación", color=TEXT_PRI, size=12,
+                    weight=ft.FontWeight.BOLD),
+            ft.Container(height=8),
+            mode_row,
+            ft.Container(height=8),
+            self._mode_info,
+            ft.Container(height=16),
+            ft.Divider(height=1, color=BORDER),
+            ft.Container(height=16),
+            ft.Text("Versión de OptiFine", color=TEXT_PRI, size=12,
+                    weight=ft.FontWeight.BOLD),
+            ft.Container(height=8),
+            self._ver_dd,
+            ft.Container(height=8),
+            forge_warning,
+            ft.Container(height=16),
+            self._progress,
+            ft.Container(height=4),
+            self._status_lbl,
+            ft.Container(height=16),
+            ft.Row([
+                self._installed_badge,
+                ft.Container(expand=True),
+                uninstall_btn,
+            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+            ft.Container(height=8),
+            ft.Row([
+                local_btn,
+                ft.Container(expand=True),
+                ft.TextButton(
+                    "Cancelar",
+                    style=ft.ButtonStyle(color=TEXT_SEC),
+                    on_click=lambda e: self.page.close(self._dlg),
+                ),
+                ft.Container(width=8),
+                self._install_btn,
+            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+        ], spacing=0, scroll=ft.ScrollMode.AUTO)
+
+        self._dlg = ft.AlertDialog(
+            modal=True, bgcolor=CARD_BG,
+            content_padding=ft.padding.all(28),
+            title=ft.Container(),
+            content=ft.Container(width=480, content=content),
+            actions=[],
+        )
+        self.page.open(self._dlg)
+
+        # Cargar versiones en background
+        threading.Thread(target=self._load_versions, daemon=True).start()
+
+    # ── Helpers ────────────────────────────────────────────────────────────────
+    def _read_loader(self) -> str:
+        meta_path = os.path.join(self.profile.game_dir, "loader_meta.json")
+        if os.path.isfile(meta_path):
+            try:
+                with open(meta_path) as f:
+                    meta = json.load(f)
+                entries = meta if isinstance(meta, list) else [meta]
+                if entries:
+                    return entries[0].get("loader_type") or entries[0].get("loader", "vanilla")
+            except Exception:
+                pass
+        return "vanilla"
+
+    def _check_installed(self) -> bool:
+        try:
+            from services.optifine_service import is_optifine_installed
+            from config.constants import VERSIONS_DIR
+            return is_optifine_installed(
+                self.profile.version_id, self.profile.game_dir, VERSIONS_DIR)
+        except Exception:
+            return False
+
+    def _mode_description(self) -> str:
+        if self._mode == "installer":
+            return ("Ejecuta el instalador oficial de OptiFine. Crea una nueva versión "
+                    "standalone en el launcher. Compatible con Vanilla y Forge.")
+        else:
+            return ("Copia OptiFine como mod en la carpeta /mods. "
+                    "Solo funciona con Forge o NeoForge como loader.")
+
+    def _mode_pill(self, label: str, mode: str) -> ft.Container:
+        active = self._mode == mode
+        pill = ft.Container(
+            bgcolor=GREEN if active else INPUT_BG,
+            border=ft.border.all(1, GREEN if active else BORDER),
+            border_radius=8,
+            padding=ft.padding.symmetric(horizontal=16, vertical=9),
+            animate=ft.animation.Animation(120, ft.AnimationCurve.EASE_OUT),
+            content=ft.Text(label, color=TEXT_INV if active else TEXT_SEC,
+                            size=11, weight=ft.FontWeight.W_600),
+        )
+        def on_click(e, m=mode, p=pill):
+            self._mode = m
+            # Actualizar pills
+            for btn, bmode in [(self._mode_installer_btn, "installer"),
+                               (self._mode_mod_btn, "mod")]:
+                a = bmode == m
+                btn.bgcolor = GREEN if a else INPUT_BG
+                btn.border  = ft.border.all(1, GREEN if a else BORDER)
+                btn.content.color = TEXT_INV if a else TEXT_SEC
+                try: btn.update()
+                except Exception: pass
+            # Actualizar descripción
+            self._mode_info.value = self._mode_description()
+            try: self._mode_info.update()
+            except Exception: pass
+            # Mostrar/ocultar advertencia Forge
+            loader = self._read_loader().lower()
+            self._forge_warning.visible = (m == "mod" and
+                                           loader not in ("forge", "neoforge"))
+            try: self._forge_warning.update()
+            except Exception: pass
+        pill.on_click = on_click
+        return pill
+
+    # ── Cargar versiones ────────────────────────────────────────────────────────
+    def _load_versions(self):
+        try:
+            from services.optifine_service import get_optifine_versions
+            versions = get_optifine_versions(self.profile.version_id)
+        except Exception as e:
+            versions = []
+            log.warning(f"OptiFine: {e}")
+
+        def update_ui():
+            self._versions = versions
+            if versions:
+                self._ver_dd.options = [
+                    ft.dropdown.Option(v["name"], v["label"])
+                    for v in versions
+                ]
+                self._ver_dd.value = versions[0]["name"]
+                self._selected_version = versions[0]
+                self._install_btn.disabled = False
+                self._ver_dd.hint_text = None
+            else:
+                self._ver_dd.hint_text = (
+                    f"Sin versiones para MC {self.profile.version_id}. "
+                    "Usa 'Instalar desde archivo'."
+                )
+                self._install_btn.disabled = True
+            try:
+                self._ver_dd.update()
+                self._install_btn.update()
+            except Exception:
+                pass
+
+        self.page.run_thread(update_ui)
+
+    def _on_version_change(self, e):
+        name = e.control.value
+        self._selected_version = next(
+            (v for v in self._versions if v["name"] == name), None)
+
+    # ── Instalar ────────────────────────────────────────────────────────────────
+    def _on_install(self, e):
+        if not self._selected_version:
+            return
+        self._set_busy(True, "Preparando…")
+        threading.Thread(
+            target=self._do_install,
+            args=(self._selected_version,),
+            daemon=True,
+        ).start()
+
+    def _do_install(self, version_info: dict):
+        try:
+            from services.optifine_service import (
+                install_optifine_standalone, install_optifine_as_mod, OptiFineError)
+            from managers.loader_manager import save_optifine_version_id
+            from config.constants import VERSIONS_DIR
+
+            mods_dir = os.path.join(self.profile.game_dir, "mods")
+            java     = self._get_java()
+
+            def prog(msg: str):
+                self.page.run_thread(lambda m=msg: self._set_status(m))
+
+            if self._mode == "installer":
+                version_id = install_optifine_standalone(
+                    mc_version=self.profile.version_id,
+                    optifine_filename=version_info["name"],
+                    versions_dir=VERSIONS_DIR,
+                    java_path=java,
+                    progress_callback=prog,
+                )
+                save_optifine_version_id(self.profile.game_dir, version_id)
+                self.page.run_thread(lambda: self._on_success(
+                    f"OptiFine instalado: {version_id}"))
+            else:
+                dest = install_optifine_as_mod(
+                    optifine_filename=version_info["name"],
+                    mods_dir=mods_dir,
+                    versions_dir=VERSIONS_DIR,
+                    progress_callback=prog,
+                )
+                self.page.run_thread(lambda: self._on_success(
+                    f"OptiFine copiado a /mods"))
+
+        except Exception as ex:
+            self.page.run_thread(
+                lambda e=ex: self._on_error(str(e)))
+
+    def _on_file_picked(self, e):
+        if not e.files:
+            return
+        jar_path = e.files[0].path
+        self._set_busy(True, "Instalando desde archivo…")
+        threading.Thread(
+            target=self._do_install_from_file,
+            args=(jar_path,), daemon=True,
+        ).start()
+
+    def _do_install_from_file(self, jar_path: str):
+        try:
+            from services.optifine_service import (
+                install_optifine_from_file, OptiFineError)
+            from managers.loader_manager import save_optifine_version_id
+            from config.constants import VERSIONS_DIR
+
+            mods_dir = os.path.join(self.profile.game_dir, "mods")
+            java     = self._get_java()
+
+            def prog(msg: str):
+                self.page.run_thread(lambda m=msg: self._set_status(m))
+
+            result = install_optifine_from_file(
+                jar_path=jar_path,
+                mode=self._mode,
+                mods_dir=mods_dir,
+                versions_dir=VERSIONS_DIR,
+                mc_version=self.profile.version_id,
+                java_path=java,
+                progress_callback=prog,
+            )
+            if self._mode == "installer":
+                save_optifine_version_id(self.profile.game_dir, result)
+            self.page.run_thread(lambda: self._on_success("OptiFine instalado ✓"))
+
+        except Exception as ex:
+            self.page.run_thread(lambda e=ex: self._on_error(str(e)))
+
+    def _on_uninstall(self, e):
+        """Desinstala OptiFine de esta instancia."""
+        from managers.loader_manager import clear_optifine_version_id
+        mods_dir = os.path.join(self.profile.game_dir, "mods")
+        # Borrar del modo mod
+        removed = False
+        if os.path.isdir(mods_dir):
+            for fn in os.listdir(mods_dir):
+                if "optifine" in fn.lower():
+                    try:
+                        os.remove(os.path.join(mods_dir, fn))
+                        removed = True
+                    except OSError:
+                        pass
+        # Limpiar del loader_meta
+        clear_optifine_version_id(self.profile.game_dir)
+        self._installed_badge.visible = False
+        try: self._installed_badge.update()
+        except Exception: pass
+        self.app.snack("OptiFine desinstalado.")
+        if self.on_done:
+            self.on_done()
+
+    # ── UI helpers ─────────────────────────────────────────────────────────────
+    def _get_java(self) -> str | None:
+        """Lee la ruta de Java del instance_settings.json."""
+        settings_path = os.path.join(self.profile.game_dir, "instance_settings.json")
+        if os.path.isfile(settings_path):
+            try:
+                with open(settings_path) as f:
+                    data = json.load(f)
+                return data.get("java_path") or None
+            except Exception:
+                pass
+        return None
+
+    def _set_busy(self, busy: bool, msg: str = ""):
+        self._install_btn.disabled = busy
+        self._progress.visible     = busy
+        self._progress.value       = None if busy else 0  # indeterminate
+        self._status_lbl.value     = msg
+        try:
+            self._install_btn.update()
+            self._progress.update()
+            self._status_lbl.update()
+        except Exception:
+            pass
+
+    def _set_status(self, msg: str):
+        self._status_lbl.value = msg
+        try: self._status_lbl.update()
+        except Exception: pass
+
+    def _on_success(self, msg: str):
+        self._set_busy(False, msg)
+        self._installed_badge.visible = True
+        try: self._installed_badge.update()
+        except Exception: pass
+        self.app.snack(msg)
+        if self.on_done:
+            self.on_done()
+
+    def _on_error(self, msg: str):
+        self._set_busy(False, f"Error: {msg}")
+        self.app.snack(msg, error=True)
 
 
 # =============================================================================
@@ -1906,6 +2415,44 @@ class _InstanceSettingsDialog:
             on_change=lambda e: setattr(self, "_version_val", e.control.value),
         )
 
+        # ── OptiFine quick access dentro de Installation ───────────────────────
+        optifine_installed = self._check_optifine_installed()
+        optifine_status = ft.Container(
+            bgcolor="#1a3d2a" if optifine_installed else CARD2_BG,
+            border=ft.border.all(1, "#2a5a2a" if optifine_installed else BORDER),
+            border_radius=8,
+            padding=ft.padding.symmetric(horizontal=14, vertical=10),
+            content=ft.Row([
+                ft.Icon(ft.icons.SPEED_ROUNDED, size=16,
+                        color=GREEN if optifine_installed else TEXT_DIM),
+                ft.Container(width=10),
+                ft.Column([
+                    ft.Text("OptiFine",
+                            color=GREEN if optifine_installed else TEXT_PRI,
+                            size=11, weight=ft.FontWeight.BOLD),
+                    ft.Text(
+                        "Instalado ✓" if optifine_installed else "No instalado",
+                        color=GREEN if optifine_installed else TEXT_DIM, size=9,
+                    ),
+                ], spacing=1, expand=True),
+                ft.OutlinedButton(
+                    "Gestionar",
+                    icon=ft.icons.SETTINGS_ROUNDED,
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=6),
+                        side=ft.BorderSide(1, GREEN if optifine_installed else BORDER),
+                        color=GREEN if optifine_installed else TEXT_SEC,
+                        padding=ft.padding.symmetric(horizontal=12, vertical=6),
+                    ),
+                    on_click=lambda e: (
+                        self.page.close(self._dlg),
+                        _OptiFineDialog(self.page, self.app, self.profile,
+                                       on_done=self.on_done),
+                    ),
+                ),
+            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+        )
+
         return ft.Column([
             _heading("Mod loader"),
             ft.Container(height=4),
@@ -1920,7 +2467,24 @@ class _InstanceSettingsDialog:
             _subtext("Minecraft version used by this instance."),
             ft.Container(height=12),
             self._version_dd,
+            ft.Container(height=24),
+            ft.Divider(height=1, color=BORDER),
+            ft.Container(height=16),
+            _heading("OptiFine"),
+            ft.Container(height=4),
+            _subtext("Optimización de gráficos y shaders. Compatible con Vanilla y Forge."),
+            ft.Container(height=12),
+            optifine_status,
         ], spacing=0, scroll=ft.ScrollMode.AUTO)
+
+    def _check_optifine_installed(self) -> bool:
+        try:
+            from services.optifine_service import is_optifine_installed
+            from config.constants import VERSIONS_DIR
+            return is_optifine_installed(
+                self.profile.version_id, self.profile.game_dir, VERSIONS_DIR)
+        except Exception:
+            return False
 
     def _loader_pill(self, label):
         active = label.lower() == self._loader_val.lower()
