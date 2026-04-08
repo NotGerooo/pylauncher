@@ -734,8 +734,9 @@ class _CreateInstanceDialog:
 
             except Exception as ex:
                 log.error(f"Error guardando instancia: {ex}")
+                _err_msg = str(ex)   # capturar antes de que Python elimine 'ex'
                 def err():
-                    self.app.snack(str(ex), error=True)
+                    self.app.snack(_err_msg, error=True)
                     self._primary_btn.disabled = False
                     self._prog_bar.visible     = False
                     self._prog_text.value      = ""
