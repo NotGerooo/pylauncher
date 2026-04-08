@@ -302,3 +302,34 @@ def load_loader_meta(game_dir: str) -> dict:
         return data if isinstance(data, dict) else {"loader": "vanilla"}
     except Exception:
         return {"loader": "vanilla"}
+
+
+# ── OptiFine helpers (integración con loader_meta) ────────────────────────────
+
+def save_optifine_version_id(game_dir: str, optifine_version_id: str):
+    """
+    Persiste el ID de la versión OptiFine standalone en loader_meta.json.
+    Ejemplo: optifine_version_id = "1.20.1-OptiFine_HD_U_I6"
+    El launcher usará este version_id en lugar del vanilla al lanzar.
+    """
+    meta = load_loader_meta(game_dir)
+    meta["optifine_version_id"] = optifine_version_id
+    _save_loader_meta(game_dir, meta)
+    log.info(f"OptiFine version_id guardado en loader_meta: {optifine_version_id}")
+
+
+def get_optifine_version_id(game_dir: str) -> str | None:
+    """
+    Lee el optifine_version_id del loader_meta.json si existe.
+    Retorna None si OptiFine no está instalado en modo standalone.
+    """
+    meta = load_loader_meta(game_dir)
+    return meta.get("optifine_version_id")
+
+
+def clear_optifine_version_id(game_dir: str):
+    """Elimina el optifine_version_id del loader_meta (desinstalar OptiFine)."""
+    meta = load_loader_meta(game_dir)
+    meta.pop("optifine_version_id", None)
+    _save_loader_meta(game_dir, meta)
+    log.info("OptiFine version_id eliminado de loader_meta.")
