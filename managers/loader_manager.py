@@ -316,9 +316,15 @@ def _install_neoforge(mc_version, loader_version, game_dir, libraries_dir, versi
         log.warning(f"Instalador NeoForge salió con código {result.returncode}")
         log.debug(result.stderr.decode(errors="replace"))
 
-    meta = {"loader": "neoforge", "mc_version": mc_version,
-            "loader_version": loader_version, "main_class": None,
-            "extra_libs": [], "args": []}
+    meta = {
+        "loader": "neoforge",
+        "mc_version": mc_version,
+        "loader_version": loader_version,
+        "install_id": f"neoforge-{loader_version}",   # ← NUEVO
+        "main_class": None,
+        "extra_libs": [],
+        "args": [],
+    }
     _save_loader_meta(game_dir, meta)
     prog("NeoForge instalado.")
     return meta
