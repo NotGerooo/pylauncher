@@ -250,7 +250,7 @@ def _install_forge(mc_version, loader_version, game_dir, libraries_dir, versions
         f"https://files.minecraftforge.net/maven/net/minecraftforge/forge/{forge_id}/forge-{forge_id}-installer.jar",
     ]
 
-    installer  = os.path.join(versions_dir, f"forge-{forge_id}-installer.jar")
+    installer = os.path.join(versions_dir, f"forge-{forge_id}-installer.jar")
     downloaded = False
     for url in urls_to_try:
         try:
@@ -266,33 +266,52 @@ def _install_forge(mc_version, loader_version, game_dir, libraries_dir, versions
     prog("Ejecutando instalador Forge (puede tardar 1-2 min)…")
 
     minecraft_dir = os.path.dirname(versions_dir)
-    runtime_dir   = os.path.join(minecraft_dir, "runtime")
+
+    # Buscar Java: para Forge legacy (≤1.12.2) necesita Java 8 (jre-legacy)
+    # Para versiones modernas cualquier Java sirve
+    mc_parts  = [int(x) for x in mc_version.split(".") if x.isdigit()]
+    is_legacy = mc_parts < [1, 13]
+
+    runtime_dir = os.path.join(minecraft_dir, "runtime")
     java = None
-    if os.path.isdir(runtime_dir):
-        for root, dirs, files in os.walk(runtime_dir):
-            for fn in files:
-                if fn.lower() == "java.exe":
-                    java = os.path.join(root, fn)
+
+    if is_legacy:
+        # Buscar jre-legacy primero (Java 8)
+        jre_legacy = os.path.join(runtime_dir, "jre-legacy", "bin", "java.exe")
+        if os.path.isfile(jre_legacy):
+            java = jre_legacy
+            log.info("Forge legacy: usando jre-legacy (Java 8)")
+
+    if not java:
+        # Fallback: cualquier java.exe en runtime
+        if os.path.isdir(runtime_dir):
+            for root, dirs, files in os.walk(runtime_dir):
+                for fn in files:
+                    if fn.lower() == "java.exe":
+                        java = os.path.join(root, fn)
+                        break
+                if java:
                     break
-            if java:
-                break
+
     if not java:
         java = shutil.which("java") or "java"
 
     log.info(f"Forge installer usando Java: {java}")
 
-    # Forge legacy (≤1.12.2) usa --install-client, moderno usa --installClient
-    mc_parts = [int(x) for x in mc_version.split(".") if x.isdigit()]
-    is_legacy = mc_parts < [1, 13]  # 1.12.2 y anteriores
-
+    # Forge legacy (≤1.12.2): se instala sin argumentos, con cwd = minecraft_dir
+    # Forge moderno (≥1.13):  usa --installClient <dir>
     if is_legacy:
-        cmd_args = ["--install-client", minecraft_dir]
+        cmd = [java, "-jar", installer]
+        cwd = minecraft_dir   # ← el instalador usa el cwd como destino
     else:
-        cmd_args = ["--installClient", minecraft_dir]
+        cmd = [java, "-jar", installer, "--installClient", minecraft_dir]
+        cwd = minecraft_dir
 
     result = subprocess.run(
-        [java, "-jar", installer] + cmd_args,
-        capture_output=True, timeout=300,
+        cmd,
+        capture_output=True,
+        timeout=300,
+        cwd=cwd,            # ← crítico para legacy
     )
 
     stdout = result.stdout.decode(errors="replace")
@@ -310,11 +329,11 @@ def _install_forge(mc_version, loader_version, game_dir, libraries_dir, versions
     # Verificar que la carpeta fue creada
     expected_dir = os.path.join(versions_dir, install_id)
     if not os.path.isdir(expected_dir):
-        # Buscar qué carpeta nueva apareció (por si el nombre difiere)
-        existing = set(os.listdir(versions_dir))
+        existing = [d for d in os.listdir(versions_dir)
+                    if os.path.isdir(os.path.join(versions_dir, d))]
         raise LoaderInstallError(
             f"Forge instaló pero la carpeta '{install_id}' no fue creada.\n"
-            f"Carpetas en versions/: {existing}"
+            f"Carpetas existentes en versions/: {existing}"
         )
 
     meta = {
