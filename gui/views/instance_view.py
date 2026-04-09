@@ -293,14 +293,15 @@ class InstanceView:
             session      = self.app.auth_service.create_offline_session(username)
             version_data = self.app.version_manager.get_version_data(self.profile.version_id)
         except Exception as ex:
-            _ex = ex  # capturar antes de que salga del scope
-            log.error(f"Launch error: {_ex}")
-            def err():
+            _captured = str(ex)
+            log.error(f"Launch error: {_captured}")
+            def err(_msg=_captured):
                 self._play_btn.disabled = False
                 try: self._play_btn.update()
                 except Exception: pass
-                self.app.snack(str(_ex), error=True)
+                self.app.snack(_msg, error=True)
             self.page.run_thread(err)
+            return   # ← importante: no continuar al threading.Thread
 
         def run():
             try:
@@ -1326,7 +1327,7 @@ class _ContentTab:
                     self.app.snack(f"Updated to {latest_ver} ✓"),
                     self._refresh(),
                 ))
-            except LaunchError as ex: 
+            except Exception as ex:
                 self.page.run_thread(
                     lambda: self.app.snack(str(ex), error=True))
 
