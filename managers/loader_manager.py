@@ -285,6 +285,7 @@ def _install_forge(mc_version, loader_version, game_dir, libraries_dir, versions
         "loader": "forge",
         "mc_version": mc_version,
         "loader_version": forge_id,
+        "install_id": install_id,   # ← NUEVO
         "main_class": None,
         "extra_libs": [],
         "args": [],
