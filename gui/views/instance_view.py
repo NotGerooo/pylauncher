@@ -321,14 +321,14 @@ class InstanceView:
                         self.app.snack(f"Minecraft cerro con error (codigo {rc}).", error=True)
                 self.page.run_thread(done)
             except Exception as ex:
-                log.error(f"Launch error: {ex}")
-                def err():
+                _msg = str(ex)
+                log.error(f"Launch error: {_msg}")
+                def err(_m=_msg):
                     self._play_btn.disabled = False
                     try: self._play_btn.update()
                     except Exception: pass
-                    self.app.snack(str(ex), error=True)
+                    self.app.snack(_m, error=True)
                 self.page.run_thread(err)
-
         threading.Thread(target=run, daemon=True).start()
         self.app.snack(f"Iniciando Minecraft {self.profile.version_id} como {username}...")
 
