@@ -189,11 +189,10 @@ class InstanceView:
         """Comprueba si OptiFine está instalado en esta instancia (modo mod o standalone)."""
         try:
             from services.optifine_service import is_optifine_installed
-            from config.constants import VERSIONS_DIR
             return is_optifine_installed(
                 self.profile.version_id,
                 self.profile.game_dir,
-                VERSIONS_DIR,
+                self.app.settings.versions_dir,
             )
         except Exception:
             return False
@@ -584,9 +583,11 @@ class _OptiFineDialog:
     def _check_installed(self) -> bool:
         try:
             from services.optifine_service import is_optifine_installed
-            from config.constants import VERSIONS_DIR
             return is_optifine_installed(
-                self.profile.version_id, self.profile.game_dir, VERSIONS_DIR)
+                self.profile.version_id,
+                self.profile.game_dir,
+                self.app.settings.versions_dir,
+            )
         except Exception:
             return False
 
@@ -688,8 +689,8 @@ class _OptiFineDialog:
             from services.optifine_service import (
                 install_optifine_standalone, install_optifine_as_mod, OptiFineError)
             from managers.loader_manager import save_optifine_version_id
-            from config.constants import VERSIONS_DIR
 
+            _versions_dir = self.app.settings.versions_dir
             mods_dir = os.path.join(self.profile.game_dir, "mods")
             java     = self._get_java()
 
@@ -700,7 +701,7 @@ class _OptiFineDialog:
                 version_id = install_optifine_standalone(
                     mc_version=self.profile.version_id,
                     optifine_filename=version_info["name"],
-                    versions_dir=VERSIONS_DIR,
+                    versions_dir=_versions_dir,
                     java_path=java,
                     progress_callback=prog,
                 )
@@ -711,7 +712,7 @@ class _OptiFineDialog:
                 dest = install_optifine_as_mod(
                     optifine_filename=version_info["name"],
                     mods_dir=mods_dir,
-                    versions_dir=VERSIONS_DIR,
+                    versions_dir=_versions_dir,
                     progress_callback=prog,
                 )
                 self.page.run_thread(lambda: self._on_success(
@@ -736,7 +737,6 @@ class _OptiFineDialog:
             from services.optifine_service import (
                 install_optifine_from_file, OptiFineError)
             from managers.loader_manager import save_optifine_version_id
-            from config.constants import VERSIONS_DIR
 
             mods_dir = os.path.join(self.profile.game_dir, "mods")
             java     = self._get_java()
@@ -748,7 +748,7 @@ class _OptiFineDialog:
                 jar_path=jar_path,
                 mode=self._mode,
                 mods_dir=mods_dir,
-                versions_dir=VERSIONS_DIR,
+                versions_dir=self.app.settings.versions_dir,
                 mc_version=self.profile.version_id,
                 java_path=java,
                 progress_callback=prog,
@@ -2480,9 +2480,11 @@ class _InstanceSettingsDialog:
     def _check_optifine_installed(self) -> bool:
         try:
             from services.optifine_service import is_optifine_installed
-            from config.constants import VERSIONS_DIR
             return is_optifine_installed(
-                self.profile.version_id, self.profile.game_dir, VERSIONS_DIR)
+                self.profile.version_id,
+                self.profile.game_dir,
+                self.app.settings.versions_dir,
+            )
         except Exception:
             return False
 

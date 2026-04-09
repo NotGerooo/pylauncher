@@ -114,6 +114,16 @@ def load_optifine_version_id(game_dir: str) -> str | None:
         return None
 
 
+def clear_optifine_version_id(game_dir: str):
+    """Elimina el archivo optifine_version.json si existe."""
+    path = os.path.join(game_dir, "optifine_version.json")
+    try:
+        if os.path.isfile(path):
+            os.remove(path)
+    except OSError:
+        pass
+
+
 # ── Instalación ───────────────────────────────────────────────────────────────
 
 class LoaderInstallError(Exception):
