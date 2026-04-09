@@ -236,15 +236,16 @@ def _install_quilt(mc_version, loader_version, game_dir, libraries_dir, prog):
 
 
 def _install_forge(mc_version, loader_version, game_dir, libraries_dir, versions_dir, prog):
-    # La API de Forge devuelve versiones en dos formatos posibles:
-    # "1.9.4-12.17.0.1908-1.9.4"  → ya incluye mc_version, usar directo
-    # "12.17.0.1908"               → no incluye mc_version, combinar
     if loader_version.startswith(mc_version + "-"):
         forge_id = loader_version
     else:
         forge_id = f"{mc_version}-{loader_version}"
 
+    # El instalador de Forge crea la carpeta con este nombre en versions/
+    install_id = f"{mc_version}-forge-{forge_id.split(mc_version + '-')[1]}"
+
     prog(f"Descargando instalador Forge {forge_id}…")
+
 
     urls_to_try = [
         # Mirror principal (versiones modernas)
