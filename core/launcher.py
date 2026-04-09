@@ -155,28 +155,44 @@ class LauncherEngine:
 
         # ── Forge / NeoForge: buscan JSON en versions_dir ─────────────────────
         loader_version_id = meta.get("install_id")
+
+# Fix retroactivo: reconstruir install_id si no fue guardado
         if not loader_version_id:
-            log.info("Sin install_id en loader_meta — lanzando vanilla")
-            return profile.version_id, base_version_data
+            mc_ver     = meta.get("mc_version", "")
+            loader_ver = meta.get("loader_version", "")  # ej: "1.12.2-14.23.0.2486"
 
-        loader_json_path = os.path.join(
-            self._settings.versions_dir,
-            loader_version_id,
-            f"{loader_version_id}.json",
-        )
+            if loader_type == "forge" and mc_ver and loader_ver:
+                # Forge crea la carpeta como "1.12.2-forge-14.23.0.2486"
+                suffix = loader_ver.split(mc_ver + "-")[-1]  # "14.23.0.2486"
+                loader_version_id = f"{mc_ver}-forge-{suffix}"
+                log.info(f"install_id reconstruido para Forge: {loader_version_id}")
 
-        if not os.path.isfile(loader_json_path):
-            raise LaunchError(
-                f"El loader '{loader_version_id}' está registrado pero su JSON "
-                f"no se encontró en disco.\nRuta esperada: {loader_json_path}\n"
-                f"Solución: reinstala el loader."
-            )
+            elif loader_type == "neoforge" and loader_ver:
+                loader_version_id = f"neoforge-{loader_ver}"
+                log.info(f"install_id reconstruido para NeoForge: {loader_version_id}")
 
-        with open(loader_json_path, "r", encoding="utf-8") as f:
-            loader_version_data = json.load(f)
+            else:
+                log.info("Sin install_id en loader_meta — lanzando vanilla")
+                return profile.version_id, base_version_data
 
-        loader_version_data = self._merge_libraries(base_version_data, loader_version_data)
-        return loader_version_id, loader_version_data
+                loader_json_path = os.path.join(
+                    self._settings.versions_dir,
+                    loader_version_id,
+                    f"{loader_version_id}.json",
+                )
+
+                if not os.path.isfile(loader_json_path):
+                    raise LaunchError(
+                        f"El loader '{loader_version_id}' está registrado pero su JSON "
+                        f"no se encontró en disco.\nRuta esperada: {loader_json_path}\n"
+                        f"Solución: reinstala el loader."
+                    )
+
+                with open(loader_json_path, "r", encoding="utf-8") as f:
+                    loader_version_data = json.load(f)
+
+                loader_version_data = self._merge_libraries(base_version_data, loader_version_data)
+                return loader_version_id, loader_version_data
 
     def _resolve_fabric_like(
         self,
