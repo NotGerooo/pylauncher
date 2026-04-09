@@ -1326,7 +1326,7 @@ class _ContentTab:
                     self.app.snack(f"Updated to {latest_ver} ✓"),
                     self._refresh(),
                 ))
-            except Exception as ex:
+            except LaunchError as ex: 
                 self.page.run_thread(
                     lambda: self.app.snack(str(ex), error=True))
 
