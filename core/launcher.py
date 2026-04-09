@@ -156,7 +156,7 @@ class LauncherEngine:
         # ── Forge / NeoForge: buscan JSON en versions_dir ─────────────────────
         loader_version_id = meta.get("install_id")
 
-# Fix retroactivo: reconstruir install_id si no fue guardado
+        # Fix retroactivo: reconstruir install_id si no fue guardado
         if not loader_version_id:
             mc_ver     = meta.get("mc_version", "")
             loader_ver = meta.get("loader_version", "")  # ej: "1.12.2-14.23.0.2486"
@@ -175,24 +175,24 @@ class LauncherEngine:
                 log.info("Sin install_id en loader_meta — lanzando vanilla")
                 return profile.version_id, base_version_data
 
-                loader_json_path = os.path.join(
-                    self._settings.versions_dir,
-                    loader_version_id,
-                    f"{loader_version_id}.json",
-                )
+        loader_json_path = os.path.join(
+            self._settings.versions_dir,
+            loader_version_id,
+            f"{loader_version_id}.json",
+        )
 
-                if not os.path.isfile(loader_json_path):
-                    raise LaunchError(
-                        f"El loader '{loader_version_id}' está registrado pero su JSON "
-                        f"no se encontró en disco.\nRuta esperada: {loader_json_path}\n"
-                        f"Solución: reinstala el loader."
-                    )
+        if not os.path.isfile(loader_json_path):
+            raise LaunchError(
+                f"El loader '{loader_version_id}' está registrado pero su JSON "
+                f"no se encontró en disco.\nRuta esperada: {loader_json_path}\n"
+                f"Solución: reinstala el loader."
+            )
 
-                with open(loader_json_path, "r", encoding="utf-8") as f:
-                    loader_version_data = json.load(f)
+        with open(loader_json_path, "r", encoding="utf-8") as f:
+            loader_version_data = json.load(f)
 
-                loader_version_data = self._merge_libraries(base_version_data, loader_version_data)
-                return loader_version_id, loader_version_data
+        loader_version_data = self._merge_libraries(base_version_data, loader_version_data)
+        return loader_version_id, loader_version_data
 
     def _resolve_fabric_like(
         self,
