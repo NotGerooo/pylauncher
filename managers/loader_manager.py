@@ -261,18 +261,13 @@ def _install_forge(mc_version, loader_version, game_dir, libraries_dir, versions
             log.warning(f"URL Forge fallida: {url} — {e}")
 
     if not downloaded:
-        raise LoaderInstallError(
-            f"No se pudo descargar el instalador de Forge {forge_id}."
-        )
+        raise LoaderInstallError(f"No se pudo descargar el instalador de Forge {forge_id}.")
 
     prog("Ejecutando instalador Forge (puede tardar 1-2 min)…")
 
-    # Buscar Java: primero en el runtime del launcher, luego en PATH
     minecraft_dir = os.path.dirname(versions_dir)
     runtime_dir   = os.path.join(minecraft_dir, "runtime")
     java = None
-
-    # Buscar cualquier java.exe dentro del runtime
     if os.path.isdir(runtime_dir):
         for root, dirs, files in os.walk(runtime_dir):
             for fn in files:
@@ -281,14 +276,22 @@ def _install_forge(mc_version, loader_version, game_dir, libraries_dir, versions
                     break
             if java:
                 break
-
     if not java:
         java = shutil.which("java") or "java"
 
     log.info(f"Forge installer usando Java: {java}")
 
+    # Forge legacy (≤1.12.2) usa --install-client, moderno usa --installClient
+    mc_parts = [int(x) for x in mc_version.split(".") if x.isdigit()]
+    is_legacy = mc_parts < [1, 13]  # 1.12.2 y anteriores
+
+    if is_legacy:
+        cmd_args = ["--install-client", minecraft_dir]
+    else:
+        cmd_args = ["--installClient", minecraft_dir]
+
     result = subprocess.run(
-        [java, "-jar", installer, "--installClient", minecraft_dir],
+        [java, "-jar", installer] + cmd_args,
         capture_output=True, timeout=300,
     )
 
@@ -307,17 +310,18 @@ def _install_forge(mc_version, loader_version, game_dir, libraries_dir, versions
     # Verificar que la carpeta fue creada
     expected_dir = os.path.join(versions_dir, install_id)
     if not os.path.isdir(expected_dir):
+        # Buscar qué carpeta nueva apareció (por si el nombre difiere)
+        existing = set(os.listdir(versions_dir))
         raise LoaderInstallError(
-            f"Forge se instaló pero la carpeta no fue creada.\n"
-            f"Esperada: {expected_dir}\n"
-            f"Puede que el install_id sea diferente — revisa: {versions_dir}"
+            f"Forge instaló pero la carpeta '{install_id}' no fue creada.\n"
+            f"Carpetas en versions/: {existing}"
         )
 
     meta = {
         "loader":         "forge",
         "mc_version":     mc_version,
         "loader_version": forge_id,
-        "install_id":     install_id,   # ← guardado correctamente
+        "install_id":     install_id,
         "main_class":     None,
         "extra_libs":     [],
         "args":           [],
@@ -325,7 +329,6 @@ def _install_forge(mc_version, loader_version, game_dir, libraries_dir, versions
     _save_loader_meta(game_dir, meta)
     prog(f"Forge instalado: {install_id}")
     return meta
-
 
 def _install_neoforge(mc_version, loader_version, game_dir, libraries_dir, versions_dir, prog):
     prog(f"Descargando instalador NeoForge {loader_version}…")
