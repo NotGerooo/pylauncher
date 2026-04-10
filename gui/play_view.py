@@ -10,6 +10,9 @@ from utils.helpers import get_logger
 
 log = get_logger("play")
 
+# Compatibilidad con todas las versiones de Flet
+_icons = getattr(ft, "Icons", None) or ft.icons
+
 
 class PlayView:
     def __init__(self, app):
@@ -61,7 +64,7 @@ class PlayView:
             border=ft.border.all(1, ACCENT),
             alignment=ft.alignment.center,
             animate=ft.animation.Animation(180, ft.AnimationCurve.EASE_OUT),
-            content=ft.Icon(ft.Icons.PLAY_ARROW_ROUNDED, color=ACCENT, size=38),
+            content=ft.Icon(_icons.PLAY_ARROW_ROUNDED, color=ACCENT, size=38),
             on_click=self._on_play,
             on_hover=self._on_hover,
         )
@@ -80,19 +83,19 @@ class PlayView:
         self._set(loading=True, status="Preparando…")
         try:
             from services.auth import offline_account
-            from core.installer import install, get_versions
+            from core.installer import install
             from core.launcher import launch
             from config.constants import MINECRAFT_DIR
             from managers.profile_manager import ProfileManager
 
             pm      = ProfileManager()
             profile = pm.ensure_default()
-
             version = profile.version
             account = offline_account(profile.username)
 
             # Instalar si no está
-            installed = [v.name for v in (MINECRAFT_DIR / "versions").glob("*/")]
+            versions_dir = MINECRAFT_DIR / "versions"
+            installed = [v.name for v in versions_dir.glob("*/")] if versions_dir.exists() else []
             if version not in installed:
                 install(
                     version, MINECRAFT_DIR,
@@ -134,7 +137,7 @@ class PlayView:
             self._running      = loading
             self._btn.disabled = loading
             self._bar.visible  = loading
-            self._bar.value    = None if loading else 0  # None = indeterminado
+            self._bar.value    = None if loading else 0
         if status is not None:
             self._status.value = status
         self._safe_update()
