@@ -1,38 +1,9 @@
-# Editor
-.vscode/
-
-# Build
-build/
-dist/
-
-# Datos
-data/
-
-# Python
 __pycache__/
-cache/
 *.pyc
-
-# Logs
-logs/
-*.log
-
-# Entornos
-venv/
+*.pyo
 .env
-
-# PyInstaller
+dist/
+build/
+*.log
 *.spec
-
-# Executables
-*.exe
-
-# PyInstaller extra
-*.toc
-*.pyz
-*.pkg
-
-
-#PARA CREAR EJECUTABLE
-
-"""python -m PyInstaller --onefile --windowed --icon="Gero´s Launcher.ico" --name "Geros_Launcher" main.py"""
+assets/
