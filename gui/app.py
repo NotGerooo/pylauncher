@@ -14,7 +14,7 @@ from services.modrinth_service import ModrinthService
 from core.launcher import LauncherEngine
 from utils.logger import get_logger
 from PIL import Image
-img = Image.open("assets/icon.png")
+img = Image.open("Gero´s Launcher.ico")
 img.save("assets/icon.ico", format="ICO", sizes=[(16,16),(32,32),(48,48),(256,256)])
 
 from gui.theme import (
