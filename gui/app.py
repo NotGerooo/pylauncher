@@ -103,57 +103,102 @@ class App:
         )
 
     # ── Titlebar ──────────────────────────────────────────────────────────────
+    # ── Titlebar ──────────────────────────────────────────────────────────────
     def _build_titlebar(self) -> ft.Control:
-        def wbtn(color, hover, cmd, icon, circle):
-            lbl = ft.Text(
-                icon,
-                color=ft.colors.with_opacity(0.6, "#000000"),
-                size=9,
-                weight=ft.FontWeight.BOLD,
-                text_align=ft.TextAlign.CENTER,
+        def wbtn(icon_path: str, on_click, close: bool = False) -> ft.Container:
+            icon = ft.canvas.Canvas(
+                shapes=[
+                    ft.canvas.Path(
+                        [ft.canvas.Path.MoveTo(*icon_path[0]),
+                        *[ft.canvas.Path.LineTo(*p) for p in icon_path[1:]]],
+                        paint=ft.Paint(
+                            color=TEXT_DIM,
+                            stroke_width=1.2,
+                            style=ft.PaintingStyle.STROKE,
+                        ),
+                    )
+                ],
+                width=10, height=10,
             )
-            return ft.Container(
-                width=16, height=16,
-                border_radius=8 if circle else 3,
-                bgcolor=color,
+            c = ft.Container(
+                width=46, height=42,
+                alignment=ft.alignment.center,
+                content=icon,
+                on_click=lambda e: on_click(),
+            )
+            normal_bg   = ft.colors.with_opacity(0.0,  "#ffffff")
+            hover_bg    = "#c0392b" if close else ft.colors.with_opacity(0.07, "#ffffff")
+
+            def on_hover(e):
+                c.bgcolor = hover_bg if e.data == "true" else normal_bg
+                # cambiar color del ícono en hover
+                icon.shapes[0].paint.color = (
+                    "#ffffff" if e.data == "true" else TEXT_DIM
+                )
+                c.update()
+
+            c.on_hover = on_hover
+            return c
+
+        # Ícono SVG en canvas es verboso — más simple con Text + unicode thin:
+        def win_btn(symbol: str, cmd, close: bool = False) -> ft.Container:
+            lbl = ft.Text(symbol, size=13, color=TEXT_DIM,
+                        text_align=ft.TextAlign.CENTER)
+            c = ft.Container(
+                width=46, height=42,
                 alignment=ft.alignment.center,
                 content=lbl,
                 on_click=lambda e: cmd(),
-                on_hover=lambda e, nc=color, hc=hover: (
-                    setattr(e.control, "bgcolor",
-                            hc if e.data == "true" else nc)
-                    or e.control.update()
-                ),
+                tooltip=("Cerrar" if close else None),
             )
+            def on_hover(e):
+                is_hov = e.data == "true"
+                c.bgcolor = ("#c0392b" if (close and is_hov)
+                            else (ft.colors.with_opacity(0.07, "#ffffff") if is_hov
+                                else ft.colors.TRANSPARENT))
+                lbl.color  = "#ffffff" if is_hov else TEXT_DIM
+                c.update()
+            c.on_hover = on_hover
+            return c
 
         return ft.WindowDragArea(
             ft.Container(
-                bgcolor=SIDEBAR_BG, height=48,
-                padding=ft.padding.symmetric(horizontal=20),
-                content=ft.Row([
-                    ft.Text("⛏", color=GREEN, size=15),
-                    ft.Container(width=8),
-                    ft.Text("Gero's Launcher", color=TEXT_PRI, size=11,
-                            weight=ft.FontWeight.BOLD),
-                    ft.Container(expand=True),
-                    ft.Container(
-                        bgcolor="#172616", border_radius=4,
-                        padding=ft.padding.symmetric(horizontal=10, vertical=3),
-                        content=ft.Text("v0.2.0", color=GREEN, size=8,
-                                        weight=ft.FontWeight.BOLD),
-                    ),
-                    ft.Container(width=16),
-                    ft.Row([
-                        wbtn("#cc4a44", "#ff3b30",
-                            lambda: self.page.window.destroy(), "✕", True),
-                        wbtn("#c9941a", "#f0a500",
-                            self._minimize, "−", True),
-                        wbtn("#1fa832", "#1da831",
-                            self._toggle_maximize, "🔲", False),
-                    ], spacing=8),
-                ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
-            )
+                bgcolor=SIDEBAR_BG, height=42,
+                padding=ft.padding.only(left=16, right=0),
+                content=ft.Row(
+                    [
+                        # Logo + nombre
+                        ft.Text("⛏", color=GREEN, size=14),
+                        ft.Container(width=8),
+                        ft.Text(
+                            "Gero's Launcher",
+                            color=TEXT_PRI, size=12,
+                            weight=ft.FontWeight.W_600,
+                        ),
+                        ft.Container(
+                            bgcolor=ft.colors.with_opacity(0.12, GREEN),
+                            border=ft.border.all(1, ft.colors.with_opacity(0.25, GREEN)),
+                            border_radius=3,
+                            padding=ft.padding.symmetric(horizontal=6, vertical=2),
+                            content=ft.Text(
+                                "v0.2.0", color=GREEN, size=9,
+                                weight=ft.FontWeight.W_600,
+                            ),
+                            margin=ft.margin.only(left=6),
+                        ),
+                        ft.Container(expand=True),   # spacer — área de drag
+                        # Botones de ventana (sin margen derecho, pegados al borde)
+                        win_btn("−", self._minimize),
+                        win_btn("⬜", self._toggle_maximize),
+                        win_btn("✕", lambda: self.page.window.destroy(), close=True),
+                    ],
+                    spacing=0,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+            ),
+            expand=True,
         )
+
     def _minimize(self):
         self.page.window.minimized = True
         self.page.update()
