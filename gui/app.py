@@ -53,7 +53,7 @@ class App:
         p.padding = 0
         p.spacing = 0
         p.scroll_animation_duration = 300
-        p.window.icon = "assets/Gero´s Launcher.ico"   # o .ico — Flet acepta ambos
+        p.window.icon = "Gero´s Launcher.ico"   # o .ico — Flet acepta ambos
 
     # ── Servicios ─────────────────────────────────────────────────────────────
     def _init_services(self):
