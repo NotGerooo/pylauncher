@@ -15,7 +15,7 @@ from core.launcher import LauncherEngine
 from utils.logger import get_logger
 from PIL import Image
 img = Image.open("Gero´s Launcher.ico")
-img.save("assets/icon.ico", format="ICO", sizes=[(16,16),(32,32),(48,48),(256,256)])
+img.save("Gero´s Launcher.ico", format="ICO", sizes=[(16,16),(32,32),(48,48),(256,256)])
 
 from gui.theme import (
     BG, SIDEBAR_BG, CARD_BG, CARD2_BG, INPUT_BG,
