@@ -13,9 +13,6 @@ from services.auth_service import AuthService
 from services.modrinth_service import ModrinthService
 from core.launcher import LauncherEngine
 from utils.logger import get_logger
-from PIL import Image
-img = Image.open("Gero´s Launcher.ico")
-img.save("Gero´s Launcher.ico", format="ICO", sizes=[(16,16),(32,32),(48,48),(256,256)])
 
 from gui.theme import (
     BG, SIDEBAR_BG, CARD_BG, CARD2_BG, INPUT_BG,
@@ -28,13 +25,16 @@ from gui.sidebar_right import SidebarRight
 
 log = get_logger()
 
+# Ruta al ícono — usa raw string para evitar problemas con caracteres especiales
+_ICO_PATH = r"Gero´s Launcher.ico"
+
 
 class App:
     def __init__(self, page: ft.Page):
         self.page = page
-        self._views: dict        = {}
+        self._views: dict             = {}
         self._current_vid: str | None = None
-        self._active_instance    = None
+        self._active_instance         = None
 
         self._setup_page()
         self._init_services()
@@ -46,17 +46,18 @@ class App:
     # ── Página ────────────────────────────────────────────────────────────────
     def _setup_page(self):
         p = self.page
-        p.title                   = "Gero's Launcher"
-        p.window.width            = 1380
-        p.window.height           = 780
-        p.window.min_width        = 1000
-        p.window.min_height       = 620
-        p.window.title_bar_hidden = True
-        p.bgcolor = SIDEBAR_BG
-        p.padding = 0
-        p.spacing = 0
-        p.scroll_animation_duration = 300
-        p.window.icon = "Gero´s Launcher.ico"   # o .ico — Flet acepta ambos
+        p.title                           = "Gero's Launcher"
+        p.window.width                    = 1380
+        p.window.height                   = 780
+        p.window.min_width                = 1000
+        p.window.min_height               = 620
+        p.window.title_bar_hidden         = True
+        p.window.title_bar_buttons_hidden = True   # elimina el espacio negro nativo
+        p.bgcolor                         = SIDEBAR_BG
+        p.padding                         = 0
+        p.spacing                         = 0
+        p.scroll_animation_duration       = 300
+        p.window.icon                     = _ICO_PATH
 
     # ── Servicios ─────────────────────────────────────────────────────────────
     def _init_services(self):
@@ -107,94 +108,70 @@ class App:
         )
 
     # ── Titlebar ──────────────────────────────────────────────────────────────
-    # ── Titlebar ──────────────────────────────────────────────────────────────
     def _build_titlebar(self) -> ft.Control:
-        def wbtn(icon_path: str, on_click, close: bool = False) -> ft.Container:
-            icon = ft.canvas.Canvas(
-                shapes=[
-                    ft.canvas.Path(
-                        [ft.canvas.Path.MoveTo(*icon_path[0]),
-                        *[ft.canvas.Path.LineTo(*p) for p in icon_path[1:]]],
-                        paint=ft.Paint(
-                            color=TEXT_DIM,
-                            stroke_width=1.2,
-                            style=ft.PaintingStyle.STROKE,
-                        ),
-                    )
-                ],
-                width=10, height=10,
-            )
-            c = ft.Container(
-                width=46, height=42,
-                alignment=ft.alignment.center,
-                content=icon,
-                on_click=lambda e: on_click(),
-            )
-            normal_bg   = ft.colors.with_opacity(0.0,  "#ffffff")
-            hover_bg    = "#c0392b" if close else ft.colors.with_opacity(0.07, "#ffffff")
 
-            def on_hover(e):
-                c.bgcolor = hover_bg if e.data == "true" else normal_bg
-                # cambiar color del ícono en hover
-                icon.shapes[0].paint.color = (
-                    "#ffffff" if e.data == "true" else TEXT_DIM
-                )
-                c.update()
-
-            c.on_hover = on_hover
-            return c
-
-        # Ícono SVG en canvas es verboso — más simple con Text + unicode thin:
         def win_btn(symbol: str, cmd, close: bool = False) -> ft.Container:
-            lbl = ft.Text(symbol, size=13, color=TEXT_DIM,
-                        text_align=ft.TextAlign.CENTER)
+            lbl = ft.Text(
+                symbol, size=13, color=TEXT_DIM,
+                text_align=ft.TextAlign.CENTER,
+            )
             c = ft.Container(
                 width=46, height=42,
                 alignment=ft.alignment.center,
                 content=lbl,
                 on_click=lambda e: cmd(),
-                tooltip=("Cerrar" if close else None),
             )
+
             def on_hover(e):
                 is_hov = e.data == "true"
-                c.bgcolor = ("#c0392b" if (close and is_hov)
-                            else (ft.colors.with_opacity(0.07, "#ffffff") if is_hov
-                                else ft.colors.TRANSPARENT))
-                lbl.color  = "#ffffff" if is_hov else TEXT_DIM
+                if close and is_hov:
+                    c.bgcolor = "#c0392b"
+                    lbl.color = "#ffffff"
+                elif is_hov:
+                    c.bgcolor = ft.colors.with_opacity(0.07, "#ffffff")
+                    lbl.color = "#ffffff"
+                else:
+                    c.bgcolor = ft.colors.TRANSPARENT
+                    lbl.color = TEXT_DIM
                 c.update()
+
             c.on_hover = on_hover
             return c
 
         return ft.WindowDragArea(
             ft.Container(
-                bgcolor=SIDEBAR_BG, height=42,
+                bgcolor=SIDEBAR_BG,
+                height=42,
                 padding=ft.padding.only(left=16, right=0),
                 content=ft.Row(
                     [
-                        # Logo + nombre
                         ft.Text("⛏", color=GREEN, size=14),
                         ft.Container(width=8),
                         ft.Text(
                             "Gero's Launcher",
-                            color=TEXT_PRI, size=12,
+                            color=TEXT_PRI,
+                            size=12,
                             weight=ft.FontWeight.W_600,
                         ),
                         ft.Container(
                             bgcolor=ft.colors.with_opacity(0.12, GREEN),
-                            border=ft.border.all(1, ft.colors.with_opacity(0.25, GREEN)),
+                            border=ft.border.all(
+                                1, ft.colors.with_opacity(0.25, GREEN)
+                            ),
                             border_radius=3,
                             padding=ft.padding.symmetric(horizontal=6, vertical=2),
+                            margin=ft.margin.only(left=6),
                             content=ft.Text(
-                                "v0.2.0", color=GREEN, size=9,
+                                "v0.2.0",
+                                color=GREEN,
+                                size=9,
                                 weight=ft.FontWeight.W_600,
                             ),
-                            margin=ft.margin.only(left=6),
                         ),
-                        ft.Container(expand=True),   # spacer — área de drag
-                        # Botones de ventana (sin margen derecho, pegados al borde)
+                        ft.Container(expand=True),  # spacer — área de drag
                         win_btn("−", self._minimize),
                         win_btn("⬜", self._toggle_maximize),
-                        win_btn("✕", lambda: self.page.window.destroy(), close=True),
+                        win_btn("✕", self.page.window.destroy, close=True),
                     ],
                     spacing=0,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -213,7 +190,6 @@ class App:
 
     # ── Navegación ────────────────────────────────────────────────────────────
     def _show_view(self, vid: str):
-        # Notificar a la vista actual que se oculta
         if self._current_vid and self._current_vid in self._views:
             prev = self._views[self._current_vid]
             if hasattr(prev, "on_hide"):
@@ -252,8 +228,10 @@ class App:
 
         view_obj = self._views[key]
         self._content_area.content = view_obj.root
-        try: self._content_area.update()
-        except Exception: pass
+        try:
+            self._content_area.update()
+        except Exception:
+            pass
 
         if hasattr(view_obj, "on_show"):
             view_obj.on_show()
@@ -280,10 +258,12 @@ class App:
     # ── Crear instancia desde sidebar ─────────────────────────────────────────
     def _open_create_instance(self):
         self._show_view("library")
+
         def open_dlg():
             lib = self._views.get("library")
             if lib and hasattr(lib, "open_create_dialog"):
                 lib.open_create_dialog()
+
         threading.Timer(0.2, open_dlg).start()
 
     # ── Invalidar caché de instancia ──────────────────────────────────────────
@@ -293,7 +273,7 @@ class App:
             del self._views[key]
         self._sidebar_left.refresh_instances()
 
-    # ── Compatibilidad: refresh_account_panel (llamado desde otras vistas) ────
+    # ── Compatibilidad: refresh_account_panel ────────────────────────────────
     def refresh_account_panel(self):
         self._sidebar_right.refresh_account()
 
@@ -308,51 +288,48 @@ class App:
         bar.open = True
         self.page.update()
 
+    # ── Actualizaciones ───────────────────────────────────────────────────────
     def _check_updates(self):
-        """Lanza la verificación de actualizaciones en background."""
         def on_update_available(info):
-            # Flet necesita que los cambios de UI vengan del hilo correcto
             self.page.run_thread(self._show_update_dialog, info)
-    
+
         run_update_check_async(on_update_available)
-    
-    
+
     def _show_update_dialog(self, info: dict):
-        """Muestra el diálogo de actualización en la UI de Flet."""
         new_version = info.get("version", "?")
-        url = info.get("url", "")
-    
+        url         = info.get("url", "")
+
         progress_bar = ft.ProgressBar(width=400, value=0, visible=False)
-        status_text = ft.Text("", size=12, color=ft.Colors.GREY_400)
-    
+        status_text  = ft.Text("", size=12, color=ft.Colors.GREY_400)
+
         def on_update_click(e):
             btn_update.disabled = True
-            btn_skip.disabled = True
+            btn_skip.disabled   = True
             progress_bar.visible = True
-            status_text.value = "Descargando actualización..."
+            status_text.value   = "Descargando actualización..."
             dlg.update()
-    
+
             def do_download():
                 try:
                     def on_progress(pct):
                         progress_bar.value = pct / 100
-                        status_text.value = f"Descargando... {pct:.0f}%"
+                        status_text.value  = f"Descargando... {pct:.0f}%"
                         dlg.update()
-    
+
                     new_exe = download_update(url, on_progress)
                     status_text.value = "Instalando y reiniciando..."
                     dlg.update()
                     apply_update(new_exe)
                 except Exception as ex:
-                    status_text.value = f"Error: {ex}"
-                    btn_skip.disabled = False
+                    status_text.value     = f"Error: {ex}"
+                    btn_skip.disabled     = False
                     dlg.update()
-    
+
             self.page.run_thread(do_download)
-    
+
         def on_skip_click(e):
             self.page.close(dlg)
-    
+
         btn_update = ft.ElevatedButton(
             "Actualizar ahora",
             on_click=on_update_click,
@@ -360,7 +337,7 @@ class App:
             color=ft.Colors.WHITE,
         )
         btn_skip = ft.TextButton("Más tarde", on_click=on_skip_click)
-    
+
         dlg = ft.AlertDialog(
             modal=True,
             title=ft.Text(f"Actualización disponible — v{new_version}"),
@@ -380,20 +357,33 @@ class App:
             actions=[btn_update, btn_skip],
             actions_alignment=ft.MainAxisAlignment.END,
         )
-    
+
         self.page.open(dlg)
 
+
+# ── Vista placeholder ─────────────────────────────────────────────────────────
 class _PlaceholderView:
     def __init__(self, page, app, name):
         self.root = ft.Container(
-            expand=True, bgcolor=BG,
-            content=ft.Column([
-                ft.Text("🚧", size=52, text_align=ft.TextAlign.CENTER),
-                ft.Text(name.capitalize(), color=TEXT_SEC, size=18,
+            expand=True,
+            bgcolor=BG,
+            content=ft.Column(
+                [
+                    ft.Text("🚧", size=52, text_align=ft.TextAlign.CENTER),
+                    ft.Text(
+                        name.capitalize(),
+                        color=TEXT_SEC, size=18,
                         weight=ft.FontWeight.BOLD,
-                        text_align=ft.TextAlign.CENTER),
-                ft.Text("Próximamente", color=TEXT_DIM, size=11,
-                        text_align=ft.TextAlign.CENTER),
-            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-               alignment=ft.MainAxisAlignment.CENTER, expand=True),
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+                    ft.Text(
+                        "Próximamente",
+                        color=TEXT_DIM, size=11,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                alignment=ft.MainAxisAlignment.CENTER,
+                expand=True,
+            ),
         )
