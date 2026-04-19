@@ -14,29 +14,56 @@ from utils.logger import get_logger
 
 log = get_logger()
 
-# ── Colores extra (no están en theme.py) ───────────────────────────────────
+# ── Colores extra (no están en theme.py) ───────────────────────────────────────
 MS_BLUE       = "#4dabf7"   # Azul Microsoft
 MS_BG         = "#0a1929"   # Fondo oscuro azulado
 MS_BORDER     = "#1e3a5f"   # Borde azul oscuro
 OFFLINE_COLOR = "#ffa94d"   # Naranja offline
 OFFLINE_BG    = "#1f1200"   # Fondo naranja oscuro
 
-# ── URLs de skin (Crafatar para cuentas reales, Minotar para offline) ──────
-# Crafatar devuelve el render 3D isométrico del personaje
+# UUIDs oficiales de Mojang para las skins por defecto.
+# Steve y Alex siempre están disponibles en Crafatar aunque no tengas cuenta real.
+_STEVE_UUID = "8667ba71-b85a-4004-af54-457a9734eed7"
+_ALEX_UUID  = "ec561538-f3fd-461d-aff5-086b22154bce"
+
+def _default_uuid(username: str) -> str:
+    """
+    Para cuentas offline elegimos Steve o Alex según el nombre.
+    Es el mismo algoritmo que usa Minecraft Java Edition internamente:
+    si el hash del nombre es par → Alex, impar → Steve.
+    """
+    return _ALEX_UUID if abs(hash(username)) % 2 == 0 else _STEVE_UUID
+
+# ── URLs de skin ───────────────────────────────────────────────────────────────
 def _head_url(username: str, uuid: str | None = None, size: int = 64) -> str:
-    if uuid and uuid != "offline":
-        return f"https://crafatar.com/avatars/{uuid}?size={size}&overlay=true"
-    return f"https://minotar.net/avatar/{username}/{size}"
+    """URL de la cara del personaje. Si no hay UUID real, usa Steve/Alex."""
+    real_uuid = uuid if (uuid and uuid != "offline") else _default_uuid(username)
+    return f"https://crafatar.com/avatars/{real_uuid}?size={size}&overlay=true"
 
 def _body_url(username: str, uuid: str | None = None) -> str:
-    """Render 3D del cuerpo completo. Crafatar genera una imagen isométrica real."""
-    if uuid and uuid != "offline":
-        # scale=5 = imagen más grande y nítida, sin límite de tamaño fijo
-        return f"https://crafatar.com/renders/body/{uuid}?scale=5&overlay=true"
-    return f"https://minotar.net/body/{username}/200"
+    """
+    Render 3D isométrico del cuerpo completo.
+    - Cuenta real (Microsoft): usa el UUID propio del jugador → su skin real.
+    - Cuenta offline SIN skin propia: muestra Steve o Alex en 3D.
+    - Crafatar siempre devuelve un render 3D, nunca falla con UUIDs válidos.
+    """
+    real_uuid = uuid if (uuid and uuid != "offline") else _default_uuid(username)
+    return f"https://crafatar.com/renders/body/{real_uuid}?scale=5&overlay=true"
+
+def _local_skin_img(skin_path: str, width: int, height: int) -> ft.Image:
+    """
+    Muestra una skin local (.png) guardada en el disco.
+    Flet puede cargar archivos locales directamente con 'src'.
+    """
+    return ft.Image(
+        src=skin_path,
+        width=width, height=height,
+        fit=ft.ImageFit.CONTAIN,
+        error_content=ft.Icon(ft.icons.BROKEN_IMAGE_ROUNDED, color=OFFLINE_COLOR),
+    )
 
 
-# ── Helpers de UI reutilizables ─────────────────────────────────────────────
+# ── Helpers de UI reutilizables ────────────────────────────────────────────────
 def _badge(text: str, color: str, bg) -> ft.Container:
     """Pequeña etiqueta de colores (ej: OFFLINE, ACTIVA, SKIN)."""
     return ft.Container(
@@ -98,7 +125,7 @@ def _mc_badge() -> ft.Container:
     )
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 class AccountsView:
     """Vista de gestión de cuentas del launcher."""
 
@@ -108,7 +135,7 @@ class AccountsView:
         self._pending_skin_id: str | None = None  # para saber a qué cuenta asignarle la skin
         self._build()
 
-    # ── BUILD PRINCIPAL ────────────────────────────────────────────────────
+    # ── BUILD PRINCIPAL ────────────────────────────────────────────────────────
     def _build(self):
         # El FilePicker necesita estar en page.overlay para funcionar
         self._skin_picker = ft.FilePicker(on_result=self._on_skin_picked)
@@ -171,11 +198,11 @@ class AccountsView:
             ], spacing=0),
         )
 
-    # ── TARJETA OFFLINE ────────────────────────────────────────────────────
+    # ── TARJETA OFFLINE ────────────────────────────────────────────────────────
     def _build_offline_card(self) -> ft.Container:
         """Formulario para crear una cuenta sin internet (solo nombre de usuario)."""
 
-        # Vista previa de la skin mientras escribes el nombre
+        # Vista previa de la cara mientras escribes el nombre
         self._offline_preview = ft.Container(
             width=48, height=48, border_radius=10,
             bgcolor=CARD2_BG, border=ft.border.all(1, BORDER),
@@ -186,11 +213,13 @@ class AccountsView:
         )
 
         def _preview_update(e):
-            """Actualiza la preview de la cara cuando el usuario escribe."""
+            """Actualiza la preview con la cara de Steve/Alex mientras escribes."""
             name = self._offline_field.value.strip()
             if len(name) >= 3:
+                # Muestra Steve o Alex en tiempo real (siempre funciona)
                 self._offline_preview.content = ft.Image(
-                    src=_head_url(name), width=48, height=48, fit=ft.ImageFit.COVER,
+                    src=_head_url(name),
+                    width=48, height=48, fit=ft.ImageFit.COVER,
                     error_content=ft.Icon(ft.icons.PERSON_ROUNDED, color=OFFLINE_COLOR, size=22),
                 )
                 self._offline_preview.border = ft.border.all(2, ft.colors.with_opacity(0.55, OFFLINE_COLOR))
@@ -221,7 +250,6 @@ class AccountsView:
             shadow=[ft.BoxShadow(spread_radius=0, blur_radius=20,
                 color=ft.colors.with_opacity(0.08, OFFLINE_COLOR), offset=ft.Offset(0,4))],
             content=ft.Column([
-                # Encabezado de la tarjeta
                 ft.Row([
                     ft.Container(
                         width=36, height=36, border_radius=10, bgcolor=OFFLINE_BG,
@@ -237,7 +265,6 @@ class AccountsView:
                     _badge("OFFLINE", OFFLINE_COLOR, ft.colors.with_opacity(0.14, OFFLINE_COLOR)),
                 ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
                 ft.Divider(height=18, color=BORDER),
-                # Campo de nombre + preview de cara
                 ft.Row([
                     self._offline_preview,
                     ft.Container(width=12),
@@ -257,7 +284,7 @@ class AccountsView:
             ], spacing=0),
         )
 
-    # ── TARJETA MICROSOFT ──────────────────────────────────────────────────
+    # ── TARJETA MICROSOFT ──────────────────────────────────────────────────────
     def _build_ms_card(self) -> ft.Container:
         """Botón de inicio de sesión con Microsoft (Device Code Flow)."""
 
@@ -346,34 +373,60 @@ class AccountsView:
             ], spacing=0),
         )
 
-    # ── HERO: cuenta activa con skin 3D ───────────────────────────────────
+    # ── HERO: cuenta activa con skin 3D ────────────────────────────────────────
     def _build_hero(self, acc) -> ft.Container:
         """
         Banner principal que muestra la cuenta activa.
-        La skin 3D viene de Crafatar: genera un render isométrico real del personaje.
+
+        Cómo funciona la skin 3D:
+        - Cuenta Microsoft → Crafatar usa el UUID real → muestra la skin propia.
+        - Cuenta offline CON skin (.png subida) → mostramos la skin local.
+        - Cuenta offline SIN skin → Crafatar muestra Steve o Alex en 3D.
+        Crafatar SIEMPRE devuelve imagen válida con UUIDs de Steve/Alex.
         """
         if not acc:
             return ft.Container(height=0)
 
-        name     = acc.username
-        uuid     = getattr(acc, "uuid", None) or getattr(acc, "id", None)
-        is_ms    = getattr(acc, "is_microsoft", False)
-        col      = AVATAR_PALETTE[abs(hash(name)) % len(AVATAR_PALETTE)]  # color de fallback
-        initials = name[:2].upper()
-        glow     = GREEN if is_ms else OFFLINE_COLOR
+        name      = acc.username
+        uuid      = getattr(acc, "uuid", None) or getattr(acc, "id", None)
+        is_ms     = getattr(acc, "is_microsoft", False)
+        skin_path = getattr(acc, "skin_path", None)
+        col       = AVATAR_PALETTE[abs(hash(name)) % len(AVATAR_PALETTE)]
+        initials  = name[:2].upper()
+        glow      = GREEN if is_ms else OFFLINE_COLOR
         label_col = MS_BLUE if is_ms else OFFLINE_COLOR
 
-        # Render 3D del cuerpo completo (Crafatar devuelve isométrico real)
-        skin_3d = ft.Image(
-            src=_body_url(name, uuid),
-            width=130, height=220,
-            fit=ft.ImageFit.CONTAIN,
-            error_content=ft.Container(
-                width=70, height=140, bgcolor=col, border_radius=12,
-                alignment=ft.alignment.center,
-                content=ft.Text(initials, color=TEXT_INV, size=22, weight=ft.FontWeight.BOLD),
-            ),
-        )
+        # Decide qué imagen mostrar como cuerpo 3D:
+        # 1) Si es offline y tiene skin local → la mostramos como imagen PNG
+        # 2) Si tiene UUID real (Microsoft) → Crafatar render 3D de su skin real
+        # 3) Offline sin skin → Crafatar con UUID de Steve/Alex (siempre funciona)
+        if not is_ms and skin_path:
+            body_widget = _local_skin_img(skin_path, 130, 220)
+        else:
+            body_widget = ft.Image(
+                src=_body_url(name, uuid),
+                width=130, height=220,
+                fit=ft.ImageFit.CONTAIN,
+                # Fallback extra por si Crafatar no responde (raro)
+                error_content=ft.Container(
+                    width=70, height=140, bgcolor=col, border_radius=12,
+                    alignment=ft.alignment.center,
+                    content=ft.Text(initials, color=TEXT_INV, size=22, weight=ft.FontWeight.BOLD),
+                ),
+            )
+
+        # Cara: si es offline y tiene skin local la mostramos igual como PNG
+        if not is_ms and skin_path:
+            head_img = _local_skin_img(skin_path, 80, 80)
+        else:
+            head_img = ft.Image(
+                src=_head_url(name, uuid, 160),
+                width=80, height=80, fit=ft.ImageFit.COVER,
+                error_content=ft.Container(
+                    bgcolor=col, alignment=ft.alignment.center,
+                    content=ft.Text(initials, color=TEXT_INV, size=18, weight=ft.FontWeight.BOLD),
+                ),
+            )
 
         return ft.Container(
             height=230, border_radius=20,
@@ -392,7 +445,6 @@ class AccountsView:
                     alignment=ft.alignment.center,
                     clip_behavior=ft.ClipBehavior.HARD_EDGE,
                     content=ft.Stack([
-                        # Glow radial detrás del personaje
                         ft.Container(
                             width=170, height=230,
                             gradient=ft.RadialGradient(
@@ -400,7 +452,7 @@ class AccountsView:
                                 colors=[ft.colors.with_opacity(0.28, glow), ft.colors.with_opacity(0.0, glow)],
                             ),
                         ),
-                        ft.Container(width=170, height=230, alignment=ft.alignment.center, content=skin_3d),
+                        ft.Container(width=170, height=230, alignment=ft.alignment.center, content=body_widget),
                     ]),
                 ),
 
@@ -442,14 +494,7 @@ class AccountsView:
                             border=ft.border.all(2, ft.colors.with_opacity(0.5, glow)),
                             shadow=[ft.BoxShadow(spread_radius=0, blur_radius=14,
                                 color=ft.colors.with_opacity(0.35, glow), offset=ft.Offset(0,0))],
-                            content=ft.Image(
-                                src=_head_url(name, uuid, 160),
-                                width=80, height=80, fit=ft.ImageFit.COVER,
-                                error_content=ft.Container(
-                                    bgcolor=col, alignment=ft.alignment.center,
-                                    content=ft.Text(initials, color=TEXT_INV, size=18, weight=ft.FontWeight.BOLD),
-                                ),
-                            ),
+                            content=head_img,
                         ),
                         ft.Container(height=8),
                         ft.Row([
@@ -464,12 +509,13 @@ class AccountsView:
             ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
         )
 
-    # ── TARJETA DE CUENTA (en el panel derecho) ────────────────────────────
+    # ── TARJETA DE CUENTA (panel derecho) ──────────────────────────────────────
     def _make_account_card(self, acc, is_active: bool) -> ft.Container:
         """
-        Cada cuenta guardada se muestra como una tarjeta.
-        Si es la cuenta activa, aparece con borde verde y glow.
-        A la izquierda se ve la skin 3D en miniatura.
+        Tarjeta de cuenta en el panel derecho.
+        - Panel izquierdo: skin 3D (Steve/Alex si es offline sin skin, o su skin local)
+        - Centro: nombre, badges, UUID
+        - Derecha: botones de acción
         """
         name      = acc.username
         uuid      = getattr(acc, "uuid", None) or getattr(acc, "id", None)
@@ -482,7 +528,20 @@ class AccountsView:
         label_col = MS_BLUE if is_ms else OFFLINE_COLOR
         label_txt = "Microsoft" if is_ms else "Offline"
 
-        # Panel izquierdo de la tarjeta con el render 3D pequeño
+        # Decide qué imagen mostrar en el panel lateral de la tarjeta
+        if not is_ms and skin_path:
+            card_body = _local_skin_img(skin_path, 52, 90)
+        else:
+            card_body = ft.Image(
+                src=_body_url(name, uuid),
+                width=52, height=90, fit=ft.ImageFit.CONTAIN,
+                error_content=ft.Container(
+                    bgcolor=col, border_radius=8,
+                    alignment=ft.alignment.center, width=42, height=70,
+                    content=ft.Text(initials, color=TEXT_INV, size=11, weight=ft.FontWeight.BOLD),
+                ),
+            )
+
         skin_panel = ft.Container(
             width=70,
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
@@ -501,20 +560,24 @@ class AccountsView:
                 ),
                 ft.Container(
                     width=70, height=104, alignment=ft.alignment.center,
-                    content=ft.Image(
-                        src=_body_url(name, uuid),
-                        width=52, height=90, fit=ft.ImageFit.CONTAIN,
-                        error_content=ft.Container(
-                            bgcolor=col, border_radius=8,
-                            alignment=ft.alignment.center, width=42, height=70,
-                            content=ft.Text(initials, color=TEXT_INV, size=11, weight=ft.FontWeight.BOLD),
-                        ),
-                    ),
+                    content=card_body,
                 ),
             ]),
         )
 
-        # Cara pequeña con borde verde si está activa
+        # Cara pequeña
+        if not is_ms and skin_path:
+            head_content = _local_skin_img(skin_path, 40, 40)
+        else:
+            head_content = ft.Image(
+                src=_head_url(name, uuid, 80),
+                width=40, height=40, fit=ft.ImageFit.COVER,
+                error_content=ft.Container(
+                    bgcolor=col, alignment=ft.alignment.center,
+                    content=ft.Text(initials, color=TEXT_INV, size=10, weight=ft.FontWeight.BOLD),
+                ),
+            )
+
         head = ft.Container(
             width=40, height=40, border_radius=9,
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
@@ -522,24 +585,15 @@ class AccountsView:
             shadow=[ft.BoxShadow(spread_radius=0, blur_radius=8,
                 color=ft.colors.with_opacity(0.40 if is_active else 0.10, GREEN if is_active else col),
                 offset=ft.Offset(0,2))],
-            content=ft.Image(
-                src=_head_url(name, uuid, 80),
-                width=40, height=40, fit=ft.ImageFit.COVER,
-                error_content=ft.Container(
-                    bgcolor=col, alignment=ft.alignment.center,
-                    content=ft.Text(initials, color=TEXT_INV, size=10, weight=ft.FontWeight.BOLD),
-                ),
-            ),
+            content=head_content,
         )
 
-        # Punto de estado (verde = activa, gris = inactiva)
         dot = ft.Container(
             width=7, height=7, border_radius=4, bgcolor=GREEN if is_active else TEXT_DIM,
             shadow=[ft.BoxShadow(spread_radius=0, blur_radius=6,
                 color=ft.colors.with_opacity(0.8 if is_active else 0.0, GREEN), offset=ft.Offset(0,0))],
         )
 
-        # Botones de acción (activar, skin, eliminar)
         actions: list[ft.Control] = []
 
         if not is_active:
@@ -561,7 +615,6 @@ class AccountsView:
             )
             actions.append(act_btn)
 
-        # Botón de skin (solo para cuentas offline)
         if not is_ms:
             skin_icon  = ft.icons.CHECK_CIRCLE_OUTLINE_ROUNDED if skin_path else ft.icons.IMAGE_ROUNDED
             skin_color = GREEN if skin_path else OFFLINE_COLOR
@@ -569,7 +622,6 @@ class AccountsView:
                 "Cambiar/quitar skin" if skin_path else "Cambiar skin",
                 lambda e, a=acc: self._open_skin_menu(a), OFFLINE_COLOR))
 
-        # Botón de eliminar
         del_btn = _icon_btn(ft.icons.DELETE_OUTLINE_ROUNDED, TEXT_DIM,
             "Eliminar cuenta", lambda e, a=acc: self._delete_account(a), ACCENT_RED)
         del_btn.on_hover = lambda e, c=del_btn: (
@@ -579,9 +631,8 @@ class AccountsView:
         )
         actions.append(del_btn)
 
-        # Badges de la tarjeta
         badge_row = [_badge(label_txt, label_col, ft.colors.with_opacity(0.12, label_col))]
-        if is_active:  badge_row += [ft.Container(width=4), _badge("ACTIVA", GREEN, ft.colors.with_opacity(0.14, GREEN))]
+        if is_active: badge_row += [ft.Container(width=4), _badge("ACTIVA", GREEN, ft.colors.with_opacity(0.14, GREEN))]
         if not is_ms and skin_path: badge_row += [ft.Container(width=4), _badge("SKIN", OFFLINE_COLOR, ft.colors.with_opacity(0.10, OFFLINE_COLOR))]
 
         card = ft.Container(
@@ -627,7 +678,7 @@ class AccountsView:
         card.on_hover = _hover
         return card
 
-    # ── GESTIÓN DE SKIN (solo offline) ────────────────────────────────────
+    # ── GESTIÓN DE SKIN (solo offline) ────────────────────────────────────────
     def _open_skin_menu(self, acc):
         """Abre un diálogo para subir o quitar la skin de una cuenta offline."""
         skin_path = getattr(acc, "skin_path", None)
@@ -680,7 +731,7 @@ class AccountsView:
                     border=ft.border.all(1, ft.colors.with_opacity(0.18, OFFLINE_COLOR)),
                     border_radius=10, padding=ft.padding.all(12),
                     content=ft.Text(
-                        f"Skin actual: {skin_path.split('/')[-1] if skin_path else 'Ninguna (Mojang default)'}\n"
+                        f"Skin actual: {skin_path.split('/')[-1] if skin_path else 'Ninguna (Steve/Alex por defecto)'}\n"
                         "Las skins deben ser PNG de 64×64 o 64×32 píxeles.",
                         color=TEXT_SEC, size=10,
                     ),
@@ -705,7 +756,7 @@ class AccountsView:
         finally:
             self._pending_skin_id = None
 
-    # ── LÓGICA ─────────────────────────────────────────────────────────────
+    # ── LÓGICA ────────────────────────────────────────────────────────────────
     def on_show(self):
         """Se llama cada vez que el usuario navega a esta pantalla."""
         self._refresh_accounts()
@@ -719,13 +770,11 @@ class AccountsView:
         except Exception:
             accounts, active_id, active = [], None, None
 
-        # Actualiza el hero (banner de cuenta activa)
         self._hero.content = self._build_hero(active)
         self._hero.height  = 240 if active else 0
         try: self._hero.update()
         except Exception: pass
 
-        # Actualiza la lista de cuentas
         self._accounts_col.controls.clear()
         if not accounts:
             self._accounts_col.controls.append(
@@ -740,7 +789,6 @@ class AccountsView:
                 )
             )
         else:
-            # La cuenta activa va primero
             ordered = sorted(accounts, key=lambda a: 0 if getattr(a, "id", None) == active_id else 1)
             for acc in ordered:
                 self._accounts_col.controls.append(
@@ -757,7 +805,6 @@ class AccountsView:
             return
         try:
             acc = self.app.account_manager.add_offline_account(username)
-            # Limpia el formulario
             self._offline_field.value = ""
             self._offline_preview.content = ft.Icon(ft.icons.PERSON_ROUNDED, color=TEXT_DIM, size=22)
             self._offline_preview.border = ft.border.all(1, BORDER)
@@ -829,7 +876,7 @@ class AccountsView:
         )
         self.page.open(dlg)
 
-    # ── MICROSOFT DEVICE FLOW ──────────────────────────────────────────────
+    # ── MICROSOFT DEVICE FLOW ─────────────────────────────────────────────────
     def _on_ms_login(self, e):
         """
         Inicia autenticación Microsoft.
