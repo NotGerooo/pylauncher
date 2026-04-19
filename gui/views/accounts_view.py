@@ -1,7 +1,6 @@
 """
 gui/views/accounts_view.py — Gestión de cuentas
-Cuentas offline y autenticación Microsoft OAuth.
-Skin body 2D · Glow sutil · Gestión de skins offline · Device Flow UI
+Cuentas offline · Microsoft OAuth Device Flow · Skin 3D · Skin picker
 """
 import threading
 import flet as ft
@@ -15,50 +14,114 @@ from utils.logger import get_logger
 
 log = get_logger()
 
-# ── Skin API helpers ──────────────────────────────────────────────────────────
+# ── Colores extra (no están en theme.py) ───────────────────────────────────
+MS_BLUE       = "#4dabf7"   # Azul Microsoft
+MS_BG         = "#0a1929"   # Fondo oscuro azulado
+MS_BORDER     = "#1e3a5f"   # Borde azul oscuro
+OFFLINE_COLOR = "#ffa94d"   # Naranja offline
+OFFLINE_BG    = "#1f1200"   # Fondo naranja oscuro
+
+# ── URLs de skin (Crafatar para cuentas reales, Minotar para offline) ──────
+# Crafatar devuelve el render 3D isométrico del personaje
 def _head_url(username: str, uuid: str | None = None, size: int = 64) -> str:
     if uuid and uuid != "offline":
         return f"https://crafatar.com/avatars/{uuid}?size={size}&overlay=true"
     return f"https://minotar.net/avatar/{username}/{size}"
 
-def _body_url(username: str, uuid: str | None = None, size: int = 256) -> str:
+def _body_url(username: str, uuid: str | None = None) -> str:
+    """Render 3D del cuerpo completo. Crafatar genera una imagen isométrica real."""
     if uuid and uuid != "offline":
-        return f"https://crafatar.com/renders/body/{uuid}?size={size}&overlay=true"
-    return f"https://minotar.net/body/{username}/{size}"
+        # scale=5 = imagen más grande y nítida, sin límite de tamaño fijo
+        return f"https://crafatar.com/renders/body/{uuid}?scale=5&overlay=true"
+    return f"https://minotar.net/body/{username}/200"
 
 
-# ── Paleta Microsoft ──────────────────────────────────────────────────────────
-MS_BLUE   = "#4dabf7"
-MS_BG     = "#0a1929"
-MS_BORDER = "#1e3a5f"
+# ── Helpers de UI reutilizables ─────────────────────────────────────────────
+def _badge(text: str, color: str, bg) -> ft.Container:
+    """Pequeña etiqueta de colores (ej: OFFLINE, ACTIVA, SKIN)."""
+    return ft.Container(
+        content=ft.Text(text, size=8, color=color, weight=ft.FontWeight.W_700),
+        padding=ft.padding.symmetric(horizontal=8, vertical=3),
+        bgcolor=bg, border_radius=6,
+        border=ft.border.all(1, ft.colors.with_opacity(0.25, color)),
+    )
 
-OFFLINE_COLOR = "#ffa94d"
-OFFLINE_BG    = "#1f1200"
+def _icon_btn(icon, color, tooltip, on_click, hover_bg) -> ft.Container:
+    """Botón cuadrado con icono y efecto hover."""
+    btn = ft.Container(
+        width=30, height=30, border_radius=8,
+        bgcolor="transparent",
+        border=ft.border.all(1, BORDER),
+        alignment=ft.alignment.center,
+        tooltip=tooltip,
+        content=ft.Icon(icon, size=14, color=color),
+        on_click=on_click,
+        animate=ft.animation.Animation(150, ft.AnimationCurve.EASE_OUT),
+    )
+    def _hover(e, c=btn):
+        c.bgcolor = ft.colors.with_opacity(0.12, hover_bg) if e.data == "true" else "transparent"
+        try: c.update()
+        except Exception: pass
+    btn.on_hover = _hover
+    return btn
+
+def _ms_logo(size: int = 14) -> ft.Stack:
+    """Logo de Microsoft con los 4 cuadrados de colores."""
+    h, g = size // 2, max(1, size // 8)
+    return ft.Stack([
+        ft.Container(width=h, height=h, bgcolor="#f25022", left=0,   top=0,   border_radius=1),
+        ft.Container(width=h, height=h, bgcolor="#7fba00", left=h+g, top=0,   border_radius=1),
+        ft.Container(width=h, height=h, bgcolor="#00a4ef", left=0,   top=h+g, border_radius=1),
+        ft.Container(width=h, height=h, bgcolor="#ffb900", left=h+g, top=h+g, border_radius=1),
+    ], width=h*2+g, height=h*2+g)
+
+def _mc_badge() -> ft.Container:
+    """Badge con el logo pixel-art de Minecraft (cara de creeper)."""
+    green, black, s = "#4caf50", "#000000", 6
+    pat = [
+        [1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1],
+        [1,3,3,1,1,3,3,1],
+        [1,3,3,1,1,3,3,1],
+        [1,1,1,3,3,1,1,1],
+        [1,1,3,3,3,3,1,1],
+        [1,1,3,1,1,3,1,1],
+        [1,1,1,1,1,1,1,1],
+    ]
+    cm = {1: green, 3: black}
+    rows = [ft.Row([ft.Container(width=s, height=s, bgcolor=cm.get(c, "transparent")) for c in r], spacing=0) for r in pat]
+    return ft.Container(
+        bgcolor=CARD2_BG, border=ft.border.all(1, BORDER), border_radius=10,
+        padding=ft.padding.all(8),
+        shadow=[ft.BoxShadow(spread_radius=0, blur_radius=12, color=ft.colors.with_opacity(0.20, green), offset=ft.Offset(0,2))],
+        content=ft.Column(rows, spacing=0),
+    )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
 class AccountsView:
+    """Vista de gestión de cuentas del launcher."""
+
     def __init__(self, page: ft.Page, app):
         self.page = page
         self.app  = app
-        self._ms_device_thread = None
-        self._skin_picker: ft.FilePicker | None = None
-        self._pending_skin_account_id: str | None = None
+        self._pending_skin_id: str | None = None  # para saber a qué cuenta asignarle la skin
         self._build()
 
-    # ═══════════════════════════════════════════════════════════════════════════
-    #  BUILD
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ── BUILD PRINCIPAL ────────────────────────────────────────────────────
     def _build(self):
+        # El FilePicker necesita estar en page.overlay para funcionar
         self._skin_picker = ft.FilePicker(on_result=self._on_skin_picked)
         self.page.overlay.append(self._skin_picker)
         self.page.update()
 
+        # Hero: muestra la cuenta activa con skin 3D (aparece/desaparece con animación)
         self._hero = ft.Container(
             height=0,
             animate=ft.animation.Animation(500, ft.AnimationCurve.EASE_OUT),
         )
 
+        # Lista de cuentas guardadas (panel derecho)
         self._accounts_col = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO)
 
         accounts_panel = ft.Container(
@@ -71,13 +134,14 @@ class AccountsView:
                     ft.Container(width=8),
                     ft.Text("Cuentas guardadas", color=TEXT_PRI, size=14,
                             weight=ft.FontWeight.BOLD, expand=True),
-                    self._small_badge("Panel", TEXT_DIM, CARD2_BG),
+                    _badge("Panel", TEXT_DIM, CARD2_BG),
                 ]),
                 ft.Divider(height=18, color=BORDER),
                 self._accounts_col,
             ], spacing=0, expand=True),
         )
 
+        # Panel izquierdo: formulario offline + botón Microsoft
         left = ft.Column([
             self._build_offline_card(),
             ft.Container(height=14),
@@ -88,17 +152,16 @@ class AccountsView:
             expand=True, bgcolor=BG,
             padding=ft.padding.all(32),
             content=ft.Column([
+                # Encabezado de la página
                 ft.Row([
                     ft.Column([
-                        ft.Text("Cuentas", color=TEXT_PRI, size=28,
-                                weight=ft.FontWeight.BOLD),
-                        ft.Text("Gestiona identidades del launcher",
-                                color=TEXT_DIM, size=11),
+                        ft.Text("Cuentas", color=TEXT_PRI, size=28, weight=ft.FontWeight.BOLD),
+                        ft.Text("Gestiona identidades del launcher", color=TEXT_DIM, size=11),
                     ], spacing=2, expand=True),
-                    self._mc_logo_badge(),
+                    _mc_badge(),
                 ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
                 ft.Container(height=18),
-                self._hero,
+                self._hero,  # ← aparece si hay cuenta activa
                 ft.Container(height=14),
                 ft.Row([
                     ft.Container(content=left, width=310),
@@ -108,25 +171,14 @@ class AccountsView:
             ], spacing=0),
         )
 
-    # ═══════════════════════════════════════════════════════════════════════════
-    #  OFFLINE CARD
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ── TARJETA OFFLINE ────────────────────────────────────────────────────
     def _build_offline_card(self) -> ft.Container:
-        self._offline_field = ft.TextField(
-            label="Nombre de usuario",
-            color=TEXT_PRI, bgcolor=INPUT_BG,
-            border_color=BORDER, focused_border_color=OFFLINE_COLOR,
-            border_radius=10,
-            label_style=ft.TextStyle(color=TEXT_DIM, size=10),
-            content_padding=ft.padding.symmetric(horizontal=14, vertical=12),
-            on_submit=self._on_add_offline,
-            expand=True,
-            prefix_icon=ft.icons.PERSON_OUTLINE_ROUNDED,
-        )
+        """Formulario para crear una cuenta sin internet (solo nombre de usuario)."""
+
+        # Vista previa de la skin mientras escribes el nombre
         self._offline_preview = ft.Container(
             width=48, height=48, border_radius=10,
-            bgcolor=CARD2_BG,
-            border=ft.border.all(1, BORDER),
+            bgcolor=CARD2_BG, border=ft.border.all(1, BORDER),
             alignment=ft.alignment.center,
             content=ft.Icon(ft.icons.PERSON_ROUNDED, color=TEXT_DIM, size=22),
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
@@ -134,120 +186,101 @@ class AccountsView:
         )
 
         def _preview_update(e):
+            """Actualiza la preview de la cara cuando el usuario escribe."""
             name = self._offline_field.value.strip()
             if len(name) >= 3:
                 self._offline_preview.content = ft.Image(
-                    src=_head_url(name),
-                    width=48, height=48, fit=ft.ImageFit.COVER,
-                    error_content=ft.Icon(ft.icons.PERSON_ROUNDED,
-                                          color=OFFLINE_COLOR, size=22),
+                    src=_head_url(name), width=48, height=48, fit=ft.ImageFit.COVER,
+                    error_content=ft.Icon(ft.icons.PERSON_ROUNDED, color=OFFLINE_COLOR, size=22),
                 )
-                self._offline_preview.border = ft.border.all(
-                    2, ft.colors.with_opacity(0.55, OFFLINE_COLOR))
-                self._offline_preview.shadow = [ft.BoxShadow(
-                    spread_radius=0, blur_radius=12,
-                    color=ft.colors.with_opacity(0.35, OFFLINE_COLOR),
-                    offset=ft.Offset(0, 0),
-                )]
+                self._offline_preview.border = ft.border.all(2, ft.colors.with_opacity(0.55, OFFLINE_COLOR))
+                self._offline_preview.shadow = [ft.BoxShadow(spread_radius=0, blur_radius=12,
+                    color=ft.colors.with_opacity(0.35, OFFLINE_COLOR), offset=ft.Offset(0,0))]
             else:
-                self._offline_preview.content = ft.Icon(
-                    ft.icons.PERSON_ROUNDED, color=TEXT_DIM, size=22)
+                self._offline_preview.content = ft.Icon(ft.icons.PERSON_ROUNDED, color=TEXT_DIM, size=22)
                 self._offline_preview.border = ft.border.all(1, BORDER)
                 self._offline_preview.shadow = []
-            try:
-                self._offline_preview.update()
-            except Exception:
-                pass
+            try: self._offline_preview.update()
+            except Exception: pass
 
-        self._offline_field.on_change = _preview_update
-
-        add_btn = ft.ElevatedButton(
-            "Añadir cuenta",
-            icon=ft.icons.ADD_ROUNDED,
-            bgcolor=OFFLINE_COLOR, color="#1a0a00",
-            style=ft.ButtonStyle(
-                shape=ft.RoundedRectangleBorder(radius=10),
-                padding=ft.padding.symmetric(horizontal=20, vertical=14),
-                overlay_color=ft.colors.with_opacity(0.15, "#ffffff"),
-            ),
-            on_click=self._on_add_offline,
+        self._offline_field = ft.TextField(
+            label="Nombre de usuario", color=TEXT_PRI, bgcolor=INPUT_BG,
+            border_color=BORDER, focused_border_color=OFFLINE_COLOR,
+            border_radius=10,
+            label_style=ft.TextStyle(color=TEXT_DIM, size=10),
+            content_padding=ft.padding.symmetric(horizontal=14, vertical=12),
+            prefix_icon=ft.icons.PERSON_OUTLINE_ROUNDED,
+            on_change=_preview_update,
+            on_submit=self._on_add_offline,
+            expand=True,
         )
 
         return ft.Container(
-            bgcolor=CARD_BG, border_radius=16,
-            padding=ft.padding.all(22),
+            bgcolor=CARD_BG, border_radius=16, padding=ft.padding.all(22),
             border=ft.border.all(1, BORDER),
-            shadow=[
-                ft.BoxShadow(spread_radius=0, blur_radius=20,
-                             color=ft.colors.with_opacity(0.08, OFFLINE_COLOR),
-                             offset=ft.Offset(0, 4)),
-            ],
+            shadow=[ft.BoxShadow(spread_radius=0, blur_radius=20,
+                color=ft.colors.with_opacity(0.08, OFFLINE_COLOR), offset=ft.Offset(0,4))],
             content=ft.Column([
+                # Encabezado de la tarjeta
                 ft.Row([
                     ft.Container(
-                        width=36, height=36, border_radius=10,
-                        bgcolor=OFFLINE_BG,
+                        width=36, height=36, border_radius=10, bgcolor=OFFLINE_BG,
                         border=ft.border.all(1, ft.colors.with_opacity(0.35, OFFLINE_COLOR)),
                         alignment=ft.alignment.center,
-                        content=ft.Icon(ft.icons.PERSON_ROUNDED,
-                                        color=OFFLINE_COLOR, size=18),
+                        content=ft.Icon(ft.icons.PERSON_ROUNDED, color=OFFLINE_COLOR, size=18),
                     ),
                     ft.Container(width=12),
                     ft.Column([
-                        ft.Text("Cuenta Offline", color=TEXT_PRI, size=13,
-                                weight=ft.FontWeight.BOLD),
+                        ft.Text("Cuenta Offline", color=TEXT_PRI, size=13, weight=ft.FontWeight.BOLD),
                         ft.Text("Sin autenticación Mojang", color=TEXT_DIM, size=9),
                     ], spacing=2, expand=True),
-                    self._small_badge("OFFLINE", OFFLINE_COLOR,
-                                      ft.colors.with_opacity(0.14, OFFLINE_COLOR)),
+                    _badge("OFFLINE", OFFLINE_COLOR, ft.colors.with_opacity(0.14, OFFLINE_COLOR)),
                 ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
                 ft.Divider(height=18, color=BORDER),
+                # Campo de nombre + preview de cara
                 ft.Row([
                     self._offline_preview,
                     ft.Container(width=12),
                     self._offline_field,
                 ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
                 ft.Container(height=12),
-                ft.Row([ft.Container(expand=True), add_btn]),
+                ft.Row([ft.Container(expand=True), ft.ElevatedButton(
+                    "Añadir cuenta", icon=ft.icons.ADD_ROUNDED,
+                    bgcolor=OFFLINE_COLOR, color="#1a0a00",
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=10),
+                        padding=ft.padding.symmetric(horizontal=20, vertical=14),
+                        overlay_color=ft.colors.with_opacity(0.15, "#ffffff"),
+                    ),
+                    on_click=self._on_add_offline,
+                )]),
             ], spacing=0),
         )
 
-    # ═══════════════════════════════════════════════════════════════════════════
-    #  MICROSOFT CARD
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ── TARJETA MICROSOFT ──────────────────────────────────────────────────
     def _build_ms_card(self) -> ft.Container:
-        self._ms_status   = ft.Text("Autenticación vía Device Code Flow",
-                                     color=TEXT_DIM, size=9)
-        self._ms_code_lbl = ft.Text("", color=MS_BLUE, size=26,
-                                     weight=ft.FontWeight.BOLD,
-                                     selectable=True,
-                                     font_family="Courier New")
+        """Botón de inicio de sesión con Microsoft (Device Code Flow)."""
+
+        self._ms_status   = ft.Text("Autenticación vía Device Code Flow", color=TEXT_DIM, size=9)
+        self._ms_code_lbl = ft.Text("", color=MS_BLUE, size=26, weight=ft.FontWeight.BOLD,
+                                     selectable=True, font_family="Courier New")
         self._ms_url_lbl  = ft.Text("", color=TEXT_SEC, size=9, selectable=True)
 
+        # Caja que muestra el código cuando Microsoft lo envía
         self._ms_code_box = ft.Container(
-            visible=False,
-            bgcolor=MS_BG,
-            border=ft.border.all(1, MS_BORDER),
-            border_radius=12,
+            visible=False, bgcolor=MS_BG,
+            border=ft.border.all(1, MS_BORDER), border_radius=12,
             padding=ft.padding.all(18),
-            shadow=[
-                ft.BoxShadow(spread_radius=0, blur_radius=20,
-                             color=ft.colors.with_opacity(0.22, MS_BLUE),
-                             offset=ft.Offset(0, 4)),
-            ],
+            shadow=[ft.BoxShadow(spread_radius=0, blur_radius=20,
+                color=ft.colors.with_opacity(0.22, MS_BLUE), offset=ft.Offset(0,4))],
             animate_opacity=ft.animation.Animation(350, ft.AnimationCurve.EASE_OUT),
             content=ft.Column([
                 ft.Row([
-                    ft.Container(
-                        width=8, height=8, border_radius=4,
-                        bgcolor=MS_BLUE,
+                    ft.Container(width=8, height=8, border_radius=4, bgcolor=MS_BLUE,
                         shadow=[ft.BoxShadow(spread_radius=0, blur_radius=8,
-                                             color=ft.colors.with_opacity(0.8, MS_BLUE),
-                                             offset=ft.Offset(0, 0))],
-                    ),
+                            color=ft.colors.with_opacity(0.8, MS_BLUE), offset=ft.Offset(0,0))]),
                     ft.Container(width=8),
-                    ft.Text("CÓDIGO DE DISPOSITIVO", color=MS_BLUE,
-                            size=8, weight=ft.FontWeight.BOLD),
+                    ft.Text("CÓDIGO DE DISPOSITIVO", color=MS_BLUE, size=8, weight=ft.FontWeight.BOLD),
                 ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
                 ft.Container(height=12),
                 ft.Text("Visita:", color=TEXT_DIM, size=9),
@@ -261,174 +294,131 @@ class AccountsView:
                     border=ft.border.all(1, ft.colors.with_opacity(0.3, MS_BLUE)),
                     border_radius=8,
                     padding=ft.padding.symmetric(horizontal=16, vertical=10),
-                    content=ft.Row([
-                        ft.Container(expand=True),
-                        self._ms_code_lbl,
-                        ft.Container(expand=True),
-                    ]),
+                    content=ft.Row([ft.Container(expand=True), self._ms_code_lbl, ft.Container(expand=True)]),
                 ),
                 ft.Container(height=10),
-                ft.ProgressBar(
-                    value=None,
+                ft.ProgressBar(value=None,
                     bgcolor=ft.colors.with_opacity(0.1, MS_BLUE),
-                    color=MS_BLUE,
-                    height=2,
-                    border_radius=1,
-                ),
+                    color=MS_BLUE, height=2, border_radius=1),
             ], spacing=0),
         )
 
-        ms_btn = ft.ElevatedButton(
-            content=ft.Row([
-                self._ms_logo_icon(),
-                ft.Container(width=10),
-                ft.Text("Iniciar sesión con Microsoft",
-                        color=MS_BLUE, size=11, weight=ft.FontWeight.W_600),
-            ], vertical_alignment=ft.CrossAxisAlignment.CENTER, tight=True),
-            bgcolor=MS_BG,
-            style=ft.ButtonStyle(
-                shape=ft.RoundedRectangleBorder(radius=10),
-                padding=ft.padding.symmetric(horizontal=20, vertical=14),
-                overlay_color=ft.colors.with_opacity(0.1, MS_BLUE),
-                side=ft.BorderSide(1, MS_BORDER),
-            ),
-            on_click=self._on_ms_login,
-        )
-
         return ft.Container(
-            bgcolor=CARD_BG, border_radius=16,
-            padding=ft.padding.all(22),
+            bgcolor=CARD_BG, border_radius=16, padding=ft.padding.all(22),
             border=ft.border.all(1, BORDER),
-            shadow=[
-                ft.BoxShadow(spread_radius=0, blur_radius=20,
-                             color=ft.colors.with_opacity(0.10, MS_BLUE),
-                             offset=ft.Offset(0, 4)),
-            ],
+            shadow=[ft.BoxShadow(spread_radius=0, blur_radius=20,
+                color=ft.colors.with_opacity(0.10, MS_BLUE), offset=ft.Offset(0,4))],
             content=ft.Column([
                 ft.Row([
                     ft.Container(
-                        width=36, height=36, border_radius=10,
-                        bgcolor=MS_BG,
+                        width=36, height=36, border_radius=10, bgcolor=MS_BG,
                         border=ft.border.all(1, MS_BORDER),
                         alignment=ft.alignment.center,
-                        content=self._ms_logo_icon(size=18),
+                        content=_ms_logo(size=18),
                     ),
                     ft.Container(width=12),
                     ft.Column([
-                        ft.Text("Microsoft / Xbox", color=TEXT_PRI, size=13,
-                                weight=ft.FontWeight.BOLD),
-                        ft.Text("Autenticación oficial de Mojang",
-                                color=TEXT_DIM, size=9),
+                        ft.Text("Microsoft / Xbox", color=TEXT_PRI, size=13, weight=ft.FontWeight.BOLD),
+                        ft.Text("Autenticación oficial de Mojang", color=TEXT_DIM, size=9),
                     ], spacing=2, expand=True),
-                    self._small_badge("PREMIUM", MS_BLUE,
-                                      ft.colors.with_opacity(0.12, MS_BLUE)),
+                    _badge("PREMIUM", MS_BLUE, ft.colors.with_opacity(0.12, MS_BLUE)),
                 ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
                 ft.Divider(height=18, color=BORDER),
                 self._ms_status,
                 ft.Container(height=14),
-                ms_btn,
+                ft.ElevatedButton(
+                    content=ft.Row([
+                        _ms_logo(),
+                        ft.Container(width=10),
+                        ft.Text("Iniciar sesión con Microsoft", color=MS_BLUE, size=11, weight=ft.FontWeight.W_600),
+                    ], vertical_alignment=ft.CrossAxisAlignment.CENTER, tight=True),
+                    bgcolor=MS_BG,
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=10),
+                        padding=ft.padding.symmetric(horizontal=20, vertical=14),
+                        overlay_color=ft.colors.with_opacity(0.1, MS_BLUE),
+                        side=ft.BorderSide(1, MS_BORDER),
+                    ),
+                    on_click=self._on_ms_login,
+                ),
                 ft.Container(height=12),
                 self._ms_code_box,
             ], spacing=0),
         )
 
-    # ═══════════════════════════════════════════════════════════════════════════
-    #  HERO — cuenta activa con skin body 2D
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ── HERO: cuenta activa con skin 3D ───────────────────────────────────
     def _build_hero(self, acc) -> ft.Container:
+        """
+        Banner principal que muestra la cuenta activa.
+        La skin 3D viene de Crafatar: genera un render isométrico real del personaje.
+        """
         if not acc:
             return ft.Container(height=0)
 
         name     = acc.username
         uuid     = getattr(acc, "uuid", None) or getattr(acc, "id", None)
         is_ms    = getattr(acc, "is_microsoft", False)
-        col      = AVATAR_PALETTE[abs(hash(name)) % len(AVATAR_PALETTE)]
-        initials = (name[:2]).upper()
-        glow_col = GREEN if is_ms else OFFLINE_COLOR
-
-        label_txt = "Microsoft" if is_ms else "Offline"
+        col      = AVATAR_PALETTE[abs(hash(name)) % len(AVATAR_PALETTE)]  # color de fallback
+        initials = name[:2].upper()
+        glow     = GREEN if is_ms else OFFLINE_COLOR
         label_col = MS_BLUE if is_ms else OFFLINE_COLOR
-        label_bg  = ft.colors.with_opacity(0.14, label_col)
 
-        skin_body = ft.Image(
-            src=_body_url(name, uuid, 256),
-            width=120, height=200,
+        # Render 3D del cuerpo completo (Crafatar devuelve isométrico real)
+        skin_3d = ft.Image(
+            src=_body_url(name, uuid),
+            width=130, height=220,
             fit=ft.ImageFit.CONTAIN,
             error_content=ft.Container(
-                width=70, height=140,
-                bgcolor=col, border_radius=12,
+                width=70, height=140, bgcolor=col, border_radius=12,
                 alignment=ft.alignment.center,
-                content=ft.Text(initials, color=TEXT_INV, size=22,
-                                weight=ft.FontWeight.BOLD),
+                content=ft.Text(initials, color=TEXT_INV, size=22, weight=ft.FontWeight.BOLD),
             ),
         )
 
         return ft.Container(
-            height=210,
-            border_radius=20,
-            border=ft.border.all(1, ft.colors.with_opacity(0.25, glow_col)),
-            shadow=[
-                ft.BoxShadow(spread_radius=0, blur_radius=20,
-                             color=ft.colors.with_opacity(0.12, glow_col),
-                             offset=ft.Offset(0, 6)),
-            ],
+            height=230, border_radius=20,
+            border=ft.border.all(1, ft.colors.with_opacity(0.25, glow)),
+            shadow=[ft.BoxShadow(spread_radius=0, blur_radius=24,
+                color=ft.colors.with_opacity(0.14, glow), offset=ft.Offset(0,6))],
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
             gradient=ft.LinearGradient(
-                begin=ft.alignment.top_left,
-                end=ft.alignment.bottom_right,
-                colors=[
-                    ft.colors.with_opacity(0.14, glow_col),
-                    CARD_BG,
-                    ft.colors.with_opacity(0.05, glow_col),
-                ],
+                begin=ft.alignment.top_left, end=ft.alignment.bottom_right,
+                colors=[ft.colors.with_opacity(0.16, glow), CARD_BG, ft.colors.with_opacity(0.06, glow)],
             ),
             content=ft.Row([
-                # ── Skin body ────────────────────────────────────────────────
+                # ── Skin 3D con glow radial de fondo ──
                 ft.Container(
-                    width=160, height=210,
+                    width=170, height=230,
                     alignment=ft.alignment.center,
                     clip_behavior=ft.ClipBehavior.HARD_EDGE,
                     content=ft.Stack([
+                        # Glow radial detrás del personaje
                         ft.Container(
-                            width=160, height=210,
+                            width=170, height=230,
                             gradient=ft.RadialGradient(
-                                center=ft.alignment.bottom_center,
-                                radius=1.0,
-                                colors=[
-                                    ft.colors.with_opacity(0.20, glow_col),
-                                    ft.colors.with_opacity(0.0, glow_col),
-                                ],
+                                center=ft.alignment.bottom_center, radius=1.0,
+                                colors=[ft.colors.with_opacity(0.28, glow), ft.colors.with_opacity(0.0, glow)],
                             ),
                         ),
-                        ft.Container(
-                            width=160, height=210,
-                            alignment=ft.alignment.center,
-                            content=skin_body,
-                        ),
+                        ft.Container(width=170, height=230, alignment=ft.alignment.center, content=skin_3d),
                     ]),
                 ),
 
-                # ── Info ────────────────────────────────────────────────────
+                # ── Info del jugador ──
                 ft.Column([
-                    ft.Container(height=16),
                     ft.Row([
-                        ft.Container(
-                            width=7, height=7, border_radius=4,
-                            bgcolor=glow_col,
-                        ),
+                        ft.Container(width=7, height=7, border_radius=4, bgcolor=glow),
                         ft.Container(width=8),
-                        ft.Text("JUGANDO COMO", color=TEXT_DIM, size=8,
-                                weight=ft.FontWeight.BOLD),
+                        ft.Text("JUGANDO COMO", color=TEXT_DIM, size=8, weight=ft.FontWeight.BOLD),
                     ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
                     ft.Container(height=8),
-                    ft.Text(name, color=TEXT_PRI, size=22,
-                            weight=ft.FontWeight.BOLD),
+                    ft.Text(name, color=TEXT_PRI, size=24, weight=ft.FontWeight.BOLD),
                     ft.Container(height=10),
                     ft.Row([
-                        self._small_badge(label_txt.upper(), label_col, label_bg),
+                        _badge(("MICROSOFT" if is_ms else "OFFLINE"), label_col,
+                               ft.colors.with_opacity(0.14, label_col)),
                         ft.Container(width=6),
-                        self._small_badge("ACTIVA", GREEN,
-                                          ft.colors.with_opacity(0.14, GREEN)),
+                        _badge("ACTIVA", GREEN, ft.colors.with_opacity(0.14, GREEN)),
                     ]),
                     ft.Container(height=12),
                     ft.Container(
@@ -437,144 +427,119 @@ class AccountsView:
                         padding=ft.padding.symmetric(horizontal=10, vertical=5),
                         content=ft.Text(
                             f"UUID: {str(uuid)[:16]}…" if uuid else "Sin UUID — Modo Offline",
-                            color=TEXT_SEC, size=8,
-                            font_family="Courier New",
+                            color=TEXT_SEC, size=8, font_family="Courier New",
                         ),
                     ),
-                ], spacing=0, expand=True,
-                   alignment=ft.MainAxisAlignment.CENTER),
+                ], spacing=0, expand=True, alignment=ft.MainAxisAlignment.CENTER),
 
-                # ── Head grande ──────────────────────────────────────────────
+                # ── Cara grande con indicador online ──
                 ft.Container(
                     padding=ft.padding.only(right=28, top=20, bottom=20),
                     content=ft.Column([
                         ft.Container(
                             width=80, height=80, border_radius=14,
                             clip_behavior=ft.ClipBehavior.HARD_EDGE,
-                            border=ft.border.all(
-                                2, ft.colors.with_opacity(0.5, glow_col)),
-                            shadow=[
-                                ft.BoxShadow(spread_radius=0, blur_radius=14,
-                                             color=ft.colors.with_opacity(0.35, glow_col),
-                                             offset=ft.Offset(0, 0)),
-                            ],
+                            border=ft.border.all(2, ft.colors.with_opacity(0.5, glow)),
+                            shadow=[ft.BoxShadow(spread_radius=0, blur_radius=14,
+                                color=ft.colors.with_opacity(0.35, glow), offset=ft.Offset(0,0))],
                             content=ft.Image(
                                 src=_head_url(name, uuid, 160),
-                                width=80, height=80,
-                                fit=ft.ImageFit.COVER,
+                                width=80, height=80, fit=ft.ImageFit.COVER,
                                 error_content=ft.Container(
-                                    bgcolor=col,
-                                    alignment=ft.alignment.center,
-                                    content=ft.Text(initials, color=TEXT_INV,
-                                                    size=18, weight=ft.FontWeight.BOLD),
+                                    bgcolor=col, alignment=ft.alignment.center,
+                                    content=ft.Text(initials, color=TEXT_INV, size=18, weight=ft.FontWeight.BOLD),
                                 ),
                             ),
                         ),
                         ft.Container(height=8),
                         ft.Row([
-                            ft.Container(
-                                width=6, height=6, border_radius=3,
-                                bgcolor=GREEN,
-                            ),
+                            ft.Container(width=6, height=6, border_radius=3, bgcolor=GREEN),
                             ft.Container(width=5),
-                            ft.Text("En línea", color=GREEN, size=9,
-                                    weight=ft.FontWeight.W_600),
+                            ft.Text("En línea", color=GREEN, size=9, weight=ft.FontWeight.W_600),
                         ], vertical_alignment=ft.CrossAxisAlignment.CENTER,
                            alignment=ft.MainAxisAlignment.CENTER),
                     ], horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                       alignment=ft.MainAxisAlignment.CENTER,
-                       expand=True),
+                       alignment=ft.MainAxisAlignment.CENTER, expand=True),
                 ),
             ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
         )
 
-    # ═══════════════════════════════════════════════════════════════════════════
-    #  ACCOUNT CARD
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ── TARJETA DE CUENTA (en el panel derecho) ────────────────────────────
     def _make_account_card(self, acc, is_active: bool) -> ft.Container:
+        """
+        Cada cuenta guardada se muestra como una tarjeta.
+        Si es la cuenta activa, aparece con borde verde y glow.
+        A la izquierda se ve la skin 3D en miniatura.
+        """
         name      = acc.username
         uuid      = getattr(acc, "uuid", None) or getattr(acc, "id", None)
         is_ms     = getattr(acc, "is_microsoft", False)
         col       = AVATAR_PALETTE[abs(hash(name)) % len(AVATAR_PALETTE)]
-        initials  = (name[:2]).upper()
+        initials  = name[:2].upper()
         skin_path = getattr(acc, "skin_path", None)
 
-        glow_col  = GREEN if is_active else TEXT_DIM
+        glow      = GREEN if is_active else TEXT_DIM
         label_col = MS_BLUE if is_ms else OFFLINE_COLOR
-        label_bg  = ft.colors.with_opacity(0.12, label_col)
         label_txt = "Microsoft" if is_ms else "Offline"
 
+        # Panel izquierdo de la tarjeta con el render 3D pequeño
         skin_panel = ft.Container(
             width=70,
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
             border_radius=ft.border_radius.only(top_left=14, bottom_left=14),
-            bgcolor=ft.colors.with_opacity(
-                0.10 if is_active else 0.04, glow_col),
+            bgcolor=ft.colors.with_opacity(0.10 if is_active else 0.04, glow),
             content=ft.Stack([
                 ft.Container(
                     width=70, height=110,
                     gradient=ft.RadialGradient(
-                        center=ft.alignment.bottom_center,
-                        radius=1.0,
+                        center=ft.alignment.bottom_center, radius=1.0,
                         colors=[
-                            ft.colors.with_opacity(
-                                0.35 if is_active else 0.12, glow_col),
-                            ft.colors.with_opacity(0.0, glow_col),
+                            ft.colors.with_opacity(0.35 if is_active else 0.12, glow),
+                            ft.colors.with_opacity(0.0, glow),
                         ],
                     ),
                 ),
                 ft.Container(
-                    width=70, height=104,
-                    alignment=ft.alignment.center,
+                    width=70, height=104, alignment=ft.alignment.center,
                     content=ft.Image(
-                        src=_body_url(name, uuid, 128),
-                        width=52, height=88,
-                        fit=ft.ImageFit.CONTAIN,
+                        src=_body_url(name, uuid),
+                        width=52, height=90, fit=ft.ImageFit.CONTAIN,
                         error_content=ft.Container(
                             bgcolor=col, border_radius=8,
-                            alignment=ft.alignment.center,
-                            width=42, height=70,
-                            content=ft.Text(initials, color=TEXT_INV,
-                                            size=11, weight=ft.FontWeight.BOLD),
+                            alignment=ft.alignment.center, width=42, height=70,
+                            content=ft.Text(initials, color=TEXT_INV, size=11, weight=ft.FontWeight.BOLD),
                         ),
                     ),
                 ),
             ]),
         )
 
+        # Cara pequeña con borde verde si está activa
         head = ft.Container(
             width=40, height=40, border_radius=9,
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
-            border=ft.border.all(
-                2, ft.colors.with_opacity(0.70, GREEN) if is_active else BORDER),
-            shadow=[ft.BoxShadow(
-                spread_radius=0, blur_radius=8,
-                color=ft.colors.with_opacity(
-                    0.40 if is_active else 0.10,
-                    GREEN if is_active else col),
-                offset=ft.Offset(0, 2),
-            )],
+            border=ft.border.all(2, ft.colors.with_opacity(0.70, GREEN) if is_active else BORDER),
+            shadow=[ft.BoxShadow(spread_radius=0, blur_radius=8,
+                color=ft.colors.with_opacity(0.40 if is_active else 0.10, GREEN if is_active else col),
+                offset=ft.Offset(0,2))],
             content=ft.Image(
                 src=_head_url(name, uuid, 80),
                 width=40, height=40, fit=ft.ImageFit.COVER,
                 error_content=ft.Container(
                     bgcolor=col, alignment=ft.alignment.center,
-                    content=ft.Text(initials, color=TEXT_INV,
-                                    size=10, weight=ft.FontWeight.BOLD),
+                    content=ft.Text(initials, color=TEXT_INV, size=10, weight=ft.FontWeight.BOLD),
                 ),
             ),
         )
 
-        dot_col = GREEN if is_active else TEXT_DIM
-        status_dot = ft.Container(
-            width=7, height=7, border_radius=4, bgcolor=dot_col,
-            shadow=[ft.BoxShadow(
-                spread_radius=0, blur_radius=6,
-                color=ft.colors.with_opacity(0.8 if is_active else 0.0, dot_col),
-                offset=ft.Offset(0, 0),
-            )],
+        # Punto de estado (verde = activa, gris = inactiva)
+        dot = ft.Container(
+            width=7, height=7, border_radius=4, bgcolor=GREEN if is_active else TEXT_DIM,
+            shadow=[ft.BoxShadow(spread_radius=0, blur_radius=6,
+                color=ft.colors.with_opacity(0.8 if is_active else 0.0, GREEN), offset=ft.Offset(0,0))],
         )
 
+        # Botones de acción (activar, skin, eliminar)
         actions: list[ft.Control] = []
 
         if not is_active:
@@ -582,8 +547,7 @@ class AccountsView:
                 content=ft.Row([
                     ft.Icon(ft.icons.PLAY_ARROW_ROUNDED, size=12, color=GREEN),
                     ft.Container(width=4),
-                    ft.Text("Activar", color=GREEN, size=10,
-                            weight=ft.FontWeight.W_600),
+                    ft.Text("Activar", color=GREEN, size=10, weight=ft.FontWeight.W_600),
                 ], vertical_alignment=ft.CrossAxisAlignment.CENTER, tight=True),
                 bgcolor=ft.colors.with_opacity(0.08, GREEN),
                 border=ft.border.all(1, ft.colors.with_opacity(0.30, GREEN)),
@@ -593,61 +557,40 @@ class AccountsView:
                 animate=ft.animation.Animation(150, ft.AnimationCurve.EASE_OUT),
             )
             act_btn.on_hover = lambda e, c=act_btn: (
-                setattr(c, "bgcolor", ft.colors.with_opacity(
-                    0.18 if e.data == "true" else 0.08, GREEN)) or c.update()
+                setattr(c, "bgcolor", ft.colors.with_opacity(0.18 if e.data=="true" else 0.08, GREEN)) or c.update()
             )
             actions.append(act_btn)
 
+        # Botón de skin (solo para cuentas offline)
         if not is_ms:
             skin_icon  = ft.icons.CHECK_CIRCLE_OUTLINE_ROUNDED if skin_path else ft.icons.IMAGE_ROUNDED
             skin_color = GREEN if skin_path else OFFLINE_COLOR
-            skin_btn = ft.Container(
-                width=30, height=30, border_radius=8,
-                bgcolor="transparent",
-                border=ft.border.all(1, BORDER),
-                alignment=ft.alignment.center,
-                tooltip="Cambiar/quitar skin" if skin_path else "Cambiar skin",
-                content=ft.Icon(skin_icon, size=14, color=skin_color),
-                on_click=lambda e, a=acc: self._open_skin_menu(a),
-                animate=ft.animation.Animation(150, ft.AnimationCurve.EASE_OUT),
-            )
-            skin_btn.on_hover = lambda e, c=skin_btn: (
-                setattr(c, "bgcolor",
-                        ft.colors.with_opacity(0.10, OFFLINE_COLOR) if e.data == "true"
-                        else "transparent") or c.update()
-            )
-            actions.append(skin_btn)
+            actions.append(_icon_btn(skin_icon, skin_color,
+                "Cambiar/quitar skin" if skin_path else "Cambiar skin",
+                lambda e, a=acc: self._open_skin_menu(a), OFFLINE_COLOR))
 
-        del_btn = ft.Container(
-            width=30, height=30, border_radius=8,
-            bgcolor="transparent",
-            border=ft.border.all(1, BORDER),
-            alignment=ft.alignment.center,
-            content=ft.Icon(ft.icons.DELETE_OUTLINE_ROUNDED, size=14, color=TEXT_DIM),
-            on_click=lambda e, a=acc: self._delete_account(a),
-            animate=ft.animation.Animation(150, ft.AnimationCurve.EASE_OUT),
-        )
+        # Botón de eliminar
+        del_btn = _icon_btn(ft.icons.DELETE_OUTLINE_ROUNDED, TEXT_DIM,
+            "Eliminar cuenta", lambda e, a=acc: self._delete_account(a), ACCENT_RED)
         del_btn.on_hover = lambda e, c=del_btn: (
-            setattr(c, "bgcolor",
-                    ft.colors.with_opacity(0.14, ACCENT_RED) if e.data == "true"
-                    else "transparent") or
-            setattr(c.content, "color",
-                    ACCENT_RED if e.data == "true" else TEXT_DIM) or
+            setattr(c, "bgcolor", ft.colors.with_opacity(0.14, ACCENT_RED) if e.data=="true" else "transparent") or
+            setattr(c.content, "color", ACCENT_RED if e.data=="true" else TEXT_DIM) or
             c.update()
         )
         actions.append(del_btn)
 
+        # Badges de la tarjeta
+        badge_row = [_badge(label_txt, label_col, ft.colors.with_opacity(0.12, label_col))]
+        if is_active:  badge_row += [ft.Container(width=4), _badge("ACTIVA", GREEN, ft.colors.with_opacity(0.14, GREEN))]
+        if not is_ms and skin_path: badge_row += [ft.Container(width=4), _badge("SKIN", OFFLINE_COLOR, ft.colors.with_opacity(0.10, OFFLINE_COLOR))]
+
         card = ft.Container(
             bgcolor=(ft.colors.with_opacity(0.07, GREEN) if is_active else INPUT_BG),
-            border=ft.border.all(
-                1, ft.colors.with_opacity(0.45, GREEN) if is_active else BORDER),
+            border=ft.border.all(1, ft.colors.with_opacity(0.45, GREEN) if is_active else BORDER),
             border_radius=14,
             padding=ft.padding.only(top=0, bottom=0, left=0, right=16),
-            shadow=[ft.BoxShadow(
-                spread_radius=0, blur_radius=16,
-                color=ft.colors.with_opacity(0.15 if is_active else 0.0, GREEN),
-                offset=ft.Offset(0, 3),
-            )],
+            shadow=[ft.BoxShadow(spread_radius=0, blur_radius=16,
+                color=ft.colors.with_opacity(0.15 if is_active else 0.0, GREEN), offset=ft.Offset(0,3))],
             animate=ft.animation.Animation(220, ft.AnimationCurve.EASE_OUT),
             content=ft.Row([
                 skin_panel,
@@ -655,71 +598,43 @@ class AccountsView:
                 ft.Column([
                     ft.Container(height=10),
                     ft.Row([
-                        head,
-                        ft.Container(width=10),
+                        head, ft.Container(width=10),
                         ft.Column([
-                            ft.Row([
-                                status_dot,
-                                ft.Container(width=6),
-                                ft.Text(name, color=TEXT_PRI, size=12,
-                                        weight=ft.FontWeight.BOLD),
-                            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                            ft.Row([dot, ft.Container(width=6),
+                                ft.Text(name, color=TEXT_PRI, size=12, weight=ft.FontWeight.BOLD)],
+                                vertical_alignment=ft.CrossAxisAlignment.CENTER),
                             ft.Container(height=4),
-                            ft.Row([
-                                self._small_badge(label_txt, label_col, label_bg),
-                                *(
-                                    [ft.Container(width=4),
-                                     self._small_badge("ACTIVA", GREEN,
-                                                      ft.colors.with_opacity(0.14, GREEN))]
-                                    if is_active else []
-                                ),
-                                *(
-                                    [ft.Container(width=4),
-                                     self._small_badge("SKIN", OFFLINE_COLOR,
-                                                      ft.colors.with_opacity(0.10, OFFLINE_COLOR))]
-                                    if (not is_ms and skin_path) else []
-                                ),
-                            ]),
+                            ft.Row(badge_row),
                             ft.Container(height=4),
                             ft.Text(
                                 f"UUID: {str(uuid)[:12]}…" if uuid else "Modo Offline",
-                                color=TEXT_DIM, size=8,
-                                font_family="Courier New",
+                                color=TEXT_DIM, size=8, font_family="Courier New",
                             ),
                         ], spacing=0, expand=True),
                     ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
                     ft.Container(height=10),
                 ], spacing=0, expand=True),
-                ft.Row(actions, spacing=8,
-                       vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                ft.Row(actions, spacing=8, vertical_alignment=ft.CrossAxisAlignment.CENTER),
             ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
         )
 
         def _hover(e, c=card, active=is_active):
-            if active:
-                return
-            c.bgcolor = (INPUT_BG if e.data != "true"
-                         else ft.colors.with_opacity(0.05, TEXT_PRI))
-            c.border  = ft.border.all(
-                1, BORDER if e.data != "true"
-                else ft.colors.with_opacity(0.35, TEXT_DIM))
-            try:
-                c.update()
-            except Exception:
-                pass
-
+            if active: return
+            c.bgcolor = INPUT_BG if e.data != "true" else ft.colors.with_opacity(0.05, TEXT_PRI)
+            c.border  = ft.border.all(1, BORDER if e.data != "true" else ft.colors.with_opacity(0.35, TEXT_DIM))
+            try: c.update()
+            except Exception: pass
         card.on_hover = _hover
         return card
 
-    # ═══════════════════════════════════════════════════════════════════════════
-    #  SKIN MANAGEMENT (offline)
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ── GESTIÓN DE SKIN (solo offline) ────────────────────────────────────
     def _open_skin_menu(self, acc):
+        """Abre un diálogo para subir o quitar la skin de una cuenta offline."""
         skin_path = getattr(acc, "skin_path", None)
 
         def _pick(e):
             self.page.close(dlg)
-            self._pending_skin_account_id = acc.id
+            self._pending_skin_id = acc.id
             self._skin_picker.pick_files(
                 dialog_title="Selecciona una skin (.png)",
                 allowed_extensions=["png"],
@@ -735,47 +650,35 @@ class AccountsView:
             except Exception as err:
                 self.app.snack(str(err), error=True)
 
-        actions = [
-            ft.ElevatedButton(
-                content=ft.Row([
-                    ft.Icon(ft.icons.UPLOAD_ROUNDED, size=14, color=TEXT_INV),
-                    ft.Container(width=6),
-                    ft.Text("Subir skin (.png)", color=TEXT_INV, size=11),
-                ], tight=True, vertical_alignment=ft.CrossAxisAlignment.CENTER),
-                bgcolor=OFFLINE_COLOR,
-                style=ft.ButtonStyle(
-                    shape=ft.RoundedRectangleBorder(radius=8),
-                    padding=ft.padding.symmetric(horizontal=16, vertical=10),
-                ),
-                on_click=_pick,
-            ),
-        ]
+        actions = [ft.ElevatedButton(
+            content=ft.Row([
+                ft.Icon(ft.icons.UPLOAD_ROUNDED, size=14, color=TEXT_INV),
+                ft.Container(width=6),
+                ft.Text("Subir skin (.png)", color=TEXT_INV, size=11),
+            ], tight=True, vertical_alignment=ft.CrossAxisAlignment.CENTER),
+            bgcolor=OFFLINE_COLOR,
+            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8),
+                padding=ft.padding.symmetric(horizontal=16, vertical=10)),
+            on_click=_pick,
+        )]
         if skin_path:
-            actions.insert(0, ft.TextButton(
-                "Quitar skin",
-                style=ft.ButtonStyle(color=ACCENT_RED),
-                on_click=_remove,
-            ))
-        actions.append(ft.TextButton(
-            "Cancelar",
-            style=ft.ButtonStyle(color=TEXT_SEC),
-            on_click=lambda e: self.page.close(dlg),
-        ))
+            actions.insert(0, ft.TextButton("Quitar skin",
+                style=ft.ButtonStyle(color=ACCENT_RED), on_click=_remove))
+        actions.append(ft.TextButton("Cancelar",
+            style=ft.ButtonStyle(color=TEXT_SEC), on_click=lambda e: self.page.close(dlg)))
 
         dlg = ft.AlertDialog(
             modal=True,
             title=ft.Row([
                 ft.Icon(ft.icons.IMAGE_ROUNDED, color=OFFLINE_COLOR, size=18),
                 ft.Container(width=8),
-                ft.Text(f"Skin de {acc.username}", color=TEXT_PRI, size=13,
-                        weight=ft.FontWeight.BOLD),
+                ft.Text(f"Skin de {acc.username}", color=TEXT_PRI, size=13, weight=ft.FontWeight.BOLD),
             ]),
             content=ft.Column([
                 ft.Container(
                     bgcolor=ft.colors.with_opacity(0.06, OFFLINE_COLOR),
                     border=ft.border.all(1, ft.colors.with_opacity(0.18, OFFLINE_COLOR)),
-                    border_radius=10,
-                    padding=ft.padding.all(12),
+                    border_radius=10, padding=ft.padding.all(12),
                     content=ft.Text(
                         f"Skin actual: {skin_path.split('/')[-1] if skin_path else 'Ninguna (Mojang default)'}\n"
                         "Las skins deben ser PNG de 64×64 o 64×32 píxeles.",
@@ -783,112 +686,46 @@ class AccountsView:
                     ),
                 ),
             ], tight=True),
-            bgcolor=CARD_BG,
-            shape=ft.RoundedRectangleBorder(radius=14),
-            actions=actions,
-            actions_alignment=ft.MainAxisAlignment.END,
+            bgcolor=CARD_BG, shape=ft.RoundedRectangleBorder(radius=14),
+            actions=actions, actions_alignment=ft.MainAxisAlignment.END,
         )
         self.page.open(dlg)
 
     def _on_skin_picked(self, e: ft.FilePickerResultEvent):
-        if not e.files or not self._pending_skin_account_id:
-            self._pending_skin_account_id = None
+        """Callback cuando el usuario elige un archivo de skin."""
+        if not e.files or not self._pending_skin_id:
+            self._pending_skin_id = None
             return
-        skin_path = e.files[0].path
-        acc_id    = self._pending_skin_account_id
-        self._pending_skin_account_id = None
         try:
-            self.app.account_manager.update_skin(acc_id, skin_path)
+            self.app.account_manager.update_skin(self._pending_skin_id, e.files[0].path)
             self._refresh_accounts()
             self.app.snack("Skin actualizada correctamente.")
         except Exception as err:
             self.app.snack(str(err), error=True)
+        finally:
+            self._pending_skin_id = None
 
-    # ═══════════════════════════════════════════════════════════════════════════
-    #  HELPERS UI
-    # ═══════════════════════════════════════════════════════════════════════════
-    @staticmethod
-    def _small_badge(text: str, color: str, bg) -> ft.Container:
-        return ft.Container(
-            content=ft.Text(text, size=8, color=color,
-                            weight=ft.FontWeight.W_700),
-            padding=ft.padding.symmetric(horizontal=8, vertical=3),
-            bgcolor=bg, border_radius=6,
-            border=ft.border.all(1, ft.colors.with_opacity(0.25, color)),
-        )
-
-    @staticmethod
-    def _mc_logo_badge() -> ft.Container:
-        green = "#4caf50"
-        black = "#000000"
-        size  = 6
-        pattern = [
-            [1,1,1,1,1,1,1,1],
-            [1,1,1,1,1,1,1,1],
-            [1,3,3,1,1,3,3,1],
-            [1,3,3,1,1,3,3,1],
-            [1,1,1,3,3,1,1,1],
-            [1,1,3,3,3,3,1,1],
-            [1,1,3,1,1,3,1,1],
-            [1,1,1,1,1,1,1,1],
-        ]
-        colors_map = {1: green, 3: black, 0: "transparent"}
-        rows = [
-            ft.Row([ft.Container(width=size, height=size,
-                                 bgcolor=colors_map.get(c, "transparent"))
-                    for c in row], spacing=0)
-            for row in pattern
-        ]
-        return ft.Container(
-            bgcolor=CARD2_BG,
-            border=ft.border.all(1, BORDER),
-            border_radius=10,
-            padding=ft.padding.all(8),
-            shadow=[ft.BoxShadow(spread_radius=0, blur_radius=12,
-                                 color=ft.colors.with_opacity(0.20, green),
-                                 offset=ft.Offset(0, 2))],
-            content=ft.Column(rows, spacing=0),
-        )
-
-    @staticmethod
-    def _ms_logo_icon(size: int = 14) -> ft.Stack:
-        half  = size // 2
-        gap   = max(1, size // 8)
-        total = half * 2 + gap
-        return ft.Stack([
-            ft.Container(width=half, height=half, bgcolor="#f25022",
-                         left=0, top=0, border_radius=1),
-            ft.Container(width=half, height=half, bgcolor="#7fba00",
-                         left=half + gap, top=0, border_radius=1),
-            ft.Container(width=half, height=half, bgcolor="#00a4ef",
-                         left=0, top=half + gap, border_radius=1),
-            ft.Container(width=half, height=half, bgcolor="#ffb900",
-                         left=half + gap, top=half + gap, border_radius=1),
-        ], width=total, height=total)
-
-    # ═══════════════════════════════════════════════════════════════════════════
-    #  LOGIC
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ── LÓGICA ─────────────────────────────────────────────────────────────
     def on_show(self):
+        """Se llama cada vez que el usuario navega a esta pantalla."""
         self._refresh_accounts()
 
     def _refresh_accounts(self):
+        """Recarga la lista de cuentas y el hero."""
         try:
             accounts  = self.app.account_manager.get_all_accounts()
             active    = self.app.account_manager.get_active_account()
             active_id = getattr(active, "id", None) if active else None
         except Exception:
-            accounts  = []
-            active_id = None
-            active    = None
+            accounts, active_id, active = [], None, None
 
+        # Actualiza el hero (banner de cuenta activa)
         self._hero.content = self._build_hero(active)
-        self._hero.height  = 220 if active else 0
-        try:
-            self._hero.update()
-        except Exception:
-            pass
+        self._hero.height  = 240 if active else 0
+        try: self._hero.update()
+        except Exception: pass
 
+        # Actualiza la lista de cuentas
         self._accounts_col.controls.clear()
         if not accounts:
             self._accounts_col.controls.append(
@@ -897,44 +734,36 @@ class AccountsView:
                     content=ft.Column([
                         ft.Icon(ft.icons.PERSON_OFF_OUTLINED, color=TEXT_DIM, size=36),
                         ft.Container(height=12),
-                        ft.Text("Sin cuentas guardadas", color=TEXT_DIM, size=11,
-                                text_align=ft.TextAlign.CENTER),
-                        ft.Text("Añade una cuenta offline o Microsoft",
-                                color=TEXT_DIM, size=9,
-                                text_align=ft.TextAlign.CENTER),
+                        ft.Text("Sin cuentas guardadas", color=TEXT_DIM, size=11, text_align=ft.TextAlign.CENTER),
+                        ft.Text("Añade una cuenta offline o Microsoft", color=TEXT_DIM, size=9, text_align=ft.TextAlign.CENTER),
                     ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
                 )
             )
         else:
-            ordered = sorted(accounts,
-                             key=lambda a: 0 if getattr(a, "id", None) == active_id else 1)
+            # La cuenta activa va primero
+            ordered = sorted(accounts, key=lambda a: 0 if getattr(a, "id", None) == active_id else 1)
             for acc in ordered:
-                is_active = (getattr(acc, "id", None) == active_id)
                 self._accounts_col.controls.append(
-                    self._make_account_card(acc, is_active))
+                    self._make_account_card(acc, getattr(acc, "id", None) == active_id))
 
-        try:
-            self._accounts_col.update()
-        except Exception:
-            pass
+        try: self._accounts_col.update()
+        except Exception: pass
 
     def _on_add_offline(self, e):
+        """Crea una nueva cuenta offline con el nombre ingresado."""
         username = self._offline_field.value.strip()
         if not username:
             self.app.snack("Ingresa un nombre de usuario.", error=True)
             return
         try:
             acc = self.app.account_manager.add_offline_account(username)
+            # Limpia el formulario
             self._offline_field.value = ""
-            self._offline_preview.content = ft.Icon(
-                ft.icons.PERSON_ROUNDED, color=TEXT_DIM, size=22)
+            self._offline_preview.content = ft.Icon(ft.icons.PERSON_ROUNDED, color=TEXT_DIM, size=22)
             self._offline_preview.border = ft.border.all(1, BORDER)
             self._offline_preview.shadow = []
-            try:
-                self._offline_field.update()
-                self._offline_preview.update()
-            except Exception:
-                pass
+            try: self._offline_field.update(); self._offline_preview.update()
+            except Exception: pass
             self._refresh_accounts()
             self.app.refresh_account_panel()
             self.app.snack(f"Cuenta '{acc.username}' añadida.")
@@ -942,6 +771,7 @@ class AccountsView:
             self.app.snack(str(err), error=True)
 
     def _set_active(self, account):
+        """Cambia la cuenta activa del launcher."""
         try:
             self.app.account_manager.set_active_account(account.id)
             self._refresh_accounts()
@@ -951,6 +781,7 @@ class AccountsView:
             self.app.snack(str(err), error=True)
 
     def _delete_account(self, account):
+        """Muestra un diálogo de confirmación antes de eliminar la cuenta."""
         def confirm(e2):
             self.page.close(dlg)
             try:
@@ -966,29 +797,22 @@ class AccountsView:
             title=ft.Row([
                 ft.Icon(ft.icons.WARNING_AMBER_ROUNDED, color=ACCENT_RED, size=20),
                 ft.Container(width=8),
-                ft.Text("Eliminar cuenta", color=TEXT_PRI, size=14,
-                        weight=ft.FontWeight.BOLD),
+                ft.Text("Eliminar cuenta", color=TEXT_PRI, size=14, weight=ft.FontWeight.BOLD),
             ]),
             content=ft.Column([
                 ft.Container(
                     bgcolor=ft.colors.with_opacity(0.08, ACCENT_RED),
                     border=ft.border.all(1, ft.colors.with_opacity(0.2, ACCENT_RED)),
-                    border_radius=10,
-                    padding=ft.padding.all(14),
+                    border_radius=10, padding=ft.padding.all(14),
                     content=ft.Text(
-                        f"¿Eliminar la cuenta '{account.username}'?\n"
-                        "Esta acción no se puede deshacer.",
+                        f"¿Eliminar la cuenta '{account.username}'?\nEsta acción no se puede deshacer.",
                         color=TEXT_SEC, size=11),
                 ),
             ], tight=True),
-            bgcolor=CARD_BG,
-            shape=ft.RoundedRectangleBorder(radius=14),
+            bgcolor=CARD_BG, shape=ft.RoundedRectangleBorder(radius=14),
             actions=[
-                ft.TextButton(
-                    "Cancelar",
-                    style=ft.ButtonStyle(color=TEXT_SEC),
-                    on_click=lambda e2: self.page.close(dlg),
-                ),
+                ft.TextButton("Cancelar", style=ft.ButtonStyle(color=TEXT_SEC),
+                    on_click=lambda e2: self.page.close(dlg)),
                 ft.ElevatedButton(
                     content=ft.Row([
                         ft.Icon(ft.icons.DELETE_ROUNDED, size=14, color=TEXT_INV),
@@ -996,10 +820,8 @@ class AccountsView:
                         ft.Text("Eliminar", color=TEXT_INV, size=11),
                     ], tight=True, vertical_alignment=ft.CrossAxisAlignment.CENTER),
                     bgcolor=ACCENT_RED,
-                    style=ft.ButtonStyle(
-                        shape=ft.RoundedRectangleBorder(radius=8),
-                        padding=ft.padding.symmetric(horizontal=16, vertical=10),
-                    ),
+                    style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8),
+                        padding=ft.padding.symmetric(horizontal=16, vertical=10)),
                     on_click=confirm,
                 ),
             ],
@@ -1007,17 +829,17 @@ class AccountsView:
         )
         self.page.open(dlg)
 
-    # ═══════════════════════════════════════════════════════════════════════════
-    #  MICROSOFT DEVICE FLOW
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ── MICROSOFT DEVICE FLOW ──────────────────────────────────────────────
     def _on_ms_login(self, e):
+        """
+        Inicia autenticación Microsoft.
+        Device Flow = Microsoft genera un código → el usuario lo ingresa en microsoft.com/link
+        → el launcher espera en segundo plano hasta que el usuario lo haga.
+        """
         self._ms_status.value     = "Iniciando autenticación…"
         self._ms_code_box.visible = False
-        try:
-            self._ms_status.update()
-            self._ms_code_box.update()
-        except Exception:
-            pass
+        try: self._ms_status.update(); self._ms_code_box.update()
+        except Exception: pass
 
         def auth():
             try:
@@ -1031,53 +853,39 @@ class AccountsView:
                     self._ms_code_box.visible = True
                     self._ms_status.value     = "Esperando inicio de sesión en el navegador…"
                     try:
-                        self._ms_code_lbl.update()
-                        self._ms_url_lbl.update()
-                        self._ms_code_box.update()
-                        self._ms_status.update()
-                    except Exception:
-                        pass
-
+                        self._ms_code_lbl.update(); self._ms_url_lbl.update()
+                        self._ms_code_box.update(); self._ms_status.update()
+                    except Exception: pass
                 self.page.run_thread(show_code)
+
                 result = self.app.microsoft_auth.poll_device_flow(device)
 
                 if result:
                     acc = self.app.microsoft_auth.get_minecraft_account(result)
                     self.app.account_manager.add_account(acc)
-
                     def done():
                         self._ms_status.value     = "✓ Cuenta Microsoft añadida correctamente"
                         self._ms_code_box.visible = False
-                        try:
-                            self._ms_status.update()
-                            self._ms_code_box.update()
-                        except Exception:
-                            pass
+                        try: self._ms_status.update(); self._ms_code_box.update()
+                        except Exception: pass
                         self._refresh_accounts()
                         self.app.refresh_account_panel()
                         self.app.snack(f"¡Bienvenido, {acc.username}! 🎮")
-
                     self.page.run_thread(done)
                 else:
                     def failed():
                         self._ms_status.value     = "Autenticación cancelada o expirada."
                         self._ms_code_box.visible = False
-                        try:
-                            self._ms_status.update()
-                            self._ms_code_box.update()
-                        except Exception:
-                            pass
+                        try: self._ms_status.update(); self._ms_code_box.update()
+                        except Exception: pass
                     self.page.run_thread(failed)
 
             except Exception as err:
                 def show_err():
                     self._ms_status.value     = f"Error: {err}"
                     self._ms_code_box.visible = False
-                    try:
-                        self._ms_status.update()
-                        self._ms_code_box.update()
-                    except Exception:
-                        pass
+                    try: self._ms_status.update(); self._ms_code_box.update()
+                    except Exception: pass
                 self.page.run_thread(show_err)
 
         threading.Thread(target=auth, daemon=True).start()
