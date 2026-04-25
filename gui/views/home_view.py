@@ -566,22 +566,16 @@ class HomeView:
         else:
             icon_ctrl = ph_icon
 
-        # Stats — ft.Tooltip recibe el control hijo como primer arg posicional
+        # Stats simples sin Tooltip (compatibilidad con todas las versiones de Flet)
         stat_items: list[ft.Control] = [
-            ft.Tooltip(
-                ft.Row([
-                    ft.Icon(ft.icons.DOWNLOAD_OUTLINED, size=12, color=TEXT_DIM),
-                    ft.Text(downloads, size=11, color=TEXT_DIM),
-                ], spacing=3),
-                message="Descargas totales",
-            ),
-            ft.Tooltip(
-                ft.Row([
-                    ft.Icon(ft.icons.FAVORITE_BORDER, size=12, color=TEXT_DIM),
-                    ft.Text(follows, size=11, color=TEXT_DIM),
-                ], spacing=3),
-                message="Seguidores",
-            ),
+            ft.Row([
+                ft.Icon(ft.icons.DOWNLOAD_OUTLINED, size=12, color=TEXT_DIM),
+                ft.Text(downloads, size=11, color=TEXT_DIM),
+            ], spacing=3),
+            ft.Row([
+                ft.Icon(ft.icons.FAVORITE_BORDER, size=12, color=TEXT_DIM),
+                ft.Text(follows, size=11, color=TEXT_DIM),
+            ], spacing=3),
         ]
         if cat_label:
             stat_items.append(
