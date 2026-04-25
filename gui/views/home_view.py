@@ -1,5 +1,9 @@
 """
 gui/views/home_view.py — Home estilo Modrinth con caché de imágenes en disco.
+
+Fix scroll: el Column padre NO tiene scroll. Cada sección de tarjetas usa
+ft.ListView horizontal (horizontal=True) que maneja su propio scroll sin
+conflicto con el scroll vertical del Column externo.
 """
 import hashlib
 import json
@@ -27,11 +31,9 @@ _URL_MODPACKS = (
     '&facets=[[%22project_type:modpack%22]]'
 )
 
-# Directorio de caché (junto al script o en AppData)
 _CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "cache", "images")
 os.makedirs(_CACHE_DIR, exist_ok=True)
 
-# Paletas (start, end, accent) por índice cíclico
 _PALETTES = [
     ("#0f2d1a", "#1a5c32", "#4ade80"),
     ("#0d1b3e", "#1a2f6b", "#60a5fa"),
@@ -46,23 +48,15 @@ _PALETTES = [
 ]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Caché de imágenes
-# ─────────────────────────────────────────────────────────────────────────────
+# ── Caché de imágenes ─────────────────────────────────────────────────────────
 
 def _cache_path(url: str) -> str:
-    """Devuelve la ruta local para una URL, usando su hash como nombre."""
-    ext = os.path.splitext(url.split("?")[0])[-1][:5] or ".png"
+    ext  = os.path.splitext(url.split("?")[0])[-1][:5] or ".png"
     name = hashlib.md5(url.encode()).hexdigest() + ext
     return os.path.join(_CACHE_DIR, name)
 
 
 def _cached_image_src(url: str) -> str:
-    """
-    Devuelve la ruta local si la imagen ya está cacheada,
-    o descarga y cachea antes de devolver la ruta.
-    Ante cualquier error devuelve la URL original.
-    """
     if not url:
         return ""
     path = _cache_path(url)
@@ -76,7 +70,7 @@ def _cached_image_src(url: str) -> str:
             f.write(data)
         return path
     except Exception:
-        return url          # fallback: URL directa
+        return url
 
 
 def _fmt(n: int) -> str:
@@ -102,49 +96,42 @@ def _fetch_with_gallery(search_url: str) -> list[dict]:
     bulk_url  = f"https://api.modrinth.com/v2/projects?ids={ids_param}"
     projects  = {p["id"]: p for p in _get(bulk_url)}
     for hit in hits:
-        proj    = projects.get(hit["project_id"], {})
-        gallery = proj.get("gallery") or []
+        proj     = projects.get(hit["project_id"], {})
+        gallery  = proj.get("gallery") or []
         featured = next((g["url"] for g in gallery if g.get("featured")), None)
         fallback = gallery[0]["url"] if gallery else None
         hit["_banner"] = featured or fallback or hit.get("featured_gallery") or ""
     return hits
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Placeholders Flet (sin letter_spacing, sin Stack posicional)
-# ─────────────────────────────────────────────────────────────────────────────
+# ── Placeholders ──────────────────────────────────────────────────────────────
 
 def _banner_placeholder(idx: int, kind: str = "mod") -> ft.Container:
     c1, c2, accent = _PALETTES[idx % len(_PALETTES)]
     ico   = ft.icons.WIDGETS_OUTLINED if kind == "modpack" else ft.icons.EXTENSION_OUTLINED
     label = "MODPACK" if kind == "modpack" else "MOD"
 
-    top_row = ft.Row(
-        [
-            ft.Container(expand=True),
-            ft.Container(
-                content=ft.Text(label, size=9, color=ft.colors.with_opacity(0.8, accent),
-                                weight=ft.FontWeight.W_700),
-                padding=ft.padding.symmetric(horizontal=8, vertical=4),
-                bgcolor=ft.colors.with_opacity(0.18, accent),
-                border_radius=4,
-                border=ft.border.all(1, ft.colors.with_opacity(0.25, accent)),
-            ),
-        ],
-    )
+    top_row = ft.Row([
+        ft.Container(expand=True),
+        ft.Container(
+            content=ft.Text(label, size=9, color=ft.colors.with_opacity(0.8, accent),
+                            weight=ft.FontWeight.W_700),
+            padding=ft.padding.symmetric(horizontal=8, vertical=4),
+            bgcolor=ft.colors.with_opacity(0.18, accent),
+            border_radius=4,
+            border=ft.border.all(1, ft.colors.with_opacity(0.25, accent)),
+        ),
+    ])
 
-    center = ft.Row(
-        [
-            ft.Container(
-                width=56, height=56, border_radius=28,
-                bgcolor=ft.colors.with_opacity(0.15, accent),
-                border=ft.border.all(1, ft.colors.with_opacity(0.3, accent)),
-                content=ft.Icon(ico, color=accent, size=26),
-                alignment=ft.alignment.center,
-            )
-        ],
-        alignment=ft.MainAxisAlignment.CENTER,
-    )
+    center = ft.Row([
+        ft.Container(
+            width=56, height=56, border_radius=28,
+            bgcolor=ft.colors.with_opacity(0.15, accent),
+            border=ft.border.all(1, ft.colors.with_opacity(0.3, accent)),
+            content=ft.Icon(ico, color=accent, size=26),
+            alignment=ft.alignment.center,
+        )
+    ], alignment=ft.MainAxisAlignment.CENTER)
 
     return ft.Container(
         width=260, height=130,
@@ -155,15 +142,11 @@ def _banner_placeholder(idx: int, kind: str = "mod") -> ft.Container:
             end=ft.alignment.bottom_right,
             colors=[c1, c2],
         ),
-        content=ft.Column(
-            [
-                ft.Container(content=top_row, padding=ft.padding.only(right=10, top=8)),
-                ft.Container(content=center, expand=True),
-                ft.Container(height=8),
-            ],
-            spacing=0,
-            expand=True,
-        ),
+        content=ft.Column([
+            ft.Container(content=top_row, padding=ft.padding.only(right=10, top=8)),
+            ft.Container(content=center, expand=True),
+            ft.Container(height=8),
+        ], spacing=0, expand=True),
     )
 
 
@@ -183,9 +166,7 @@ def _icon_placeholder(idx: int, kind: str = "mod") -> ft.Container:
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Vista principal
-# ─────────────────────────────────────────────────────────────────────────────
+# ── Vista principal ───────────────────────────────────────────────────────────
 
 class HomeView:
     def __init__(self, page: ft.Page, app):
@@ -193,11 +174,30 @@ class HomeView:
         self.app     = app
         self._loaded = False
 
-        self._mods_row     = ft.Row(controls=[], scroll=ft.ScrollMode.AUTO, spacing=16)
-        self._packs_row    = ft.Row(controls=[], scroll=ft.ScrollMode.AUTO, spacing=16)
+        # ListView horizontal — NO usa ft.Row con scroll.
+        # ft.ListView con horizontal=True tiene su propio gestor de scroll
+        # que no interfiere con el scroll vertical del Column padre.
+        self._mods_list = ft.ListView(
+            controls=[],
+            horizontal=True,
+            spacing=16,
+            height=340,
+            padding=ft.padding.symmetric(horizontal=4),
+        )
+        self._packs_list = ft.ListView(
+            controls=[],
+            horizontal=True,
+            spacing=16,
+            height=340,
+            padding=ft.padding.symmetric(horizontal=4),
+        )
+
         self._mods_status  = ft.Text("Cargando…", color=TEXT_DIM, size=12, italic=True)
         self._packs_status = ft.Text("Cargando…", color=TEXT_DIM, size=12, italic=True)
 
+        # El Column padre tiene scroll vertical propio.
+        # Los ListView hijos tienen scroll horizontal propio.
+        # Al ser tipos de scroll distintos (vertical vs horizontal) no se bloquean.
         self.root = ft.Container(
             expand=True,
             bgcolor=BG,
@@ -207,10 +207,10 @@ class HomeView:
                     self._build_header(),
                     ft.Divider(height=1, color=BORDER, thickness=1),
                     self._section_title("Mods populares",     GREEN,     self._mods_status),
-                    ft.Container(content=self._mods_row,  height=340),
+                    self._mods_list,
                     ft.Divider(height=1, color=BORDER, thickness=1),
                     self._section_title("Modpacks populares", "#60a5fa", self._packs_status),
-                    ft.Container(content=self._packs_row, height=340),
+                    self._packs_list,
                 ],
                 spacing=14,
                 expand=True,
@@ -229,8 +229,7 @@ class HomeView:
                         [
                             ft.Row(
                                 [
-                                    ft.Icon(ft.icons.ROCKET_LAUNCH_ROUNDED,
-                                            color=GREEN, size=26),
+                                    ft.Icon(ft.icons.ROCKET_LAUNCH_ROUNDED, color=GREEN, size=26),
                                     ft.Text("Gero´s Launcher", size=26,
                                             weight=ft.FontWeight.BOLD, color=TEXT_PRI),
                                 ],
@@ -279,8 +278,7 @@ class HomeView:
                 ft.Row(
                     [
                         ft.Container(width=4, height=18, bgcolor=accent, border_radius=2),
-                        ft.Text(label, color=TEXT_PRI, size=15,
-                                weight=ft.FontWeight.W_600),
+                        ft.Text(label, color=TEXT_PRI, size=15, weight=ft.FontWeight.W_600),
                     ],
                     spacing=10,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -310,15 +308,15 @@ class HomeView:
             threading.Thread(target=self._load_modpacks, daemon=True).start()
 
     def _load_mods(self):
-        self._load_section(_URL_MODS, self._mods_row, self._mods_status, "mod")
+        self._load_section(_URL_MODS, self._mods_list, self._mods_status, "mod")
 
     def _load_modpacks(self):
-        self._load_section(_URL_MODPACKS, self._packs_row, self._packs_status, "modpack")
+        self._load_section(_URL_MODPACKS, self._packs_list, self._packs_status, "modpack")
 
-    def _load_section(self, url: str, row: ft.Row, status: ft.Text, kind: str):
+    def _load_section(self, url: str, lv: ft.ListView, status: ft.Text, kind: str):
         try:
             hits = _fetch_with_gallery(url)
-            row.controls = [
+            lv.controls = [
                 self._build_card(h, kind, idx)
                 for idx, h in enumerate(hits)
             ]
@@ -329,7 +327,7 @@ class HomeView:
             status.italic = False
         self.page.update()
 
-    # ── Card ─────────────────────────────────────────────────────────────────
+    # ── Card ──────────────────────────────────────────────────────────────────
 
     def _build_card(self, mod: dict, kind: str = "mod", idx: int = 0) -> ft.Container:
         icon_url   = mod.get("icon_url") or ""
@@ -344,7 +342,6 @@ class HomeView:
         accent     = GREEN if kind == "mod" else "#60a5fa"
         ph_idx     = idx % len(_PALETTES)
 
-        # Resuelve src con caché (descarga en background ya terminó en _load_section)
         banner_src = _cached_image_src(banner_url) if banner_url else ""
         icon_src   = _cached_image_src(icon_url)   if icon_url   else ""
 
@@ -424,6 +421,6 @@ class HomeView:
     @staticmethod
     def _on_card_hover(e: ft.HoverEvent, card: ft.Container):
         is_hover = e.data == "true"
-        card.border = ft.border.all(1, BORDER_BRIGHT if is_hover else BORDER)
+        card.border  = ft.border.all(1, BORDER_BRIGHT if is_hover else BORDER)
         card.bgcolor = CARD2_BG if is_hover else CARD_BG
         card.update()

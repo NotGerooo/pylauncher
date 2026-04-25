@@ -73,7 +73,7 @@ class App:
         self._setup_page()
         self._init_services()
         self._build_layout()
-        self._show_view("library")
+        self._show_view("home")   # ← abre Home al iniciar
         self._check_updates()
 
         log.info("Interfaz iniciada — v%s", self.version)
@@ -149,7 +149,7 @@ class App:
     def _build_titlebar(self) -> ft.Control:
         """
         Barra de título completamente custom.
-        
+
         Por qué funciona así:
         - WindowDragArea envuelve TODO el contenedor, no solo el espacio del medio.
           Pero los botones de ventana necesitan interceptar el click ANTES que el drag,
@@ -164,11 +164,11 @@ class App:
             Stack con fondo animado + texto. Usamos Stack para que el área
             clicable sea exacta sin depender del padding del Container.
             """
-            BG_HOVER       = "#c0392b"     if is_close else "#3a3d42"
-            COLOR_HOVER    = "#ffffff"
-            COLOR_DEFAULT  = "#6b7280"
+            BG_HOVER      = "#c0392b" if is_close else "#3a3d42"
+            COLOR_HOVER   = "#ffffff"
+            COLOR_DEFAULT = "#6b7280"
 
-            bg_layer  = ft.Container(
+            bg_layer = ft.Container(
                 width=46, height=38,
                 bgcolor=ft.colors.TRANSPARENT,
                 border_radius=0,
@@ -179,14 +179,12 @@ class App:
                 size=12,
                 color=COLOR_DEFAULT,
                 text_align=ft.TextAlign.CENTER,
-                # Monospace para que −, □, × queden centrados igual
                 font_family="Consolas",
             )
             label_box = ft.Container(
                 width=46, height=38,
                 alignment=ft.alignment.center,
                 content=txt,
-                animate=ft.animation.Animation(80, ft.AnimationCurve.LINEAR),
             )
 
             def _enter(e):
@@ -218,10 +216,6 @@ class App:
                 controls=[bg_layer, label_box, detector],
             )
 
-        # Usando caracteres Unicode específicos para los 3 botones:
-        # −  U+2212  MINUS SIGN         (más delgado que el guión normal)
-        # ▢  U+25A2  WHITE SQUARE WITH ROUNDED CORNERS  (maximizar, limpio)
-        # ×  U+00D7  MULTIPLICATION SIGN (cerrar, más fino que ✕)
         btn_min = _win_btn("\u2212", self._minimize)
         btn_max = _win_btn("\u25a2", self._toggle_maximize)
         btn_cls = _win_btn("\u00d7", self.page.window.destroy, is_close=True)
@@ -235,8 +229,6 @@ class App:
             content=ft.Text(f"v{self.version}", color=GREEN, size=9, weight=ft.FontWeight.W_600),
         )
 
-        # El área de drag ocupa todo el ancho MENOS los botones de la derecha.
-        # Usamos un Row donde el drag toma expand=True y los botones están fuera.
         drag_area = ft.WindowDragArea(
             ft.Container(
                 expand=True, height=38,
@@ -283,7 +275,6 @@ class App:
         Muestra una vista por su id.
         Llama on_hide en la vista anterior y on_show en la nueva.
         """
-        # Notificar a la vista anterior
         if self._current_vid and self._current_vid in self._views:
             prev = self._views[self._current_vid]
             if hasattr(prev, "on_hide"):
@@ -294,7 +285,6 @@ class App:
         self._sidebar_left.set_active(vid)
         self._current_vid = vid
 
-        # Crear vista si no existe (lazy)
         if vid not in self._views:
             self._views[vid] = self._create_view(vid)
 
@@ -306,7 +296,6 @@ class App:
         if hasattr(view, "on_show"):
             view.on_show()
 
-        # Refrescar panel de cuenta con un pequeño delay para no bloquear la UI
         threading.Timer(0.15, self._sidebar_right.refresh_account).start()
 
     def _show_instance(self, profile):
@@ -350,21 +339,15 @@ class App:
 
     # ── Invalidar caché de instancia ──────────────────────────────────────────
     def invalidate_instance(self, profile_id: str):
-        """
-        Borra la vista cacheada de una instancia para que se reconstruya
-        la próxima vez que se abra.
-        """
         key = f"instance_{profile_id}"
         self._views.pop(key, None)
         self._sidebar_left.refresh_instances()
 
     # ── API pública para las vistas ───────────────────────────────────────────
     def refresh_account_panel(self):
-        """Pide al sidebar derecho que actualice el panel de cuenta."""
         self._sidebar_right.refresh_account()
 
     def snack(self, msg: str, error: bool = False):
-        """Muestra un mensaje de notificación en la parte inferior de la pantalla."""
         bar = ft.SnackBar(
             content=ft.Text(msg, color=TEXT_PRI),
             bgcolor="#2d1515" if error else CARD2_BG,
@@ -376,11 +359,9 @@ class App:
 
     # ── Actualizaciones ───────────────────────────────────────────────────────
     def _check_updates(self):
-        """Lanza la comprobación de actualizaciones en segundo plano."""
         run_update_check_async(lambda info: self.page.run_thread(self._show_update_dialog, info))
 
     def _show_update_dialog(self, info: dict):
-        """Muestra el diálogo de actualización disponible."""
         new_version = info.get("version", "?")
         url         = info.get("url", "")
 
@@ -401,8 +382,8 @@ class App:
                         status.value   = f"Descargando… {pct:.0f}%"
                         dlg.update()
 
-                    new_exe       = download_update(url, _on_progress)
-                    status.value  = "Instalando y reiniciando…"
+                    new_exe      = download_update(url, _on_progress)
+                    status.value = "Instalando y reiniciando…"
                     dlg.update()
                     apply_update(new_exe)
                 except Exception as ex:
