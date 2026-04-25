@@ -385,6 +385,25 @@ class HomeView:
         self._mods_status  = ft.Text("Cargando…", color=TEXT_DIM, size=12, italic=True)
         self._packs_status = ft.Text("Cargando…", color=TEXT_DIM, size=12, italic=True)
 
+        # Botón Explorar — Container clickeable, compatible con todas las versiones de Flet
+        self._explore_btn = ft.Container(
+            content=ft.Row(
+                [
+                    ft.Icon(ft.icons.EXPLORE_OUTLINED, size=16, color=BG),
+                    ft.Text("Explorar mods", size=13,
+                            weight=ft.FontWeight.W_600, color=BG),
+                ],
+                spacing=6,
+                tight=True,
+            ),
+            bgcolor=GREEN,
+            border_radius=8,
+            padding=ft.padding.symmetric(horizontal=18, vertical=12),
+            on_click=self._go_to_discover,
+            on_hover=self._on_explore_hover,
+            ink=True,
+        )
+
         self.root = ft.Container(
             expand=True,
             bgcolor=BG,
@@ -431,27 +450,7 @@ class HomeView:
                         spacing=4,
                         expand=True,
                     ),
-                    ft.ElevatedButton(
-                        content=ft.Row(
-                            [
-                                ft.Icon(ft.icons.EXPLORE_OUTLINED, size=16, color=BG),
-                                ft.Text("Explorar mods", size=13,
-                                        weight=ft.FontWeight.W_600, color=BG),
-                            ],
-                            spacing=6,
-                        ),
-                        on_click=self._go_to_discover,
-                        style=ft.ButtonStyle(
-                            bgcolor={
-                                ft.MaterialState.DEFAULT: GREEN,
-                                ft.MaterialState.HOVERED: "#22c55e",
-                            },
-                            shape=ft.RoundedRectangleBorder(radius=8),
-                            padding=ft.padding.symmetric(horizontal=18, vertical=12),
-                            elevation=0,
-                            overlay_color=ft.colors.with_opacity(0.12, ft.colors.WHITE),
-                        ),
-                    ),
+                    self._explore_btn,
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -485,6 +484,10 @@ class HomeView:
                 return
             except Exception:
                 continue
+
+    def _on_explore_hover(self, e: ft.HoverEvent):
+        self._explore_btn.bgcolor = "#22c55e" if e.data == "true" else GREEN
+        self._explore_btn.update()
 
     # ── Carga de datos ────────────────────────────────────────────────────────
 
