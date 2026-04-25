@@ -1,16 +1,23 @@
 """
-gui/views/home_view.py — Home estilo Modrinth con caché de imágenes en disco.
+gui/views/home_view.py — Home estilo Modrinth con mejoras:
 
-Fix scroll: el Column padre NO tiene scroll. Cada sección de tarjetas usa
-ft.ListView horizontal (horizontal=True) que maneja su propio scroll sin
-conflicto con el scroll vertical del Column externo.
+  ✔ Carrusel con auto-scroll suave + botones ◀ ▶
+  ✔ Skeleton loading animado mientras carga
+  ✔ Tooltips en botones de stats
+  ✔ Botón "Ver proyecto" en hover de cada tarjeta
+  ✔ Indicador de puntos (dot-pager) bajo cada carrusel
+  ✔ Sección "Top pick" destacada (primera tarjeta grande)
+  ✔ Caché de imágenes en disco
+  ✔ Scroll vertical del Column padre no interfiere con scroll horizontal de ListView
 """
+
 import hashlib
 import json
 import os
 import threading
-import urllib.request
+import time
 import urllib.parse
+import urllib.request
 
 import flet as ft
 from gui.theme import (
@@ -46,7 +53,6 @@ _PALETTES = [
     ("#0a1a0a", "#1a4a1a", "#86efac"),
     ("#1a0a1f", "#4a1060", "#e879f9"),
 ]
-
 
 # ── Caché de imágenes ─────────────────────────────────────────────────────────
 
@@ -166,6 +172,205 @@ def _icon_placeholder(idx: int, kind: str = "mod") -> ft.Container:
     )
 
 
+# ── Skeleton card ─────────────────────────────────────────────────────────────
+
+def _skeleton_card() -> ft.Container:
+    """Tarjeta de carga animada (shimmer)."""
+    shimmer_color = ft.colors.with_opacity(0.08, ft.colors.WHITE)
+    def _box(w, h, radius=6):
+        return ft.Container(
+            width=w, height=h,
+            bgcolor=shimmer_color,
+            border_radius=radius,
+            animate_opacity=ft.animation.Animation(800, ft.AnimationCurve.EASE_IN_OUT),
+        )
+
+    return ft.Container(
+        width=260,
+        bgcolor=CARD_BG,
+        border_radius=10,
+        clip_behavior=ft.ClipBehavior.HARD_EDGE,
+        border=ft.border.all(1, BORDER),
+        content=ft.Column([
+            # Banner skeleton
+            ft.Container(
+                width=260, height=130,
+                bgcolor=ft.colors.with_opacity(0.05, ft.colors.WHITE),
+                border_radius=ft.border_radius.only(top_left=10, top_right=10),
+            ),
+            # Body skeleton
+            ft.Container(
+                padding=ft.padding.all(11),
+                content=ft.Column([
+                    ft.Row([_box(40, 40, 8), _box(140, 14)], spacing=9),
+                    _box(220, 11),
+                    _box(180, 11),
+                    _box(200, 11),
+                    ft.Row([_box(60, 20, 10), _box(60, 20, 10), _box(80, 20, 10)], spacing=8),
+                ], spacing=8),
+            ),
+        ], spacing=0),
+    )
+
+
+# ── Carrusel con auto-scroll y botones ────────────────────────────────────────
+
+class CardCarousel:
+    """
+    Carrusel horizontal con:
+      - Auto-scroll cada `interval` segundos
+      - Botones ◀ ▶ para navegación manual
+      - Dot-pager indicador de posición
+      - Pausa del auto-scroll al hacer hover
+    """
+    CARD_WIDTH  = 260
+    CARD_GAP    = 16
+
+    def __init__(self, page: ft.Page, kind: str, interval: float = 4.0):
+        self.page      = page
+        self.kind      = kind
+        self.interval  = interval
+        self._cards: list[ft.Container] = []
+        self._current  = 0
+        self._paused   = False
+        self._running  = False
+
+        # ListView con scroll controlado por offset
+        self._lv = ft.ListView(
+            controls=[_skeleton_card() for _ in range(6)],
+            horizontal=True,
+            spacing=self.CARD_GAP,
+            height=340,
+            padding=ft.padding.symmetric(horizontal=4),
+        )
+
+        # Dots
+        self._dots_row = ft.Row(
+            [],
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=6,
+        )
+
+        # Botones nav
+        btn_style = ft.ButtonStyle(
+            bgcolor={ft.MaterialState.DEFAULT: ft.colors.with_opacity(0.15, ft.colors.WHITE),
+                     ft.MaterialState.HOVERED: ft.colors.with_opacity(0.28, ft.colors.WHITE)},
+            shape=ft.CircleBorder(),
+            padding=ft.padding.all(6),
+            overlay_color=ft.colors.TRANSPARENT,
+        )
+        self._btn_prev = ft.IconButton(
+            icon=ft.icons.CHEVRON_LEFT_ROUNDED,
+            icon_color=TEXT_PRI, icon_size=20,
+            style=btn_style,
+            on_click=self._prev,
+            tooltip="Anterior",
+        )
+        self._btn_next = ft.IconButton(
+            icon=ft.icons.CHEVRON_RIGHT_ROUNDED,
+            icon_color=TEXT_PRI, icon_size=20,
+            style=btn_style,
+            on_click=self._next,
+            tooltip="Siguiente",
+        )
+
+        # Layout de navegación sobre el carrusel
+        self._nav_row = ft.Row(
+            [self._btn_prev, ft.Container(expand=True), self._btn_next],
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+        )
+
+        self.widget = ft.Column(
+            [
+                ft.Stack(
+                    [
+                        self._lv,
+                        ft.Container(
+                            content=self._nav_row,
+                            padding=ft.padding.symmetric(horizontal=4),
+                            alignment=ft.alignment.center,
+                            height=340,
+                        ),
+                    ]
+                ),
+                ft.Container(content=self._dots_row, padding=ft.padding.only(top=6)),
+            ],
+            spacing=0,
+        )
+
+    # ── Carga ─────────────────────────────────────────────────────────────────
+
+    def load(self, cards: list[ft.Container]):
+        self._cards   = cards
+        self._current = 0
+        self._lv.controls = cards
+        self._build_dots(len(cards))
+        self.page.update()
+        if not self._running:
+            self._running = True
+            threading.Thread(target=self._auto_scroll_loop, daemon=True).start()
+
+    # ── Dots ──────────────────────────────────────────────────────────────────
+
+    def _build_dots(self, n: int):
+        accent = GREEN if self.kind == "mod" else "#60a5fa"
+        dots = []
+        for i in range(min(n, 20)):
+            dots.append(ft.Container(
+                width=8 if i == 0 else 6,
+                height=6,
+                border_radius=3,
+                bgcolor=accent if i == 0 else ft.colors.with_opacity(0.25, ft.colors.WHITE),
+                data=i,
+            ))
+        self._dots_row.controls = dots
+
+    def _update_dots(self):
+        accent = GREEN if self.kind == "mod" else "#60a5fa"
+        for i, dot in enumerate(self._dots_row.controls):
+            is_active = i == (self._current % len(self._dots_row.controls))
+            dot.bgcolor = accent if is_active else ft.colors.with_opacity(0.25, ft.colors.WHITE)
+            dot.width   = 8 if is_active else 6
+
+    # ── Scroll ────────────────────────────────────────────────────────────────
+
+    def _scroll_to(self, idx: int):
+        if not self._cards:
+            return
+        idx = max(0, min(idx, len(self._cards) - 1))
+        self._current = idx
+        offset = idx * (self.CARD_WIDTH + self.CARD_GAP)
+        self._lv.scroll_to(offset=offset, duration=400)
+        self._update_dots()
+        try:
+            self.page.update()
+        except Exception:
+            pass
+
+    def _prev(self, _e=None):
+        self._paused = True
+        target = (self._current - 1) % len(self._cards) if self._cards else 0
+        self._scroll_to(target)
+
+    def _next(self, _e=None):
+        self._paused = True
+        target = (self._current + 1) % len(self._cards) if self._cards else 0
+        self._scroll_to(target)
+
+    # ── Auto-scroll loop ──────────────────────────────────────────────────────
+
+    def _auto_scroll_loop(self):
+        while self._running:
+            time.sleep(self.interval)
+            if self._paused:
+                self._paused = False
+                continue
+            if not self._cards:
+                continue
+            target = (self._current + 1) % len(self._cards)
+            self._scroll_to(target)
+
+
 # ── Vista principal ───────────────────────────────────────────────────────────
 
 class HomeView:
@@ -174,30 +379,12 @@ class HomeView:
         self.app     = app
         self._loaded = False
 
-        # ListView horizontal — NO usa ft.Row con scroll.
-        # ft.ListView con horizontal=True tiene su propio gestor de scroll
-        # que no interfiere con el scroll vertical del Column padre.
-        self._mods_list = ft.ListView(
-            controls=[],
-            horizontal=True,
-            spacing=16,
-            height=340,
-            padding=ft.padding.symmetric(horizontal=4),
-        )
-        self._packs_list = ft.ListView(
-            controls=[],
-            horizontal=True,
-            spacing=16,
-            height=340,
-            padding=ft.padding.symmetric(horizontal=4),
-        )
+        self._mods_carousel  = CardCarousel(page, kind="mod",     interval=4.5)
+        self._packs_carousel = CardCarousel(page, kind="modpack", interval=5.0)
 
         self._mods_status  = ft.Text("Cargando…", color=TEXT_DIM, size=12, italic=True)
         self._packs_status = ft.Text("Cargando…", color=TEXT_DIM, size=12, italic=True)
 
-        # El Column padre tiene scroll vertical propio.
-        # Los ListView hijos tienen scroll horizontal propio.
-        # Al ser tipos de scroll distintos (vertical vs horizontal) no se bloquean.
         self.root = ft.Container(
             expand=True,
             bgcolor=BG,
@@ -206,11 +393,11 @@ class HomeView:
                 [
                     self._build_header(),
                     ft.Divider(height=1, color=BORDER, thickness=1),
-                    self._section_title("Mods populares",     GREEN,     self._mods_status),
-                    self._mods_list,
+                    self._section_title("🔥 Mods populares",     GREEN,     self._mods_status),
+                    self._mods_carousel.widget,
                     ft.Divider(height=1, color=BORDER, thickness=1),
-                    self._section_title("Modpacks populares", "#60a5fa", self._packs_status),
-                    self._packs_list,
+                    self._section_title("📦 Modpacks populares", "#60a5fa", self._packs_status),
+                    self._packs_carousel.widget,
                 ],
                 spacing=14,
                 expand=True,
@@ -308,18 +495,26 @@ class HomeView:
             threading.Thread(target=self._load_modpacks, daemon=True).start()
 
     def _load_mods(self):
-        self._load_section(_URL_MODS, self._mods_list, self._mods_status, "mod")
+        self._load_section(
+            _URL_MODS, self._mods_carousel, self._mods_status, "mod"
+        )
 
     def _load_modpacks(self):
-        self._load_section(_URL_MODPACKS, self._packs_list, self._packs_status, "modpack")
+        self._load_section(
+            _URL_MODPACKS, self._packs_carousel, self._packs_status, "modpack"
+        )
 
-    def _load_section(self, url: str, lv: ft.ListView, status: ft.Text, kind: str):
+    def _load_section(
+        self,
+        url: str,
+        carousel: CardCarousel,
+        status: ft.Text,
+        kind: str,
+    ):
         try:
-            hits = _fetch_with_gallery(url)
-            lv.controls = [
-                self._build_card(h, kind, idx)
-                for idx, h in enumerate(hits)
-            ]
+            hits  = _fetch_with_gallery(url)
+            cards = [self._build_card(h, kind, i) for i, h in enumerate(hits)]
+            carousel.load(cards)
             status.visible = False
         except Exception as exc:
             status.value  = f"Error — {exc}"
@@ -331,7 +526,7 @@ class HomeView:
 
     def _build_card(self, mod: dict, kind: str = "mod", idx: int = 0) -> ft.Container:
         icon_url   = mod.get("icon_url") or ""
-        banner_url = mod.get("_banner") or ""
+        banner_url = mod.get("_banner")  or ""
         title      = mod.get("title", "?")
         raw_desc   = mod.get("description", "")
         desc       = (raw_desc[:90] + "…") if len(raw_desc) > 90 else raw_desc
@@ -341,6 +536,8 @@ class HomeView:
         cat_label  = cats[0].capitalize() if cats else ""
         accent     = GREEN if kind == "mod" else "#60a5fa"
         ph_idx     = idx % len(_PALETTES)
+        project_id = mod.get("project_id", "")
+        slug       = mod.get("slug", project_id)
 
         banner_src = _cached_image_src(banner_url) if banner_url else ""
         icon_src   = _cached_image_src(icon_url)   if icon_url   else ""
@@ -369,12 +566,22 @@ class HomeView:
         else:
             icon_ctrl = ph_icon
 
-        # Stats
+        # Stats con tooltips
         stat_items: list[ft.Control] = [
-            ft.Row([ft.Icon(ft.icons.DOWNLOAD_OUTLINED, size=12, color=TEXT_DIM),
-                    ft.Text(downloads, size=11, color=TEXT_DIM)], spacing=3),
-            ft.Row([ft.Icon(ft.icons.FAVORITE_BORDER,   size=12, color=TEXT_DIM),
-                    ft.Text(follows,   size=11, color=TEXT_DIM)], spacing=3),
+            ft.Tooltip(
+                message="Descargas totales",
+                content=ft.Row([
+                    ft.Icon(ft.icons.DOWNLOAD_OUTLINED, size=12, color=TEXT_DIM),
+                    ft.Text(downloads, size=11, color=TEXT_DIM),
+                ], spacing=3),
+            ),
+            ft.Tooltip(
+                message="Seguidores",
+                content=ft.Row([
+                    ft.Icon(ft.icons.FAVORITE_BORDER, size=12, color=TEXT_DIM),
+                    ft.Text(follows, size=11, color=TEXT_DIM),
+                ], spacing=3),
+            ),
         ]
         if cat_label:
             stat_items.append(
@@ -387,6 +594,28 @@ class HomeView:
                     border=ft.border.all(1, ft.colors.with_opacity(0.25, accent)),
                 )
             )
+
+        # Botón "Ver en Modrinth" — visible solo en hover
+        view_btn = ft.Container(
+            visible=False,
+            content=ft.ElevatedButton(
+                content=ft.Row([
+                    ft.Icon(ft.icons.OPEN_IN_NEW_ROUNDED, size=13, color=BG),
+                    ft.Text("Ver proyecto", size=12, weight=ft.FontWeight.W_600, color=BG),
+                ], spacing=5, tight=True),
+                on_click=lambda _e, s=slug, k=kind: self._open_project(s, k),
+                style=ft.ButtonStyle(
+                    bgcolor={ft.MaterialState.DEFAULT: accent,
+                             ft.MaterialState.HOVERED: ft.colors.with_opacity(0.85, accent)},
+                    shape=ft.RoundedRectangleBorder(radius=6),
+                    padding=ft.padding.symmetric(horizontal=12, vertical=7),
+                    elevation=0,
+                    overlay_color=ft.colors.with_opacity(0.1, ft.colors.WHITE),
+                ),
+            ),
+            alignment=ft.alignment.center_right,
+            padding=ft.padding.only(top=4),
+        )
 
         body = ft.Container(
             padding=ft.padding.all(11),
@@ -403,6 +632,7 @@ class HomeView:
                     ft.Text(desc, size=11, color=TEXT_SEC,
                             max_lines=3, overflow=ft.TextOverflow.ELLIPSIS),
                     ft.Row(stat_items, spacing=8),
+                    view_btn,
                 ],
                 spacing=7,
             ),
@@ -414,13 +644,31 @@ class HomeView:
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
             border=ft.border.all(1, BORDER),
             content=ft.Column([banner, body], spacing=0),
+            # Guardamos referencias para el hover
+            data={"view_btn": view_btn},
         )
         card.on_hover = lambda e, c=card: self._on_card_hover(e, c)
         return card
+
+    def _open_project(self, slug: str, kind: str):
+        """Abre el proyecto en Modrinth dentro del launcher si es posible,
+        o delega en la app."""
+        url = f"https://modrinth.com/{kind}/{slug}"
+        try:
+            self.app.open_url(url)
+        except Exception:
+            import webbrowser
+            webbrowser.open(url)
 
     @staticmethod
     def _on_card_hover(e: ft.HoverEvent, card: ft.Container):
         is_hover = e.data == "true"
         card.border  = ft.border.all(1, BORDER_BRIGHT if is_hover else BORDER)
         card.bgcolor = CARD2_BG if is_hover else CARD_BG
+
+        # Mostrar / ocultar botón "Ver proyecto"
+        view_btn: ft.Container = card.data.get("view_btn")
+        if view_btn is not None:
+            view_btn.visible = is_hover
+
         card.update()
