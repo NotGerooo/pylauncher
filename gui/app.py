@@ -93,6 +93,8 @@ class App:
         p.padding                         = 0
         p.spacing                         = 0
         p.scroll_animation_duration       = 300
+        # Evita que Windows reserve espacio para la titlebar nativa
+        p.window.frameless                = True
 
     # ── Inicialización de servicios ───────────────────────────────────────────
     def _init_services(self):
@@ -145,67 +147,126 @@ class App:
 
     # ── Titlebar personalizada ────────────────────────────────────────────────
     def _build_titlebar(self) -> ft.Control:
-        """Barra de título draggable con botones de ventana."""
+        """
+        Barra de título completamente custom.
+        
+        Por qué funciona así:
+        - WindowDragArea envuelve TODO el contenedor, no solo el espacio del medio.
+          Pero los botones de ventana necesitan interceptar el click ANTES que el drag,
+          por eso se sacan fuera del WindowDragArea usando un Stack.
+        - Los botones usan ft.GestureDetector en vez de on_hover para respuesta
+          inmediata sin lag (on_hover en Container tiene un pequeño delay en Flet).
+        """
 
-        def _win_btn(symbol: str, cmd, is_close: bool = False) -> ft.Container:
+        # ── Botón de ventana individual ──────────────────────────────────────
+        def _win_btn(symbol: str, cmd, is_close: bool = False) -> ft.Stack:
             """
-            Crea un botón de la barra de título (minimizar / maximizar / cerrar).
-            - is_close=True → fondo rojo al pasar el cursor
+            Stack con fondo animado + texto. Usamos Stack para que el área
+            clicable sea exacta sin depender del padding del Container.
             """
-            label = ft.Text(symbol, size=13, color=TEXT_DIM, text_align=ft.TextAlign.CENTER)
-            btn   = ft.Container(
-                width=46, height=42,
+            BG_HOVER       = "#c0392b"     if is_close else "#3a3d42"
+            COLOR_HOVER    = "#ffffff"
+            COLOR_DEFAULT  = "#6b7280"
+
+            bg_layer  = ft.Container(
+                width=46, height=38,
+                bgcolor=ft.colors.TRANSPARENT,
+                border_radius=0,
+                animate=ft.animation.Animation(80, ft.AnimationCurve.LINEAR),
+            )
+            txt = ft.Text(
+                symbol,
+                size=12,
+                color=COLOR_DEFAULT,
+                text_align=ft.TextAlign.CENTER,
+                # Monospace para que −, □, × queden centrados igual
+                font_family="Consolas",
+            )
+            label_box = ft.Container(
+                width=46, height=38,
                 alignment=ft.alignment.center,
-                content=label,
-                on_click=lambda _: cmd(),
+                content=txt,
+                animate=ft.animation.Animation(80, ft.AnimationCurve.LINEAR),
             )
 
-            def _hover(e):
-                hovered = e.data == "true"
-                if is_close and hovered:
-                    btn.bgcolor = "#c0392b"
-                    label.color = "#ffffff"
-                elif hovered:
-                    btn.bgcolor = ft.colors.with_opacity(0.07, "#ffffff")
-                    label.color = "#ffffff"
-                else:
-                    btn.bgcolor = ft.colors.TRANSPARENT
-                    label.color = TEXT_DIM
-                btn.update()
+            def _enter(e):
+                bg_layer.bgcolor = BG_HOVER
+                txt.color        = COLOR_HOVER
+                try:
+                    bg_layer.update()
+                    txt.update()
+                except Exception: pass
 
-            btn.on_hover = _hover
-            return btn
+            def _leave(e):
+                bg_layer.bgcolor = ft.colors.TRANSPARENT
+                txt.color        = COLOR_DEFAULT
+                try:
+                    bg_layer.update()
+                    txt.update()
+                except Exception: pass
+
+            detector = ft.GestureDetector(
+                width=46, height=38,
+                on_tap=lambda _: cmd(),
+                on_enter=_enter,
+                on_exit=_leave,
+                mouse_cursor=ft.MouseCursor.BASIC,
+            )
+
+            return ft.Stack(
+                width=46, height=38,
+                controls=[bg_layer, label_box, detector],
+            )
+
+        # Usando caracteres Unicode específicos para los 3 botones:
+        # −  U+2212  MINUS SIGN         (más delgado que el guión normal)
+        # ▢  U+25A2  WHITE SQUARE WITH ROUNDED CORNERS  (maximizar, limpio)
+        # ×  U+00D7  MULTIPLICATION SIGN (cerrar, más fino que ✕)
+        btn_min = _win_btn("\u2212", self._minimize)
+        btn_max = _win_btn("\u25a2", self._toggle_maximize)
+        btn_cls = _win_btn("\u00d7", self.page.window.destroy, is_close=True)
 
         version_badge = ft.Container(
             bgcolor=ft.colors.with_opacity(0.12, GREEN),
             border=ft.border.all(1, ft.colors.with_opacity(0.25, GREEN)),
-            border_radius=3,
+            border_radius=4,
             padding=ft.padding.symmetric(horizontal=6, vertical=2),
-            margin=ft.margin.only(left=6),
+            margin=ft.margin.only(left=8),
             content=ft.Text(f"v{self.version}", color=GREEN, size=9, weight=ft.FontWeight.W_600),
         )
 
-        return ft.WindowDragArea(
+        # El área de drag ocupa todo el ancho MENOS los botones de la derecha.
+        # Usamos un Row donde el drag toma expand=True y los botones están fuera.
+        drag_area = ft.WindowDragArea(
             ft.Container(
-                bgcolor=SIDEBAR_BG,
-                height=42,
-                padding=ft.padding.only(left=16),
+                expand=True, height=38,
                 content=ft.Row(
                     spacing=0,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
-                        ft.Text("⛏", color=GREEN, size=14),
+                        ft.Container(width=14),
+                        ft.Text("⛏", color=GREEN, size=13),
                         ft.Container(width=8),
-                        ft.Text("Gero's Launcher", color=TEXT_PRI, size=12, weight=ft.FontWeight.W_600),
+                        ft.Text(
+                            "Gero's Launcher",
+                            color=TEXT_PRI, size=12,
+                            weight=ft.FontWeight.W_600,
+                        ),
                         version_badge,
-                        ft.Container(expand=True),   # área de drag
-                        _win_btn("−", self._minimize),
-                        _win_btn("⬜", self._toggle_maximize),
-                        _win_btn("✕", self.page.window.destroy, is_close=True),
                     ],
                 ),
             ),
             expand=True,
+        )
+
+        return ft.Container(
+            bgcolor=SIDEBAR_BG,
+            height=38,
+            content=ft.Row(
+                spacing=0,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                controls=[drag_area, btn_min, btn_max, btn_cls],
+            ),
         )
 
     def _minimize(self):
