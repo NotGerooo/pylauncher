@@ -566,21 +566,21 @@ class HomeView:
         else:
             icon_ctrl = ph_icon
 
-        # Stats con tooltips
+        # Stats — ft.Tooltip recibe el control hijo como primer arg posicional
         stat_items: list[ft.Control] = [
             ft.Tooltip(
-                message="Descargas totales",
-                content=ft.Row([
+                ft.Row([
                     ft.Icon(ft.icons.DOWNLOAD_OUTLINED, size=12, color=TEXT_DIM),
                     ft.Text(downloads, size=11, color=TEXT_DIM),
                 ], spacing=3),
+                message="Descargas totales",
             ),
             ft.Tooltip(
-                message="Seguidores",
-                content=ft.Row([
+                ft.Row([
                     ft.Icon(ft.icons.FAVORITE_BORDER, size=12, color=TEXT_DIM),
                     ft.Text(follows, size=11, color=TEXT_DIM),
                 ], spacing=3),
+                message="Seguidores",
             ),
         ]
         if cat_label:
