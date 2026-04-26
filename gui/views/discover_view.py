@@ -485,7 +485,31 @@ class DiscoverView:
         self.on_hide()
         self.app._show_view("instance")
 
-    # ── Tabs ───────────────────────────────────────────────────────────────────
+    # ── Account selector ─────────────────────────────────────────────────────
+        self._account_dd = ft.Dropdown(
+            prefix_icon=ft.icons.PERSON_ROUNDED,
+            hint_text="Select account...",
+            hint_style=ft.TextStyle(color=TEXT_DIM, size=12),
+            width=220, height=44, color=TEXT_PRI, bgcolor=INPUT_BG,
+            border_color=BORDER, focused_border_color=GREEN,
+            border_radius=8,
+            content_padding=ft.padding.symmetric(horizontal=14, vertical=10),
+            text_style=ft.TextStyle(size=12),
+            on_change=self._on_account_change,
+        )
+        self._account_selector_row = ft.Container(
+            visible=False,
+            padding=ft.padding.only(bottom=12),
+            content=ft.Row([
+                ft.Icon(ft.icons.MANAGE_ACCOUNTS_ROUNDED, size=16, color=TEXT_SEC),
+                ft.Container(width=10),
+                ft.Text("Install as:", color=TEXT_SEC, size=12),
+                ft.Container(width=10),
+                self._account_dd,
+            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+        )
+
+        # ── Tabs ──────────────────────────────────────────────────────────────────
     def _switch_tab(self, idx: int):
         if self._loading:
             return
