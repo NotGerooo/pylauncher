@@ -185,6 +185,7 @@ class DiscoverView:
         self._debounce_timer     = None
         self._installed_set: set = set()
         self._source_profile     = None   # set by instance_view before on_show
+        self._selected_account   = None   # cuenta elegida en el dropdown
 
         self._build()
 
