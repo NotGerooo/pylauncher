@@ -548,6 +548,40 @@ class DiscoverView:
         except Exception: pass
 
     # ── Events ─────────────────────────────────────────────────────────────────
+    def _on_account_change(self, e):
+        account_id = self._account_dd.value
+        if account_id and hasattr(self.app, "account_manager"):
+            self._selected_account = self.app.account_manager.get_account(account_id)
+
+    def _load_account_dropdown(self):
+        try:
+            if not hasattr(self.app, "account_manager"):
+                return
+            accounts = self.app.account_manager.get_all_accounts()
+            if not accounts:
+                self._account_selector_row.visible = False
+                try: self._account_selector_row.update()
+                except Exception: pass
+                return
+            self._account_dd.options = [
+                ft.dropdown.Option(key=a.id, text=a.username)
+                for a in accounts
+            ]
+            active = self.app.account_manager.get_active_account()
+            if active:
+                self._account_dd.value = active.id
+                self._selected_account = active
+            elif accounts:
+                self._account_dd.value = accounts[0].id
+                self._selected_account = accounts[0]
+            self._account_selector_row.visible = True
+            try:
+                self._account_dd.update()
+                self._account_selector_row.update()
+            except Exception: pass
+        except Exception as e:
+            log.warning(f"Error loading accounts into dropdown: {e}")
+
     def _on_search_change(self, e):
         if self._debounce_timer:
             self._debounce_timer.cancel()
