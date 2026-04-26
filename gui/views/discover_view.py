@@ -336,7 +336,9 @@ class DiscoverView:
                                     ft.Text("Install content to instance",
                                             color=TEXT_PRI, size=22,
                                             weight=ft.FontWeight.BOLD),
-                                    ft.Container(height=18),
+                                    ft.Container(height=12),
+                                    self._account_selector_row,
+                                    ft.Container(height=6),
                                     ft.Row(tab_controls, spacing=4),
                                     ft.Container(height=16),
                                     ft.Row([self._search_field]),
@@ -406,6 +408,7 @@ class DiscoverView:
                 pass
         self._loading = False
         self._update_instance_header()
+        self._load_account_dropdown()
         self._refresh_chips()
         if hasattr(self.app, "sidebar_right"):
             self.app.sidebar_right.set_discover_mode(
