@@ -8,8 +8,8 @@ from pathlib import Path
 
 import flet as ft
 
-from config.settings      import Settings
-from core.launcher        import LauncherEngine
+from config.settings          import Settings
+from core.launcher            import LauncherEngine
 from managers.java_manager    import JavaManager
 from managers.profile_manager import ProfileManager
 from managers.version_manager import VersionManager
@@ -37,13 +37,12 @@ _VIEW_MAP: dict[str, str] = {
     "home":     "gui.views.home_view:HomeView",
     "discover": "gui.views.discover_view:DiscoverView",
     "library":  "gui.views.library_view:LibraryView",
-    "settings": "gui.views.settings_view:SettingsView",
     "accounts": "gui.views.accounts_view:AccountsView",
+    # "settings" se maneja como overlay, NO como vista normal
 }
 
 
 def _load_version() -> str:
-    """Lee la versión desde version.json. Devuelve '?' si falla."""
     try:
         return json.loads(_VERSION_FILE.read_text(encoding="utf-8")).get("version", "?")
     except Exception:
@@ -51,7 +50,6 @@ def _load_version() -> str:
 
 
 def _import_view(module_path: str):
-    """Importa una clase de vista en tiempo de ejecución."""
     module, cls_name = module_path.split(":")
     import importlib
     return getattr(importlib.import_module(module), cls_name)
@@ -62,23 +60,23 @@ class App:
     """Clase principal. Orquesta layout, navegación y servicios."""
 
     def __init__(self, page: ft.Page):
-        self.page     = page
-        self.version  = _load_version()
+        self.page    = page
+        self.version = _load_version()
 
         # Estado interno
-        self._views:            dict[str, object] = {}
-        self._current_vid:      str | None = None
-        self._active_instance:  object | None = None
+        self._views:           dict[str, object] = {}
+        self._current_vid:     str | None = None
+        self._active_instance: object | None = None
 
         self._setup_page()
         self._init_services()
         self._build_layout()
-        self._show_view("home")   # ← abre Home al iniciar
+        self._show_view("home")
         self._check_updates()
 
         log.info("Interfaz iniciada — v%s", self.version)
 
-    # ── Configuración de la ventana ───────────────────────────────────────────
+    # ── Configuración de la ventana ───────────────────────────────────────
     def _setup_page(self):
         p = self.page
         p.title                           = "Gero's Launcher"
@@ -93,12 +91,10 @@ class App:
         p.padding                         = 0
         p.spacing                         = 0
         p.scroll_animation_duration       = 300
-        # Evita que Windows reserve espacio para la titlebar nativa
         p.window.frameless                = True
 
-    # ── Inicialización de servicios ───────────────────────────────────────────
+    # ── Inicialización de servicios ───────────────────────────────────────
     def _init_services(self):
-        # Importaciones locales para acelerar el arranque
         from services.account_manager import AccountManager
         from services.microsoft_auth  import MicrosoftAuth
 
@@ -112,16 +108,28 @@ class App:
         self.account_manager  = AccountManager(data_dir="data")
         self.microsoft_auth   = MicrosoftAuth()
 
-    # ── Propiedad de compatibilidad ───────────────────────────────────────────
+    # ── Propiedad de compatibilidad ───────────────────────────────────────
     @property
     def sidebar_right(self) -> "SidebarRight":
         return self._sidebar_right
 
-    # ── Construcción del layout ───────────────────────────────────────────────
+    # ── Construcción del layout ───────────────────────────────────────────
     def _build_layout(self):
         self._sidebar_left  = SidebarLeft(self)
         self._sidebar_right = SidebarRight(self)
         self._content_area  = ft.Container(expand=True, bgcolor=BG)
+
+        # overlay_area: capa flotante para Settings (invisible por defecto)
+        self.overlay_area = ft.Container(
+            expand=True,
+            visible=False,
+        )
+
+        # Stack: apila el contenido normal debajo y el overlay encima
+        self._main_stack = ft.Stack(
+            expand=True,
+            controls=[self._content_area, self.overlay_area],
+        )
 
         self.page.add(
             ft.Column(
@@ -136,7 +144,7 @@ class App:
                         controls=[
                             self._sidebar_left.root,
                             ft.VerticalDivider(width=1, color=BORDER),
-                            self._content_area,
+                            self._main_stack,   # ← Stack con overlay
                             ft.VerticalDivider(width=1, color=BORDER),
                             self._sidebar_right.root,
                         ],
@@ -145,25 +153,9 @@ class App:
             )
         )
 
-    # ── Titlebar personalizada ────────────────────────────────────────────────
+    # ── Titlebar personalizada ────────────────────────────────────────────
     def _build_titlebar(self) -> ft.Control:
-        """
-        Barra de título completamente custom.
-
-        Por qué funciona así:
-        - WindowDragArea envuelve TODO el contenedor, no solo el espacio del medio.
-          Pero los botones de ventana necesitan interceptar el click ANTES que el drag,
-          por eso se sacan fuera del WindowDragArea usando un Stack.
-        - Los botones usan ft.GestureDetector en vez de on_hover para respuesta
-          inmediata sin lag (on_hover en Container tiene un pequeño delay en Flet).
-        """
-
-        # ── Botón de ventana individual ──────────────────────────────────────
         def _win_btn(symbol: str, cmd, is_close: bool = False) -> ft.Stack:
-            """
-            Stack con fondo animado + texto. Usamos Stack para que el área
-            clicable sea exacta sin depender del padding del Container.
-            """
             BG_HOVER      = "#c0392b" if is_close else "#3a3d42"
             COLOR_HOVER   = "#ffffff"
             COLOR_DEFAULT = "#6b7280"
@@ -175,8 +167,7 @@ class App:
                 animate=ft.animation.Animation(80, ft.AnimationCurve.LINEAR),
             )
             txt = ft.Text(
-                symbol,
-                size=12,
+                symbol, size=12,
                 color=COLOR_DEFAULT,
                 text_align=ft.TextAlign.CENTER,
                 font_family="Consolas",
@@ -190,17 +181,13 @@ class App:
             def _enter(e):
                 bg_layer.bgcolor = BG_HOVER
                 txt.color        = COLOR_HOVER
-                try:
-                    bg_layer.update()
-                    txt.update()
+                try: bg_layer.update(); txt.update()
                 except Exception: pass
 
             def _leave(e):
                 bg_layer.bgcolor = ft.colors.TRANSPARENT
                 txt.color        = COLOR_DEFAULT
-                try:
-                    bg_layer.update()
-                    txt.update()
+                try: bg_layer.update(); txt.update()
                 except Exception: pass
 
             detector = ft.GestureDetector(
@@ -210,15 +197,11 @@ class App:
                 on_exit=_leave,
                 mouse_cursor=ft.MouseCursor.BASIC,
             )
+            return ft.Stack(width=46, height=38, controls=[bg_layer, label_box, detector])
 
-            return ft.Stack(
-                width=46, height=38,
-                controls=[bg_layer, label_box, detector],
-            )
-
-        btn_min = _win_btn("\u2212", self._minimize)
-        btn_max = _win_btn("\u25a2", self._toggle_maximize)
-        btn_cls = _win_btn("\u00d7", self.page.window.destroy, is_close=True)
+        btn_min = _win_btn("−", self._minimize)
+        btn_max = _win_btn("▢", self._toggle_maximize)
+        btn_cls = _win_btn("×", self.page.window.destroy, is_close=True)
 
         version_badge = ft.Container(
             bgcolor=ft.colors.with_opacity(0.12, GREEN),
@@ -239,11 +222,7 @@ class App:
                         ft.Container(width=14),
                         ft.Text("⛏", color=GREEN, size=13),
                         ft.Container(width=8),
-                        ft.Text(
-                            "Gero's Launcher",
-                            color=TEXT_PRI, size=12,
-                            weight=ft.FontWeight.W_600,
-                        ),
+                        ft.Text("Gero's Launcher", color=TEXT_PRI, size=12, weight=ft.FontWeight.W_600),
                         version_badge,
                     ],
                 ),
@@ -269,12 +248,20 @@ class App:
         self.page.window.maximized = not self.page.window.maximized
         self.page.update()
 
-    # ── Navegación ────────────────────────────────────────────────────────────
+    # ── Navegación ────────────────────────────────────────────────────────
+    def navigate_to(self, vid: str):
+        """Alias público — lo usa sidebar_left."""
+        if vid == "settings":
+            self._open_settings()
+        else:
+            self._show_view(vid)
+
     def _show_view(self, vid: str):
-        """
-        Muestra una vista por su id.
-        Llama on_hide en la vista anterior y on_show en la nueva.
-        """
+        """Muestra una vista por su id."""
+        # Ocultar settings si estaba abierto
+        if self.overlay_area.visible:
+            self.overlay_area.visible = False
+
         if self._current_vid and self._current_vid in self._views:
             prev = self._views[self._current_vid]
             if hasattr(prev, "on_hide"):
@@ -298,6 +285,15 @@ class App:
 
         threading.Timer(0.15, self._sidebar_right.refresh_account).start()
 
+    def _open_settings(self):
+        """Abre el modal de settings como overlay flotante."""
+        from gui.views.settings_view import SettingsView
+        sv = SettingsView(self.page, self)
+        self.overlay_area.content = sv.root
+        self.overlay_area.visible = True
+        try: self.overlay_area.update()
+        except Exception: pass
+
     def _show_instance(self, profile):
         """Muestra la vista de una instancia específica."""
         from gui.views.instance_view import InstanceView
@@ -318,16 +314,14 @@ class App:
             view.on_show()
 
     def _create_view(self, vid: str):
-        """Instancia la clase de vista correspondiente al id."""
         module_path = _VIEW_MAP.get(vid)
         if module_path:
             cls = _import_view(module_path)
             return cls(self.page, self)
         return _PlaceholderView(vid)
 
-    # ── Acciones del sidebar izquierdo ────────────────────────────────────────
+    # ── Acciones del sidebar izquierdo ────────────────────────────────────
     def _open_create_instance(self):
-        """Navega a la librería y abre el diálogo de crear instancia."""
         self._show_view("library")
 
         def _open():
@@ -337,13 +331,13 @@ class App:
 
         threading.Timer(0.2, _open).start()
 
-    # ── Invalidar caché de instancia ──────────────────────────────────────────
+    # ── Invalidar caché de instancia ──────────────────────────────────────
     def invalidate_instance(self, profile_id: str):
         key = f"instance_{profile_id}"
         self._views.pop(key, None)
         self._sidebar_left.refresh_instances()
 
-    # ── API pública para las vistas ───────────────────────────────────────────
+    # ── API pública para las vistas ───────────────────────────────────────
     def refresh_account_panel(self):
         self._sidebar_right.refresh_account()
 
@@ -357,7 +351,7 @@ class App:
         bar.open = True
         self.page.update()
 
-    # ── Actualizaciones ───────────────────────────────────────────────────────
+    # ── Actualizaciones ───────────────────────────────────────────────────
     def _check_updates(self):
         run_update_check_async(lambda info: self.page.run_thread(self._show_update_dialog, info))
 
@@ -427,8 +421,6 @@ class App:
 
 # ── Vista placeholder ─────────────────────────────────────────────────────────
 class _PlaceholderView:
-    """Vista temporal para secciones aún no implementadas."""
-
     def __init__(self, name: str):
         self.root = ft.Container(
             expand=True,

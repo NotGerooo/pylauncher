@@ -96,7 +96,7 @@ class SidebarLeft:
             alignment=ft.alignment.center,
             tooltip=tooltip,
             content=ft.Icon(icon, size=22, color=TEXT_DIM),
-            on_click=lambda e, v=vid: self.app._show_view(v),
+            on_click=lambda e, v=vid: self.app.navigate_to(v),
             on_hover=lambda e, v=vid: self._on_hover(e, v),
         )
         btn._active = False

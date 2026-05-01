@@ -232,6 +232,30 @@ class DiscoverView:
             ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
         )
 
+        # ── Account selector ──────────────────────────────────────────────────
+        self._account_dd = ft.Dropdown(
+            prefix_icon=ft.icons.PERSON_ROUNDED,
+            hint_text="Select account...",
+            hint_style=ft.TextStyle(color=TEXT_DIM, size=12),
+            width=220, height=44, color=TEXT_PRI, bgcolor=INPUT_BG,
+            border_color=BORDER, focused_border_color=GREEN,
+            border_radius=8,
+            content_padding=ft.padding.symmetric(horizontal=14, vertical=10),
+            text_style=ft.TextStyle(size=12),
+            on_change=self._on_account_change,
+        )
+        self._account_selector_row = ft.Container(
+            visible=False,
+            padding=ft.padding.only(bottom=12),
+            content=ft.Row([
+                ft.Icon(ft.icons.MANAGE_ACCOUNTS_ROUNDED, size=16, color=TEXT_SEC),
+                ft.Container(width=10),
+                ft.Text("Install as:", color=TEXT_SEC, size=12),
+                ft.Container(width=10),
+                self._account_dd,
+            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+        )
+
         # ── Tabs ──────────────────────────────────────────────────────────────
         self._tab_buttons: list[ft.Container] = []
         tab_controls = []
@@ -336,7 +360,9 @@ class DiscoverView:
                                     ft.Text("Install content to instance",
                                             color=TEXT_PRI, size=22,
                                             weight=ft.FontWeight.BOLD),
-                                    ft.Container(height=18),
+                                    ft.Container(height=12),
+                                    self._account_selector_row,
+                                    ft.Container(height=6),
                                     ft.Row(tab_controls, spacing=4),
                                     ft.Container(height=16),
                                     ft.Row([self._search_field]),
@@ -486,31 +512,7 @@ class DiscoverView:
         self.on_hide()
         self.app._show_view("instance")
 
-    # ── Account selector ─────────────────────────────────────────────────────
-        self._account_dd = ft.Dropdown(
-            prefix_icon=ft.icons.PERSON_ROUNDED,
-            hint_text="Select account...",
-            hint_style=ft.TextStyle(color=TEXT_DIM, size=12),
-            width=220, height=44, color=TEXT_PRI, bgcolor=INPUT_BG,
-            border_color=BORDER, focused_border_color=GREEN,
-            border_radius=8,
-            content_padding=ft.padding.symmetric(horizontal=14, vertical=10),
-            text_style=ft.TextStyle(size=12),
-            on_change=self._on_account_change,
-        )
-        self._account_selector_row = ft.Container(
-            visible=False,
-            padding=ft.padding.only(bottom=12),
-            content=ft.Row([
-                ft.Icon(ft.icons.MANAGE_ACCOUNTS_ROUNDED, size=16, color=TEXT_SEC),
-                ft.Container(width=10),
-                ft.Text("Install as:", color=TEXT_SEC, size=12),
-                ft.Container(width=10),
-                self._account_dd,
-            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
-        )
-
-        # ── Tabs ──────────────────────────────────────────────────────────────────
+    # ── Tabs ───────────────────────────────────────────────────────────────────
     def _switch_tab(self, idx: int):
         if self._loading:
             return
@@ -638,7 +640,7 @@ class DiscoverView:
             sidebar_filters = self.app.sidebar_right.get_discover_filters()
 
         categories     = sidebar_filters.get("categories", [])
-        excluded_cats  = sidebar_filters.get("excluded_cats", []) 
+        excluded_cats  = sidebar_filters.get("excluded_cats", [])
         hide_installed = sidebar_filters.get("hide_installed", False)
         loader_override= sidebar_filters.get("loader")  # None = auto
 
@@ -652,7 +654,6 @@ class DiscoverView:
 
         try:
             service = self.app.modrinth_service
-            # Pass categories if the service supports it
             kwargs = dict(
                 query        = query,
                 mc_version   = mc_ver,
@@ -672,7 +673,6 @@ class DiscoverView:
                             for c in (r.categories or []))
                 ]
 
-            # Read total_hits if service exposes it
             total = getattr(service, "_last_total_hits", None)
             if total is None:
                 if len(results) < self._page_size:
@@ -680,7 +680,6 @@ class DiscoverView:
                 else:
                     total = max(self._total_hits, offset + len(results) + 1)
 
-            # Filter installed if requested
             if hide_installed:
                 results = [r for r in results
                            if not is_installed_in(r.slug, r.title,
@@ -934,7 +933,6 @@ class DiscoverView:
             author_txt = ft.Text(author, color=GREEN, size=11,
                                  weight=ft.FontWeight.W_500)
 
-            # GestureDetector — NO tooltip kwarg (not supported in this version)
             author_gd = ft.GestureDetector(
                 mouse_cursor=ft.MouseCursor.CLICK,
                 on_tap=lambda e, u=auth_url: self.page.launch_url(u),
@@ -952,7 +950,6 @@ class DiscoverView:
                 ),
             )
 
-            # External link icon
             ext_icon = ft.GestureDetector(
                 mouse_cursor=ft.MouseCursor.CLICK,
                 on_tap=lambda e, u=slug_url: self.page.launch_url(u),
