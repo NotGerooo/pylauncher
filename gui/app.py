@@ -201,7 +201,7 @@ class App:
 
         btn_min = _win_btn("−", self._minimize)
         btn_max = _win_btn("▢", self._toggle_maximize)
-        btn_cls = _win_btn("×", self.page.window.destroy, is_close=True)
+        btn_cls = _win_btn("×", self.page.window.close, is_close=True)
 
         version_badge = ft.Container(
             bgcolor=ft.colors.with_opacity(0.12, GREEN),
