@@ -22,7 +22,7 @@ from gui.theme import (
     BG, CARD_BG, CARD2_BG, INPUT_BG, BORDER, BORDER_BRIGHT,
     GREEN, GREEN_DIM, TEXT_PRI, TEXT_SEC, TEXT_DIM, TEXT_INV, ACCENT_RED,
 )
-from utils.icon_cache import get_author as cache_get_author
+from utils.icon_cache import _fetch_author_avatar, get_author as cache_get_author
 from utils.install_detector import build_installed_set, is_installed_in
 from utils.logger import get_logger
 
@@ -914,10 +914,64 @@ class DiscoverView:
                 or b.update()
             )
 
-        # ── Author row ────────────────────────────────────────────────────────
-        meta_controls: list = []
-        # DESPUÉS
-        if author:
+        # ── Author row ────────────────────────────────────────────────────────────────
+            meta_controls: list = []
+            if author:
+                cached = cache_get_author(author) or {}
+                av_url = cached.get("avatar_url")
+
+                # Definir author_txt PRIMERO antes de usarlo en los lambdas
+                author_txt = ft.Text(author, color=GREEN, size=11,
+                                    weight=ft.FontWeight.W_500)
+
+                if not av_url:
+                    av_placeholder = ft.Container(
+                        width=15, height=15, border_radius=8,
+                        bgcolor=CARD2_BG, alignment=ft.alignment.center,
+                        content=ft.Text(author[0].upper(), size=7, color=TEXT_DIM),
+                    )
+                    def _load_avatar(a=author, placeholder=av_placeholder):
+                        url = _fetch_author_avatar(a)
+                        if url:
+                            def update():
+                                placeholder.content = ft.Image(
+                                    src=url, width=15, height=15,
+                                    border_radius=8, fit=ft.ImageFit.COVER)
+                                try: placeholder.update()
+                                except Exception: pass
+                            self.page.run_thread(update)
+                    threading.Thread(target=_load_avatar, daemon=True).start()
+                    av = av_placeholder
+                else:
+                    av = ft.Image(src=av_url, width=15, height=15,
+                                border_radius=8, fit=ft.ImageFit.COVER)
+
+                author_gd = ft.GestureDetector(
+                    mouse_cursor=ft.MouseCursor.CLICK,
+                    on_tap=lambda e, u=auth_url: self.page.launch_url(u),
+                    on_enter=lambda e, t=author_txt: (
+                        setattr(t, "decoration", ft.TextDecoration.UNDERLINE) or t.update()
+                    ),
+                    on_exit=lambda e, t=author_txt: (
+                        setattr(t, "decoration", ft.TextDecoration.NONE) or t.update()
+                    ),
+                    content=ft.Row(
+                        [av, ft.Container(width=5), author_txt],
+                        spacing=0, tight=True,
+                    ),
+                )
+
+                ext_icon = ft.GestureDetector(
+                    mouse_cursor=ft.MouseCursor.CLICK,
+                    on_tap=lambda e, u=slug_url: self.page.launch_url(u),
+                    content=ft.Icon(ft.icons.OPEN_IN_NEW_ROUNDED, size=12, color=TEXT_DIM),
+                )
+                meta_controls = [
+                    ft.Text("by ", color=TEXT_DIM, size=11),
+                    author_gd,
+                    ft.Container(width=6),
+                    ext_icon,
+                ]
             cached = cache_get_author(author) or {}
             av_url = cached.get("avatar_url")
 
