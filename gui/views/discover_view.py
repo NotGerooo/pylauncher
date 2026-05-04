@@ -873,14 +873,14 @@ class DiscoverView:
         return getattr(profile, "mods_dir", None)
 
     # ── CARD ───────────────────────────────────────────────────────────────────
+    # ── CARD ───────────────────────────────────────────────────────────────────
     def _make_card(self, proj, is_installed: bool) -> ft.Container:
-        author    = getattr(proj, "author", "")
-        follows   = getattr(proj, "follows", 0)
-        updated   = (getattr(proj, "date_modified", "")
-                     or getattr(proj, "date_updated", ""))
-        date_str  = _rel_date(updated)
-        slug_url  = f"https://modrinth.com/mod/{proj.slug}"
-        auth_url  = f"https://modrinth.com/user/{author}" if author else ""
+        author   = getattr(proj, "author", "")
+        follows  = getattr(proj, "follows", 0)
+        updated  = (getattr(proj, "date_modified", "") or getattr(proj, "date_updated", ""))
+        date_str = _rel_date(updated)
+        slug_url = f"https://modrinth.com/mod/{proj.slug}"
+        auth_url = f"https://modrinth.com/user/{author}" if author else ""
 
         # ── Install button ────────────────────────────────────────────────────
         if is_installed:
@@ -892,8 +892,7 @@ class DiscoverView:
                 content=ft.Row([
                     ft.Icon(ft.icons.CHECK_ROUNDED, size=14, color=GREEN),
                     ft.Container(width=6),
-                    ft.Text("Installed", color=GREEN, size=11,
-                            weight=ft.FontWeight.W_600),
+                    ft.Text("Installed", color=GREEN, size=11, weight=ft.FontWeight.W_600),
                 ], spacing=0, tight=True),
             )
         else:
@@ -905,127 +904,19 @@ class DiscoverView:
                 content=ft.Row([
                     ft.Icon(ft.icons.DOWNLOAD_ROUNDED, size=14, color=TEXT_INV),
                     ft.Container(width=6),
-                    ft.Text("Install", color=TEXT_INV, size=11,
-                            weight=ft.FontWeight.W_600),
+                    ft.Text("Install", color=TEXT_INV, size=11, weight=ft.FontWeight.W_600),
                 ], spacing=0, tight=True),
             )
             install_btn.on_hover = lambda e, b=install_btn: (
-                setattr(b, "bgcolor", GREEN_DIM if e.data == "true" else GREEN)
-                or b.update()
+                setattr(b, "bgcolor", GREEN_DIM if e.data == "true" else GREEN) or b.update()
             )
 
-# ── Author row ────────────────────────────────────────────────────────
-            meta_controls: list = []
-            if author:
-                author_txt = ft.Text(author, color=GREEN, size=11,
-                                    weight=ft.FontWeight.W_500)
-                cached = cache_get_author(author) or {}
-                av_url = cached.get("avatar_url")
-                if not av_url:
-                    av_placeholder = ft.Container(
-                        width=15, height=15, border_radius=8,
-                        bgcolor=CARD2_BG, alignment=ft.alignment.center,
-                        content=ft.Text(author[0].upper(), size=7, color=TEXT_DIM),
-                    )
-                    def _load_avatar(a=author, placeholder=av_placeholder):
-                        url = _fetch_author_avatar(a)
-                        if url:
-                            def update():
-                                placeholder.content = ft.Image(
-                                    src=url, width=15, height=15,
-                                    border_radius=8, fit=ft.ImageFit.COVER)
-                                try: placeholder.update()
-                                except Exception: pass
-                            self.page.run_thread(update)
-                    threading.Thread(target=_load_avatar, daemon=True).start()
-                    av = av_placeholder
-                else:
-                    av = ft.Image(src=av_url, width=15, height=15,
-                                border_radius=8, fit=ft.ImageFit.COVER)
-                author_gd = ft.GestureDetector(
-                    mouse_cursor=ft.MouseCursor.CLICK,
-                    on_tap=lambda e, u=auth_url: self.page.launch_url(u),
-                    on_enter=lambda e, t=author_txt: (
-                        setattr(t, "decoration", ft.TextDecoration.UNDERLINE) or t.update()
-                    ),
-                    on_exit=lambda e, t=author_txt: (
-                        setattr(t, "decoration", ft.TextDecoration.NONE) or t.update()
-                    ),
-                    content=ft.Row(
-                        [av, ft.Container(width=5), author_txt],
-                        spacing=0, tight=True,
-                    ),
-                )
-                ext_icon = ft.GestureDetector(
-                    mouse_cursor=ft.MouseCursor.CLICK,
-                    on_tap=lambda e, u=slug_url: self.page.launch_url(u),
-                    content=ft.Icon(ft.icons.OPEN_IN_NEW_ROUNDED, size=12, color=TEXT_DIM),
-                )
-                meta_controls = [
-                    ft.Text("by ", color=TEXT_DIM, size=11),
-                    author_gd,
-                    ft.Container(width=6),
-                    ext_icon,
-                ]
-                cached = cache_get_author(author) or {}
-                av_url = cached.get("avatar_url")
-
-                # Definir author_txt PRIMERO antes de usarlo en los lambdas
-                author_txt = ft.Text(author, color=GREEN, size=11,
-                                    weight=ft.FontWeight.W_500)
-
-                if not av_url:
-                    av_placeholder = ft.Container(
-                        width=15, height=15, border_radius=8,
-                        bgcolor=CARD2_BG, alignment=ft.alignment.center,
-                        content=ft.Text(author[0].upper(), size=7, color=TEXT_DIM),
-                    )
-                    def _load_avatar(a=author, placeholder=av_placeholder):
-                        url = _fetch_author_avatar(a)
-                        if url:
-                            def update():
-                                placeholder.content = ft.Image(
-                                    src=url, width=15, height=15,
-                                    border_radius=8, fit=ft.ImageFit.COVER)
-                                try: placeholder.update()
-                                except Exception: pass
-                            self.page.run_thread(update)
-                    threading.Thread(target=_load_avatar, daemon=True).start()
-                    av = av_placeholder
-                else:
-                    av = ft.Image(src=av_url, width=15, height=15,
-                                border_radius=8, fit=ft.ImageFit.COVER)
-
-                author_gd = ft.GestureDetector(
-                    mouse_cursor=ft.MouseCursor.CLICK,
-                    on_tap=lambda e, u=auth_url: self.page.launch_url(u),
-                    on_enter=lambda e, t=author_txt: (
-                        setattr(t, "decoration", ft.TextDecoration.UNDERLINE) or t.update()
-                    ),
-                    on_exit=lambda e, t=author_txt: (
-                        setattr(t, "decoration", ft.TextDecoration.NONE) or t.update()
-                    ),
-                    content=ft.Row(
-                        [av, ft.Container(width=5), author_txt],
-                        spacing=0, tight=True,
-                    ),
-                )
-
-                ext_icon = ft.GestureDetector(
-                    mouse_cursor=ft.MouseCursor.CLICK,
-                    on_tap=lambda e, u=slug_url: self.page.launch_url(u),
-                    content=ft.Icon(ft.icons.OPEN_IN_NEW_ROUNDED, size=12, color=TEXT_DIM),
-                )
-                meta_controls = [
-                    ft.Text("by ", color=TEXT_DIM, size=11),
-                    author_gd,
-                    ft.Container(width=6),
-                    ext_icon,
-                ]
+        # ── Author row ────────────────────────────────────────────────────────
+        meta_controls: list = []
+        if author:
+            author_txt = ft.Text(author, color=GREEN, size=11, weight=ft.FontWeight.W_500)
             cached = cache_get_author(author) or {}
             av_url = cached.get("avatar_url")
-
-            # ✅ Si no está en caché, fetchear en background
             if not av_url:
                 av_placeholder = ft.Container(
                     width=15, height=15, border_radius=8,
@@ -1046,30 +937,22 @@ class DiscoverView:
                 av = av_placeholder
             else:
                 av = ft.Image(src=av_url, width=15, height=15,
-                            border_radius=8, fit=ft.ImageFit.COVER)
-
+                              border_radius=8, fit=ft.ImageFit.COVER)
             author_gd = ft.GestureDetector(
                 mouse_cursor=ft.MouseCursor.CLICK,
                 on_tap=lambda e, u=auth_url: self.page.launch_url(u),
                 on_enter=lambda e, t=author_txt: (
-                    setattr(t, "decoration", ft.TextDecoration.UNDERLINE)
-                    or t.update()
+                    setattr(t, "decoration", ft.TextDecoration.UNDERLINE) or t.update()
                 ),
                 on_exit=lambda e, t=author_txt: (
-                    setattr(t, "decoration", ft.TextDecoration.NONE)
-                    or t.update()
+                    setattr(t, "decoration", ft.TextDecoration.NONE) or t.update()
                 ),
-                content=ft.Row(
-                    [av, ft.Container(width=5), author_txt],
-                    spacing=0, tight=True,
-                ),
+                content=ft.Row([av, ft.Container(width=5), author_txt], spacing=0, tight=True),
             )
-
             ext_icon = ft.GestureDetector(
                 mouse_cursor=ft.MouseCursor.CLICK,
                 on_tap=lambda e, u=slug_url: self.page.launch_url(u),
-                content=ft.Icon(ft.icons.OPEN_IN_NEW_ROUNDED,
-                                size=12, color=TEXT_DIM),
+                content=ft.Icon(ft.icons.OPEN_IN_NEW_ROUNDED, size=12, color=TEXT_DIM),
             )
             meta_controls = [
                 ft.Text("by ", color=TEXT_DIM, size=11),
@@ -1079,9 +962,9 @@ class DiscoverView:
             ]
 
         # ── Category chips ────────────────────────────────────────────────────
-        cats         = getattr(proj, "categories", []) or []
-        shown        = cats[:3]
-        extra        = len(cats) - 3
+        cats       = getattr(proj, "categories", []) or []
+        shown      = cats[:3]
+        extra      = len(cats) - 3
         chip_row: list = [_cat_chip(c) for c in shown]
         if extra > 0:
             chip_row.append(ft.Container(
@@ -1090,20 +973,17 @@ class DiscoverView:
                 content=ft.Text(f"+{extra}", color=TEXT_DIM, size=9),
             ))
 
-        # ── Stats (right column) ──────────────────────────────────────────────
+        # ── Stats ─────────────────────────────────────────────────────────────
         stats_col = ft.Column([
             ft.Row([
                 ft.Icon(ft.icons.DOWNLOAD_ROUNDED, size=13, color=TEXT_DIM),
                 ft.Container(width=5),
-                ft.Text(_human(proj.downloads), color=TEXT_SEC, size=11,
-                        weight=ft.FontWeight.W_500),
+                ft.Text(_human(proj.downloads), color=TEXT_SEC, size=11, weight=ft.FontWeight.W_500),
             ], spacing=0, tight=True),
             ft.Row([
-                ft.Icon(ft.icons.FAVORITE_BORDER_ROUNDED,
-                        size=13, color=TEXT_DIM),
+                ft.Icon(ft.icons.FAVORITE_BORDER_ROUNDED, size=13, color=TEXT_DIM),
                 ft.Container(width=5),
-                ft.Text(_human(follows) if follows else "—",
-                        color=TEXT_SEC, size=11, weight=ft.FontWeight.W_500),
+                ft.Text(_human(follows) if follows else "—", color=TEXT_SEC, size=11, weight=ft.FontWeight.W_500),
             ], spacing=0, tight=True),
             ft.Row([
                 ft.Icon(ft.icons.HISTORY_ROUNDED, size=13, color=TEXT_DIM),
@@ -1136,8 +1016,7 @@ class DiscoverView:
                         ft.Column([
                             title_txt,
                             ft.Container(height=3),
-                            ft.Row(author_row_controls,
-                                   spacing=0, wrap=False,
+                            ft.Row(author_row_controls, spacing=0, wrap=False,
                                    vertical_alignment=ft.CrossAxisAlignment.CENTER),
                         ], expand=True, spacing=0),
                         install_btn,
@@ -1145,8 +1024,8 @@ class DiscoverView:
                        vertical_alignment=ft.CrossAxisAlignment.START),
                     ft.Container(height=8),
                     ft.Text(
-                        (proj.description[:180] + "…"
-                         if len(proj.description) > 180 else proj.description),
+                        (proj.description[:180] + "…" if len(proj.description) > 180
+                         else proj.description),
                         color=TEXT_SEC, size=11,
                         overflow=ft.TextOverflow.ELLIPSIS, max_lines=2,
                     ),
@@ -1160,10 +1039,8 @@ class DiscoverView:
 
         def _hover(e, c=card, t=title_txt):
             c.bgcolor = CARD2_BG if e.data == "true" else CARD_BG
-            c.border  = ft.border.all(
-                1, BORDER_BRIGHT if e.data == "true" else BORDER)
-            t.decoration = (ft.TextDecoration.UNDERLINE
-                            if e.data == "true"
+            c.border  = ft.border.all(1, BORDER_BRIGHT if e.data == "true" else BORDER)
+            t.decoration = (ft.TextDecoration.UNDERLINE if e.data == "true"
                             else ft.TextDecoration.NONE)
             try:
                 c.update()
