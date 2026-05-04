@@ -144,6 +144,7 @@ def _fetch_modrinth_icons(self, items: list[ContentItem]) -> None:
                 proj = json.loads(r2.read())
 
             item["icon_url"] = proj.get("icon_url") or ""
+            self.page.run_thread(self._refresh_list)
         except Exception:
             pass
 
