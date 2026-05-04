@@ -110,43 +110,7 @@ def _disable_path(path: str) -> str:
 def _enable_path(path: str) -> str:
     return path[:-len(".disabled")] if path.endswith(".disabled") else path
 
-def _fetch_modrinth_icons(self, items: list[ContentItem]) -> None:
-    """Busca los iconos de los mods en Modrinth por nombre de archivo (SHA1)."""
-    import urllib.request, json, hashlib
 
-    headers = {"User-Agent": "PyLauncher/1.0"}
-
-    for item in items:
-        if self._cancel.is_set():
-            return
-        if not item["path"].endswith((".jar", ".zip")):
-            continue
-        try:
-            # Calcular SHA1 del archivo
-            sha1 = hashlib.sha1()
-            with open(item["path"], "rb") as f:
-                for chunk in iter(lambda: f.read(8192), b""):
-                    sha1.update(chunk)
-            hash_str = sha1.hexdigest()
-
-            url = f"https://api.modrinth.com/v2/version_file/{hash_str}?algorithm=sha1"
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=8) as r:
-                data = json.loads(r.read())
-
-            project_id = data.get("project_id", "")
-            if not project_id:
-                continue
-
-            url2 = f"https://api.modrinth.com/v2/project/{project_id}"
-            req2 = urllib.request.Request(url2, headers=headers)
-            with urllib.request.urlopen(req2, timeout=8) as r2:
-                proj = json.loads(r2.read())
-
-            item["icon_url"] = proj.get("icon_url") or ""
-            self.page.run_thread(self._refresh_list)
-        except Exception:
-            pass
 
 # =============================================================================
 # _ContentTab
@@ -347,6 +311,44 @@ class _ContentTab:
                 list_area,
             ], spacing=0, expand=True),
         )
+
+    def _fetch_modrinth_icons(self, items: list[ContentItem]) -> None:
+        """Busca los iconos de los mods en Modrinth por nombre de archivo (SHA1)."""
+        import urllib.request, json, hashlib
+
+        headers = {"User-Agent": "PyLauncher/1.0"}
+
+        for item in items:
+            if self._cancel.is_set():
+                return
+            if not item["path"].endswith((".jar", ".zip")):
+                continue
+            try:
+                # Calcular SHA1 del archivo
+                sha1 = hashlib.sha1()
+                with open(item["path"], "rb") as f:
+                    for chunk in iter(lambda: f.read(8192), b""):
+                        sha1.update(chunk)
+                hash_str = sha1.hexdigest()
+
+                url = f"https://api.modrinth.com/v2/version_file/{hash_str}?algorithm=sha1"
+                req = urllib.request.Request(url, headers=headers)
+                with urllib.request.urlopen(req, timeout=8) as r:
+                    data = json.loads(r.read())
+
+                project_id = data.get("project_id", "")
+                if not project_id:
+                    continue
+
+                url2 = f"https://api.modrinth.com/v2/project/{project_id}"
+                req2 = urllib.request.Request(url2, headers=headers)
+                with urllib.request.urlopen(req2, timeout=8) as r2:
+                    proj = json.loads(r2.read())
+
+                item["icon_url"] = proj.get("icon_url") or ""
+                self.page.run_thread(self._refresh_list)
+            except Exception:
+                pass
 
     # =========================================================================
     # Category pills
