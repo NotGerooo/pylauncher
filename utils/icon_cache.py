@@ -34,6 +34,18 @@ def _migrate(data: dict) -> dict:
 
 _MEM: dict = _migrate(_load())
 
+def _fetch_author_avatar(author: str) -> str:
+    """Obtiene el avatar URL de un autor desde Modrinth."""
+    import urllib.request, json
+    try:
+        url = f"https://api.modrinth.com/v2/user/{author}"
+        req = urllib.request.Request(
+            url, headers={"User-Agent": "PyLauncher/1.0"})
+        with urllib.request.urlopen(req, timeout=8) as r:
+            data = json.loads(r.read())
+        return data.get("avatar_url") or ""
+    except Exception:
+        return ""
 
 def _get_snapshot():
     with _lock:
