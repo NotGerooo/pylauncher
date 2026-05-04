@@ -493,6 +493,11 @@ class _ContentTab:
             pass
 
         self._cache[cat] = (mtime, items)
+        threading.Thread(
+            target=self._fetch_modrinth_icons,
+            args=(items,),
+            daemon=True
+        ).start()
 
     # =========================================================================
     # U1: skeleton loader
