@@ -337,6 +337,9 @@ class CardCarousel:
     def _scroll_to(self, idx: int):
         if not self._cards:
             return
+        # ✅ Si el ListView no está en la página todavía, no hacemos nada
+        if self._lv.page is None:
+            return
         idx = max(0, min(idx, len(self._cards) - 1))
         self._current = idx
         offset = idx * (self.CARD_WIDTH + self.CARD_GAP)
@@ -346,7 +349,7 @@ class CardCarousel:
             self.page.update()
         except Exception:
             pass
-
+        
     def _prev(self, _e=None):
         self._paused = True
         target = (self._current - 1) % len(self._cards) if self._cards else 0
