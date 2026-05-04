@@ -916,22 +916,33 @@ class DiscoverView:
 
         # ── Author row ────────────────────────────────────────────────────────
         meta_controls: list = []
+        # DESPUÉS
         if author:
             cached = cache_get_author(author) or {}
             av_url = cached.get("avatar_url")
-            av     = (
-                ft.Image(src=av_url, width=15, height=15,
-                         border_radius=8, fit=ft.ImageFit.COVER)
-                if av_url else
-                ft.Container(
+
+            # ✅ Si no está en caché, fetchear en background
+            if not av_url:
+                av_placeholder = ft.Container(
                     width=15, height=15, border_radius=8,
                     bgcolor=CARD2_BG, alignment=ft.alignment.center,
-                    content=ft.Text(author[0].upper(), size=7,
-                                    color=TEXT_DIM),
+                    content=ft.Text(author[0].upper(), size=7, color=TEXT_DIM),
                 )
-            )
-            author_txt = ft.Text(author, color=GREEN, size=11,
-                                 weight=ft.FontWeight.W_500)
+                def _load_avatar(a=author, placeholder=av_placeholder):
+                    url = _fetch_author_avatar(a)
+                    if url:
+                        def update():
+                            placeholder.content = ft.Image(
+                                src=url, width=15, height=15,
+                                border_radius=8, fit=ft.ImageFit.COVER)
+                            try: placeholder.update()
+                            except Exception: pass
+                        self.page.run_thread(update)
+                threading.Thread(target=_load_avatar, daemon=True).start()
+                av = av_placeholder
+            else:
+                av = ft.Image(src=av_url, width=15, height=15,
+                            border_radius=8, fit=ft.ImageFit.COVER)
 
             author_gd = ft.GestureDetector(
                 mouse_cursor=ft.MouseCursor.CLICK,
