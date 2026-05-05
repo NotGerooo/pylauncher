@@ -1806,18 +1806,15 @@ class _InstanceSettingsDialog:
     def _do_delete(self) -> None:
         def do() -> None:
             try:
-                self.app.profile_manager.delete_profile(self.profile.id)
-                shutil.rmtree(self.profile.game_dir, ignore_errors=True)
+                self.app.profile_manager.delete_profile(
+                    self.profile.id, delete_files=True  # ← esto borra la carpeta también
+                )
                 self.page.run_thread(lambda: (
                     self.app.snack("Instance deleted."),
                     self.app._show_view("library"),
                 ))
             except Exception as ex:
-                self.page.run_thread(
-                    lambda: self.app.snack(str(ex), error=True)
-                )
-
-        threading.Thread(target=do, daemon=True).start()
+                ...
 
 
 # =============================================================================
