@@ -555,32 +555,42 @@ class DiscoverView:
 
     def _load_account_dropdown(self):
         try:
-            if not hasattr(self.app, "account_manager"):
+            if not hasattr(self.app, "profile_manager"):
                 return
-            accounts = self.app.account_manager.get_all_accounts()
-            if not accounts:
+            profiles = self.app.profile_manager.get_all_profiles()
+            if not profiles:
                 self._account_selector_row.visible = False
                 try: self._account_selector_row.update()
                 except Exception: pass
                 return
+
+            # Filtrar perfiles compatibles con la versión MC actual
+            mc_ver = getattr(self._source_profile, "version_id", None) if self._source_profile else None
+            if mc_ver:
+                compatible = [p for p in profiles if getattr(p, "version_id", None) == mc_ver]
+                if not compatible:
+                    compatible = profiles  # si no hay compatibles mostrar todos
+            else:
+                compatible = profiles
+
             self._account_dd.options = [
-                ft.dropdown.Option(key=a.id, text=a.username)
-                for a in accounts
+                ft.dropdown.Option(key=p.id, text=f"{p.name}  ({getattr(p, 'version_id', '?')})")
+                for p in compatible
             ]
-            active = self.app.account_manager.get_active_account()
-            if active:
-                self._account_dd.value = active.id
-                self._selected_account = active
-            elif accounts:
-                self._account_dd.value = accounts[0].id
-                self._selected_account = accounts[0]
+
+            # Preseleccionar el perfil activo
+            if self._source_profile and self._source_profile.id in [p.id for p in compatible]:
+                self._account_dd.value = self._source_profile.id
+            elif compatible:
+                self._account_dd.value = compatible[0].id
+
             self._account_selector_row.visible = True
             try:
                 self._account_dd.update()
                 self._account_selector_row.update()
             except Exception: pass
         except Exception as e:
-            log.warning(f"Error loading accounts into dropdown: {e}")
+            log.warning(f"Error loading profiles into dropdown: {e}")
 
     def _on_search_change(self, e):
         if self._debounce_timer:
