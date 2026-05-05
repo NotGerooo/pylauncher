@@ -564,25 +564,16 @@ class DiscoverView:
                 except Exception: pass
                 return
 
-            # Filtrar perfiles compatibles con la versión MC actual
-            mc_ver = getattr(self._source_profile, "version_id", None) if self._source_profile else None
-            if mc_ver:
-                compatible = [p for p in profiles if getattr(p, "version_id", None) == mc_ver]
-                if not compatible:
-                    compatible = profiles  # si no hay compatibles mostrar todos
-            else:
-                compatible = profiles
-
             self._account_dd.options = [
                 ft.dropdown.Option(key=p.id, text=f"{p.name}  ({getattr(p, 'version_id', '?')})")
-                for p in compatible
+                for p in profiles
             ]
 
             # Preseleccionar el perfil activo
-            if self._source_profile and self._source_profile.id in [p.id for p in compatible]:
+            if self._source_profile and self._source_profile.id in [p.id for p in profiles]:
                 self._account_dd.value = self._source_profile.id
-            elif compatible:
-                self._account_dd.value = compatible[0].id
+            elif profiles:
+                self._account_dd.value = profiles[0].id
 
             self._account_selector_row.visible = True
             try:
