@@ -1129,17 +1129,14 @@ def _stat_pill(icon, value: str, tooltip: str) -> ft.Container:
         bgcolor=INPUT_BG, border=ft.border.all(1, BORDER),
         border_radius=8,
         padding=ft.padding.symmetric(horizontal=12, vertical=6),
-        content=ft.Tooltip(
-            message=tooltip,
-            content=ft.Row([
-                ft.Icon(icon, size=13, color=TEXT_DIM),
-                ft.Container(width=6),
-                ft.Text(value, color=TEXT_SEC, size=11,
-                        weight=ft.FontWeight.W_500),
-            ], spacing=0, tight=True),
-        ),
+        tooltip=tooltip,
+        content=ft.Row([
+            ft.Icon(icon, size=13, color=TEXT_DIM),
+            ft.Container(width=6),
+            ft.Text(value, color=TEXT_SEC, size=11,
+                    weight=ft.FontWeight.W_500),
+        ], spacing=0, tight=True),
     )
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  Detail dialog
