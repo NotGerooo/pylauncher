@@ -549,9 +549,18 @@ class DiscoverView:
 
     # ── Events ─────────────────────────────────────────────────────────────────
     def _on_account_change(self, e):
-        account_id = self._account_dd.value
-        if account_id and hasattr(self.app, "account_manager"):
-            self._selected_account = self.app.account_manager.get_account(account_id)
+        profile_id = self._account_dd.value
+        if profile_id and hasattr(self.app, "profile_manager"):
+            p = self.app.profile_manager.get_profile(profile_id)
+            if p:
+                self._source_profile = p
+                # Actualizar installed_set con la carpeta del nuevo perfil
+                target = self._target_dir(p)
+                self._installed_set = build_installed_set(target)
+                # Refrescar chips de versión/loader
+                self._refresh_chips()
+                # Relanzar búsqueda con el nuevo perfil (filtra por su versión y loader)
+                self._do_search(reset=True)
 
     def _load_account_dropdown(self):
         try:
