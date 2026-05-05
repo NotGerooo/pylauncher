@@ -248,7 +248,7 @@ class DiscoverView:
             visible=False,
             padding=ft.padding.only(bottom=12),
             content=ft.Row([
-                ft.Icon(ft.icons.MANAGE_ACCOUNTS_ROUNDED, size=16, color=TEXT_SEC),
+                ft.Icon(ft.icons.WIDGETS_ROUNDED, size=16, color=TEXT_SEC),
                 ft.Container(width=10),
                 ft.Text("Install as:", color=TEXT_SEC, size=12),
                 ft.Container(width=10),
