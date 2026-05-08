@@ -32,23 +32,7 @@ _IMG_CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "cache", "images"
 os.makedirs(_IMG_CACHE_DIR, exist_ok=True)
 
 
-def _cached_src(url: str) -> str:
-    """Descarga la imagen si no está en caché y devuelve el path local."""
-    if not url:
-        return ""
-    ext  = os.path.splitext(url.split("?")[0])[-1][:5] or ".png"
-    name = hashlib.md5(url.encode()).hexdigest() + ext
-    path = os.path.join(_IMG_CACHE_DIR, name)
-    if os.path.exists(path):
-        return path
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": "PyLauncher/1.0"})
-        with urllib.request.urlopen(req, timeout=8) as r:
-            data = r.read()
-        with open(path, "wb") as f:
-            f.write(data)
-        return path
-    except Exception:
+except Exception:
         return url
 
 
