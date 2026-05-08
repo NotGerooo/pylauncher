@@ -16,12 +16,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from utils.logger import setup_logger
 import flet as ft
+import os
 
 def main(page: ft.Page):
     page.title = "Gero's Launcher"
     
     # 👇 AGREGA ESTO
-    page.window.icon = "Gero´s Launcher.ico"
+   
+    page.window.icon = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Gero´s Launcher.ico")
     
     from gui.app import App
     App(page)
