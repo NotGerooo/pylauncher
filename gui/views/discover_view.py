@@ -1270,7 +1270,7 @@ class DiscoverView:
                     ft.Container(height=16),
                     name_field,
                     ft.Container(height=10),
-                    mc_ver_field,
+                    mc_ver_dd,
                     ft.Container(height=10),
                     progress,
                     status_lbl,
