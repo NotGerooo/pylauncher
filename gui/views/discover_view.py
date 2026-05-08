@@ -1137,21 +1137,45 @@ class DiscoverView:
         self._refresh_badges()
 
     def _load_mcver_filter(self):
+        """Carga versiones MC desde los resultados actuales o la API."""
         def do():
             try:
-                versions = self.app.modrinth_service.get_minecraft_versions()
-                options  = (
+                # Intenta obtener versiones de Modrinth
+                versions = []
+                try:
+                    raw = self.app.modrinth_service.get_minecraft_versions()
+                    versions = [v if isinstance(v, str) else v.get("version", "")
+                                for v in raw]
+                    versions = [v for v in versions if v]
+                except Exception:
+                    pass
+
+                # Fallback: versiones conocidas comunes
+                if not versions:
+                    versions = [
+                        "1.21.4","1.21.3","1.21.1","1.21",
+                        "1.20.6","1.20.4","1.20.2","1.20.1","1.20",
+                        "1.19.4","1.19.3","1.19.2","1.19",
+                        "1.18.2","1.18.1","1.18",
+                        "1.17.1","1.16.5","1.16.4",
+                        "1.15.2","1.14.4","1.12.2",
+                    ]
+
+                options = (
                     [ft.dropdown.Option("", "Todas")] +
-                    [ft.dropdown.Option(v, v) for v in versions[:30]]
+                    [ft.dropdown.Option(v, v) for v in versions]
                 )
+
                 def update():
                     self._mcver_filter_dd.options = options
-                    if not self._mcver_filter_dd.value:
-                        profile = self._source_profile
-                        mc_ver  = getattr(profile, "version_id", None) if profile else None
-                        self._mcver_filter_dd.value = mc_ver or ""
-                    try: self._mcver_filter_dd.update()
-                    except Exception: pass
+                    # Pre-seleccionar versión del perfil activo
+                    profile = self._source_profile
+                    mc_ver  = getattr(profile, "version_id", None) if profile else None
+                    self._mcver_filter_dd.value = mc_ver if mc_ver in versions else ""
+                    try:
+                        self._mcver_filter_dd.update()
+                    except Exception:
+                        pass
                 self.page.run_thread(update)
             except Exception:
                 pass
