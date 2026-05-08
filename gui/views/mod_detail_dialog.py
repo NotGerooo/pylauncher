@@ -1193,16 +1193,22 @@ class ModDetailDialog:
     #  FILTROS
     # ══════════════════════════════════════════════════════════════════════════
     def _on_platform_change(self, e):
+        if not self._versions:
+            return
         v = self._platform_dd.value
         self._filter_platform = None if (not v or v == "__all__") else v
         self._render_version_rows()
 
     def _on_mcver_change(self, e):
+        if not self._versions:
+            return
         v = self._mcver_dd.value
         self._filter_mcver = None if (not v or v == "__all__") else v
         self._render_version_rows()
 
     def _on_channel_change(self, e):
+        if not self._versions:
+            return
         v = self._channel_dd.value
         self._filter_channel = None if (not v or v == "__all__") else v
         self._render_version_rows()
