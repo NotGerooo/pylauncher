@@ -962,7 +962,6 @@ class ModDetailDialog:
 
     # ── Renderizado de Markdown básico ────────────────────────────────────────
     def _render_markdown(self, text: str) -> list:
-        """Convierte Markdown básico en controles de Flet."""
         if not text.strip():
             return [ft.Container(
                 padding=ft.padding.all(24),
@@ -970,100 +969,18 @@ class ModDetailDialog:
                 content=ft.Text("Sin descripción disponible.",
                                 color=TEXT_DIM, size=11),
             )]
-
-        controls = []
-        paragraphs = text.split("\n\n")
-
-        for para in paragraphs:
-            para = para.strip()
-            if not para:
-                continue
-
-            # Encabezado H1
-            if para.startswith("# "):
-                controls.append(ft.Container(
-                    padding=ft.padding.only(top=12, bottom=4),
-                    content=ft.Text(
-                        para[2:].strip(),
-                        color=TEXT_PRI, size=16,
-                        weight=ft.FontWeight.BOLD,
-                    ),
-                ))
-                controls.append(ft.Divider(height=1, color=BORDER))
-                controls.append(ft.Container(height=4))
-
-            # Encabezado H2
-            elif para.startswith("## "):
-                controls.append(ft.Container(
-                    padding=ft.padding.only(top=10, bottom=2),
-                    content=ft.Text(
-                        para[3:].strip(),
-                        color=TEXT_PRI, size=13,
-                        weight=ft.FontWeight.BOLD,
-                    ),
-                ))
-
-            # Encabezado H3
-            elif para.startswith("### "):
-                controls.append(ft.Container(
-                    padding=ft.padding.only(top=8, bottom=2),
-                    content=ft.Text(
-                        para[4:].strip(),
-                        color=TEXT_SEC, size=12,
-                        weight=ft.FontWeight.W_600,
-                    ),
-                ))
-
-            # Lista
-            elif any(line.startswith(("- ", "* ", "+ "))
-                     for line in para.splitlines()):
-                for line in para.splitlines():
-                    clean = line.lstrip("-*+ ").strip()
-                    if not clean:
-                        continue
-                    clean = clean.replace("**", "").replace("__", "")
-                    controls.append(ft.Container(
-                        padding=ft.padding.only(left=14, bottom=3),
-                        content=ft.Row([
-                            ft.Container(
-                                width=5, height=5, border_radius=3,
-                                bgcolor=GREEN,
-                                margin=ft.margin.only(top=4, right=8),
-                            ),
-                            ft.Text(clean, color=TEXT_SEC, size=11, expand=True),
-                        ], vertical_alignment=ft.CrossAxisAlignment.START,
-                        spacing=0, tight=True),
-                    ))
-
-            # Bloque de código
-            elif para.startswith("```"):
-                code = para.strip("`").strip()
-                first_line = code.split("\n")[0]
-                if first_line in ("python", "java", "json", "bash", "sh", "xml"):
-                    code = "\n".join(code.split("\n")[1:])
-                controls.append(ft.Container(
-                    bgcolor=CARD2_BG,
-                    border=ft.border.all(1, BORDER),
-                    border_radius=8,
-                    padding=ft.padding.all(12),
-                    content=ft.Text(
-                        code.strip(), color=TEXT_SEC,
-                        size=10, font_family="monospace",
-                    ),
-                ))
-                controls.append(ft.Container(height=6))
-
-            # Párrafo normal
-            else:
-                clean = para.replace("**", "").replace("__", "").replace("`", "")
-                controls.append(ft.Container(
-                    padding=ft.padding.only(bottom=8),
-                    content=ft.Text(clean, color=TEXT_SEC, size=11,
-                                    selectable=True),
-                ))
-
-        return controls if controls else [
-            ft.Text("Sin descripción disponible.", color=TEXT_DIM, size=11)
+        return [
+            ft.Container(
+                padding=ft.padding.only(right=8, bottom=8),
+                content=ft.Markdown(
+                    text,
+                    selectable=True,
+                    extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
+                    on_tap_link=lambda e: self.page.launch_url(e.data),
+                    code_theme="atom-one-dark",
+                    code_style=ft.TextStyle(font_family="monospace", size=11),
+                ),
+            )
         ]
 
     # ══════════════════════════════════════════════════════════════════════════
