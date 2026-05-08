@@ -42,7 +42,8 @@ def _fix_taskbar_icon():
         except Exception:
             pass
 
-_ICO_PATH = ...
+import os as _os
+_ICO_PATH = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", "Gero´s Launcher.ico")
 _VERSION_FILE = Path("version.json")
 
 # Vistas disponibles — mapeo id → clase (importación lazy para arranque más rápido)
