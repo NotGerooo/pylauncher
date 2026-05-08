@@ -27,3 +27,5 @@ AVATAR_PALETTE = [
     "#a9e34b", "#74c0fc", "#ff8787", "#63e6be",
     "#cc5de8", "#ff922b",
 ]
+ROW_SELECTED = "#162820"
+ROW_HOVER_INCOMPATIBLE = "#141920"
