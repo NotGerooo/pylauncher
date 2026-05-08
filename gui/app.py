@@ -30,7 +30,19 @@ from gui.sidebar_right import SidebarRight
 
 log = get_logger()
 
-_ICO_PATH     = r"Gero´s Launcher.ico"
+import sys as _sys
+
+def _fix_taskbar_icon():
+    """Fuerza a Windows a usar el ícono correcto en la taskbar."""
+    if _sys.platform == "win32":
+        try:
+            import ctypes
+            hwnd = ctypes.windll.user32.GetForegroundWindow()
+            ctypes.windll.user32.SendMessageW(hwnd, 0x0080, 1, 0)
+        except Exception:
+            pass
+
+_ICO_PATH = ...
 _VERSION_FILE = Path("version.json")
 
 # Vistas disponibles — mapeo id → clase (importación lazy para arranque más rápido)
@@ -76,17 +88,6 @@ class App:
         self._check_updates()
 
         log.info("Interfaz iniciada — v%s", self.version)
-
-    def _fix_taskbar_icon():
-        """Fuerza a Windows a usar el ícono correcto en la taskbar."""
-        if sys.platform == "win32":
-            try:
-                # Necesario para ventanas frameless con Flet
-                import ctypes.wintypes
-                hwnd = ctypes.windll.user32.GetForegroundWindow()
-                ctypes.windll.user32.SendMessageW(hwnd, 0x0080, 1, 0)  # WM_SETICON
-            except Exception:
-                pass
 
     # ── Configuración de la ventana ───────────────────────────────────────
     def _setup_page(self):
