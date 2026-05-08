@@ -25,6 +25,7 @@ from gui.theme import (
 from utils.icon_cache import _fetch_author_avatar, get_author as cache_get_author
 from utils.install_detector import build_installed_set, is_installed_in
 from utils.logger import get_logger
+from gui.views.mod_detail_dialog import ModDetailDialog
 
 log = get_logger()
 
