@@ -1161,14 +1161,18 @@ class DiscoverView:
         self._do_search(reset=True)
 
     def _open_modpack_install(self, project):
-        mc_ver_field = ft.TextField(
+        # Versiones disponibles del modpack
+        _game_versions = getattr(project, "game_versions", []) or []
+
+        mc_ver_dd = ft.Dropdown(
             label="Versión de Minecraft",
-            hint_text="ej: 1.21.1",
-            value=getattr(project, "game_versions", [""])[0]
-                  if getattr(project, "game_versions", []) else "",
+            options=[ft.dropdown.Option(v, v) for v in _game_versions],
+            value=_game_versions[0] if _game_versions else None,
             color=TEXT_PRI, bgcolor=INPUT_BG,
             border_color=BORDER, focused_border_color=GREEN,
-            border_radius=8, height=44, text_size=12,
+            border_radius=8, height=44,
+            content_padding=ft.padding.symmetric(horizontal=14, vertical=10),
+            text_style=ft.TextStyle(size=12),
         )
         name_field = ft.TextField(
             label="Nombre de la instancia",
