@@ -706,7 +706,18 @@ class ModDetailDialog:
                         ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
                     )
                 ]
-                self._gallery_body.controls = self._desc_body.controls.copy()
+                self._gallery_body.controls = [
+                    ft.Container(
+                        padding=ft.padding.all(24),
+                        alignment=ft.alignment.center,
+                        content=ft.Column([
+                            ft.Icon(ft.icons.ERROR_OUTLINE_ROUNDED,
+                                    size=32, color=TEXT_DIM),
+                            ft.Container(height=8),
+                            ft.Text(f"Error: {err}", color=TEXT_DIM, size=11),
+                        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                    )
+                ]
                 try:
                     self._desc_body.update()
                     self._gallery_body.update()
