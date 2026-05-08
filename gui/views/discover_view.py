@@ -1187,7 +1187,7 @@ class DiscoverView:
 
         def _do_install(e):
             name   = name_field.value.strip() or project.title
-            mc_ver = mc_ver_field.value.strip()
+            mc_ver = (mc_ver_dd.value or "").strip()
             if not mc_ver:
                 status_lbl.value = "⚠  Ingresa una versión de Minecraft."
                 try: status_lbl.update()
