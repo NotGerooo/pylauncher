@@ -104,7 +104,7 @@ class App:
         p.spacing                         = 0
         p.scroll_animation_duration       = 300
         p.window.frameless                = True
-
+        threading.Timer(0.5, _fix_taskbar_icon).start()
     # ── Inicialización de servicios ───────────────────────────────────────
     def _init_services(self):
         from services.account_manager import AccountManager
