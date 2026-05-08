@@ -1222,10 +1222,12 @@ class DiscoverView:
                             seen.append(gv)
 
                 def update():
-                    mc_ver_dd.options  = [ft.dropdown.Option(v, v) for v in seen]
+                    mc_ver_dd.options  = [
+                        ft.dropdown.Option(v, v) for v in seen
+                    ]
                     mc_ver_dd.value    = seen[0] if seen else None
                     mc_ver_dd.disabled = not seen
-                    mc_ver_dd.hint_text = None
+                    mc_ver_dd.hint_text = "Sin versiones disponibles" if not seen else None
                     try: mc_ver_dd.update()
                     except Exception: pass
                 self.page.run_thread(update)
