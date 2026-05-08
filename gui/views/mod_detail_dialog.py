@@ -1221,12 +1221,12 @@ class ModDetailDialog:
         def _hover(e, r=row):
             if e.data == "true":
                 r.bgcolor = ft.colors.with_opacity(0.06, GREEN) if compatible \
-                            else "#141920"
+                            else ROW_HOVER_INCOMPATIBLE
             else:
                 # Mantener fondo si está seleccionado
                 is_sel = (self._selected_ver is not None and
                           self._selected_ver.version_id == r.data)
-                r.bgcolor = "#162820" if is_sel else "transparent"
+                r.bgcolor = ROW_SELECTED if is_sel else "transparent"
             try:
                 r.update()
             except Exception:
