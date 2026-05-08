@@ -33,21 +33,29 @@ class ModrinthProject:
         # author viene como "author" en /search, o como "team" en /project
         self.author        = data.get("author", data.get("team", ""))
         self.date_modified = data.get("date_modified", data.get("date_updated", ""))
+        # ── Campos extra que solo devuelve GET /project/{id} ──────────────────
+        # body  : descripción larga en Markdown
+        # gallery: lista de dicts {url, title, description, featured, ...}
+        # follows: número de seguidores (campo "followers" en la API)
+        self.body          = data.get("body", "")
+        self.gallery       = data.get("gallery", [])
+        self.follows       = data.get("followers", data.get("follows", 0))
 
     def supports_version(self, mc_version: str) -> bool:
         return mc_version in self.game_versions
 
     def to_dict(self):
         return {
-            "project_id":   self.project_id,
-            "slug":         self.slug,
-            "title":        self.title,
-            "description":  self.description,
-            "downloads":    self.downloads,
-            "game_versions":self.game_versions,
-            "categories":   self.categories,
-            "icon_url":     self.icon_url,
-            "author":       self.author,
+            "project_id":    self.project_id,
+            "slug":          self.slug,
+            "title":         self.title,
+            "description":   self.description,
+            "downloads":     self.downloads,
+            "game_versions": self.game_versions,
+            "categories":    self.categories,
+            "icon_url":      self.icon_url,
+            "author":        self.author,
+            "follows":       self.follows,
         }
 
     def __repr__(self):
@@ -60,10 +68,14 @@ class ModrinthVersion:
         self.project_id     = data.get("project_id", "")
         self.name           = data.get("name", "")
         self.version_number = data.get("version_number", "")
+        # ── version_type: "release" | "beta" | "alpha"  (FALTABA → siempre era "release")
+        self.version_type   = data.get("version_type", "release")
         self.game_versions  = data.get("game_versions", [])
         self.loaders        = data.get("loaders", [])
         self.files          = data.get("files", [])
         self.date_published = data.get("date_published", "")
+        # ── downloads (FALTABA → siempre era 0)
+        self.downloads      = data.get("downloads", 0)
 
     def get_primary_file(self) -> dict | None:
         for f in self.files:
@@ -73,13 +85,15 @@ class ModrinthVersion:
 
     def to_dict(self):
         return {
-            "version_id":    self.version_id,
-            "project_id":    self.project_id,
-            "name":          self.name,
-            "version_number":self.version_number,
-            "game_versions": self.game_versions,
-            "loaders":       self.loaders,
-            "files":         self.files,
+            "version_id":     self.version_id,
+            "project_id":     self.project_id,
+            "name":           self.name,
+            "version_number": self.version_number,
+            "version_type":   self.version_type,
+            "game_versions":  self.game_versions,
+            "loaders":        self.loaders,
+            "files":          self.files,
+            "downloads":      self.downloads,
         }
 
     def __repr__(self):
@@ -102,7 +116,7 @@ class ModrinthService:
         sort_by: str = "relevance",
         project_type: str = "mod",
         categories: list = None,
-        excluded_cats: list = None,   
+        excluded_cats: list = None,
     ) -> list[ModrinthProject]:
         facets = [[f"project_type:{project_type}"]]
 
@@ -110,16 +124,14 @@ class ModrinthService:
             facets.append([f"versions:{mc_version}"])
         if loader:
             facets.append([f"categories:{loader}"])
-        # Categorías: cada una va como facet OR dentro del mismo sub-array
-        # Ej: ["categories:optimization", "categories:utility"] = OR entre ellas
         if categories:
             facets.append([f"categories:{c.lower()}" for c in categories])
 
         params = {
-            "limit":   limit,
-            "offset":  offset,
-            "index":   sort_by,
-            "facets":  json.dumps(facets),
+            "limit":  limit,
+            "offset": offset,
+            "index":  sort_by,
+            "facets": json.dumps(facets),
         }
         if query:
             params["query"] = query
@@ -131,16 +143,20 @@ class ModrinthService:
 
         projects = [ModrinthProject(hit) for hit in data.get("hits", [])]
         log.info(f"Modrinth: {len(projects)} resultados (type={project_type},"
-                f" sort={sort_by}, offset={offset})")
+                 f" sort={sort_by}, offset={offset})")
         return projects
 
     # ── Proyecto individual ───────────────────────────────────────────────────
     def get_project(self, id_or_slug: str) -> ModrinthProject:
+        """
+        Devuelve el proyecto completo desde GET /project/{id}.
+        Incluye body (descripción larga) y gallery (imágenes).
+        """
         url  = f"{self._base_url}/project/{id_or_slug}"
         data = self._get(url)
         return ModrinthProject(data)
 
-    # ── Lookup por hash SHA1 del archivo ─────────────────────────────────────
+    # ── Lookup por hash SHA1 del archivo ──────────────────────────────────────
     def get_project_by_file_hash(self, file_path: str) -> ModrinthProject | None:
         """
         Dado el path de un archivo local (.jar / .zip), calcula su SHA1
@@ -158,10 +174,8 @@ class ModrinthService:
         try:
             version_data = self._get(url)
         except ModrinthError:
-            # 404 = archivo no registrado en Modrinth (mod manual, fork, etc.)
             return None
 
-        # /version_file devuelve un objeto Version; necesitamos el proyecto
         project_id = version_data.get("project_id", "")
         if not project_id:
             return None
