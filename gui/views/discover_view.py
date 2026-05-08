@@ -1490,8 +1490,7 @@ class ModDetailDialog:
             return ft.Container(
                 width=width, expand=expand,
                 content=ft.Text(label, color=TEXT_DIM, size=9,
-                                weight=ft.FontWeight.BOLD,
-                                letter_spacing=0.5),
+                                weight=ft.FontWeight.BOLD),
             )
 
         table_header = ft.Container(
@@ -1613,7 +1612,7 @@ class ModDetailDialog:
                     ),
                     ft.Container(width=8),
                     ft.Text(title.upper(), color=TEXT_DIM, size=8,
-                            weight=ft.FontWeight.BOLD, letter_spacing=0.6),
+                            weight=ft.FontWeight.BOLD),
                 ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
                 ft.Container(height=10),
                 body,
