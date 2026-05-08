@@ -323,6 +323,21 @@ class DiscoverView:
         self._pagination_container = ft.Container(
             content=self._pagination_row, visible=False)
 
+        # Filtro de versión MC (solo visible en modpacks)
+        self._mcver_filter_dd = ft.Dropdown(
+            prefix_text="MC: ",
+            prefix_style=ft.TextStyle(color=TEXT_SEC, size=12),
+            hint_text="Versión",
+            hint_style=ft.TextStyle(color=TEXT_DIM, size=12),
+            width=160, height=44, color=TEXT_PRI, bgcolor=INPUT_BG,
+            border_color=BORDER, focused_border_color=GREEN,
+            border_radius=8,
+            content_padding=ft.padding.symmetric(horizontal=14, vertical=10),
+            text_style=ft.TextStyle(size=12),
+            visible=False,
+            on_change=self._on_mcver_filter_change,
+        )
+
         # ── Version/loader filter chips ───────────────────────────────────────
         self._filter_chips_row = ft.Row([], spacing=8, visible=False)
 
@@ -372,6 +387,8 @@ class DiscoverView:
                                         self._sort_dd,
                                         ft.Container(width=8),
                                         self._view_dd,
+                                        ft.Container(width=8),
+                                        self._mcver_filter_dd,
                                         ft.Container(expand=True),
                                         self._pagination_container,
                                     ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
