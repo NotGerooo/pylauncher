@@ -899,7 +899,12 @@ class DiscoverView:
                     ft.Text("Installed", color=GREEN, size=11, weight=ft.FontWeight.W_600),
                 ], spacing=0, tight=True),
             )
-        on_click=lambda e, p=proj: (
+        else:
+            install_btn = ft.Container(
+                bgcolor=GREEN, border_radius=8,
+                padding=ft.padding.symmetric(horizontal=14, vertical=7),
+                animate=ft.animation.Animation(120, ft.AnimationCurve.EASE_OUT),
+                on_click=lambda e, p=proj: (
                     self._open_modpack_install(p)
                     if TAB_PROJECT_TYPES[self._tab_index] == "modpack"
                     else self._quick_install(p)
