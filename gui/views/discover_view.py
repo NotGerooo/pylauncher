@@ -449,6 +449,10 @@ class DiscoverView:
                 pass
         self._loading = False
         self._update_instance_header()
+        # Respetar visibilidad según tab actual
+        is_modpack = TAB_PROJECT_TYPES[self._tab_index] == "modpack"
+        self._account_selector_row.visible = not is_modpack
+        self._mcver_filter_dd.visible = is_modpack
         self._load_account_dropdown()
         self._refresh_chips()
         if hasattr(self.app, "sidebar_right"):
