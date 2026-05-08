@@ -517,7 +517,12 @@ class DiscoverView:
         self._tab_index = idx
         self._highlight_tab(idx)
         self._search_field.hint_text = TAB_HINTS[idx]
-        try: self._search_field.update()
+        # Ocultar "Install as" en modpacks
+        is_modpack = TAB_PROJECT_TYPES[idx] == "modpack"
+        self._account_selector_row.visible = not is_modpack
+        try:
+            self._search_field.update()
+            self._account_selector_row.update()
         except Exception: pass
         if hasattr(self.app, "sidebar_right"):
             self.app.sidebar_right.update_tab_filters(TAB_PROJECT_TYPES[idx])
