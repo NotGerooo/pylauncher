@@ -1278,15 +1278,152 @@ class DiscoverView:
                 try:
                     profile = self.app.profile_manager.create_profile(
                         name=name, version_id=mc_ver)
-                    loader  = self._detect_loader(profile)
+
                     version = self.app.modrinth_service.get_latest_version(
-                        project.project_id, mc_version=mc_ver, loader=loader)
-                    if version:
-                        target = getattr(profile, "mods_dir", None)
-                        if target:
-                            os.makedirs(target, exist_ok=True)
-                            self.app.modrinth_service.download_mod_version(
-                                version, target)
+                        project.project_id, mc_version=mc_ver, loader=None)
+
+                    if not version:
+                        raise Exception("No se encontró versión compatible.")
+
+                    # Descargar el .mrpack a un temp
+                    import tempfile, zipfile, json as _json, urllib.request
+
+                    primary = version.get_primary_file() if hasattr(version, "get_primary_file") else None
+                    mrpack_url = primary.get("url", "") if primary else ""
+                    if not mrpack_url:
+                        # Buscar en files
+                        files = getattr(version, "files", []) or []
+                        for f in files:
+                            if f.get("url"):
+                                mrpack_url = f["url"]
+                                break
+
+                    if not mrpack_url:
+                        raise Exception("No se encontró URL del mrpack.")
+
+                    def _status(msg):
+                        def _u():
+                            status_lbl.value = msg
+                            try: status_lbl.update()
+                            except Exception: pass
+                        self.page.run_thread(_u)
+
+                    _status("⬇  Descargando mrpack…")
+
+                    tmp = tempfile.mktemp(suffix=".mrpack")
+                    req = urllib.request.Request(
+                        mrpack_url, headers={"User-Agent": "GerosLauncher/1.0"})
+                    with urllib.request.urlopen(req, timeout=30) as r:
+                        with open(tmp, "wb") as f:
+                            f.write(r.read())
+
+                    # Parsear modrinth.index.json
+                    _status("📦  Procesando mrpack…")
+                    game_dir   = getattr(profile, "game_dir", None)
+                    mods_dir   = getattr(profile, "mods_dir", None)
+
+                    with zipfile.ZipFile(tmp, "r") as zf:
+                        # Leer índice
+                        with zf.open("modrinth.index.json") as idx_f:
+                            index = _json.load(idx_f)
+
+                        # Detectar loader del mrpack
+                        deps = index.get("dependencies", {})
+                        detected_loader = None
+                        loader_version  = None
+                        for key in ("fabric-loader", "forge", "neoforge", "quilt-loader"):
+                            if key in deps:
+                                detected_loader = key.replace("-loader", "")
+                                loader_version  = deps[key]
+                                break
+
+                        mc_version_real = deps.get("minecraft", mc_ver)
+
+                        # Guardar loader_meta.json en game_dir
+                        if detected_loader and game_dir:
+                            os.makedirs(game_dir, exist_ok=True)
+                            meta_path = os.path.join(game_dir, "loader_meta.json")
+                            with open(meta_path, "w") as mf:
+                                _json.dump([{
+                                    "loader_type":    detected_loader,
+                                    "loader_version": loader_version or "",
+                                    "mc_version":     mc_version_real,
+                                }], mf, indent=2)
+
+                        # Descargar archivos listados en el índice
+                        file_list = index.get("files", [])
+                        total     = len(file_list)
+                        for i, entry in enumerate(file_list, 1):
+                            fpath    = entry.get("path", "")
+                            downloads = entry.get("downloads", [])
+                            if not downloads or not fpath:
+                                continue
+
+                            dest = os.path.join(game_dir, fpath) if game_dir else None
+                            if not dest:
+                                continue
+
+                            os.makedirs(os.path.dirname(dest), exist_ok=True)
+                            _status(f"⬇  Descargando {i}/{total}: {os.path.basename(fpath)}")
+
+                            for dl_url in downloads:
+                                try:
+                                    req2 = urllib.request.Request(
+                                        dl_url,
+                                        headers={"User-Agent": "GerosLauncher/1.0"})
+                                    with urllib.request.urlopen(req2, timeout=20) as r2:
+                                        with open(dest, "wb") as df:
+                                            df.write(r2.read())
+                                    break
+                                except Exception:
+                                    continue
+
+                        # Extraer overrides/ al game_dir
+                        for member in zf.namelist():
+                            if member.startswith("overrides/") and game_dir:
+                                rel = member[len("overrides/"):]
+                                if not rel:
+                                    continue
+                                out_path = os.path.join(game_dir, rel)
+                                if member.endswith("/"):
+                                    os.makedirs(out_path, exist_ok=True)
+                                else:
+                                    os.makedirs(
+                                        os.path.dirname(out_path), exist_ok=True)
+                                    with zf.open(member) as src, \
+                                         open(out_path, "wb") as dst:
+                                        dst.write(src.read())
+
+                    # Limpiar temp
+                    try: os.remove(tmp)
+                    except Exception: pass
+
+                    def done():
+                        status_lbl.value     = "✓  Modpack instalado correctamente"
+                        progress.visible     = False
+                        btn_install.disabled = False
+                        try:
+                            status_lbl.update()
+                            progress.update()
+                            btn_install.update()
+                        except Exception: pass
+                        self.app.snack(
+                            f"'{name}' instalado con {project.title} ✓")
+                        self.app._sidebar_left.refresh_instances()
+                        self.page.close(dlg)
+                    self.page.run_thread(done)
+
+                except Exception as err:
+                    def _e(err=err):
+                        status_lbl.value     = f"✗  Error: {err}"
+                        progress.visible     = False
+                        btn_install.disabled = False
+                        try:
+                            status_lbl.update()
+                            progress.update()
+                            btn_install.update()
+                        except Exception: pass
+                    self.page.run_thread(_e)
 
                     def done():
                         status_lbl.value     = "✓  Instancia creada correctamente"
