@@ -496,12 +496,13 @@ class DiscoverView:
             except Exception: pass
             return
 
+        is_modpack = TAB_PROJECT_TYPES[self._tab_index] == "modpack"
         mc_ver = getattr(profile, "version_id", None)
         loader = self._detect_loader(profile)
         chips  = []
-        if mc_ver:
+        if mc_ver and not is_modpack:
             chips.append(self._filter_chip(ft.icons.LOCK_OUTLINE_ROUNDED, mc_ver))
-        if loader:
+        if loader and not is_modpack:
             chips.append(self._filter_chip(ft.icons.LOCK_OUTLINE_ROUNDED,
                                            loader.capitalize()))
         self._filter_chips_row.controls.clear()
