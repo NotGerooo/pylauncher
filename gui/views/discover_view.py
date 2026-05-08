@@ -1186,19 +1186,50 @@ class DiscoverView:
         self._do_search(reset=True)
 
     def _open_modpack_install(self, project):
-        # Versiones disponibles del modpack
-        _game_versions = getattr(project, "game_versions", []) or []
-
         mc_ver_dd = ft.Dropdown(
             label="Versión de Minecraft",
-            options=[ft.dropdown.Option(v, v) for v in _game_versions],
-            value=_game_versions[0] if _game_versions else None,
+            hint_text="Cargando versiones…",
+            hint_style=ft.TextStyle(color=TEXT_DIM, size=12),
+            options=[],
             color=TEXT_PRI, bgcolor=INPUT_BG,
             border_color=BORDER, focused_border_color=GREEN,
             border_radius=8, height=44,
             content_padding=ft.padding.symmetric(horizontal=14, vertical=10),
             text_style=ft.TextStyle(size=12),
+            disabled=True,
         )
+
+        def _load_versions():
+            try:
+                versions = self.app.modrinth_service.get_project_versions(
+                    project.project_id,
+                    mc_version=None,
+                    loader=None,
+                )
+                # Extraer game_versions únicas manteniendo orden
+                seen = []
+                for v in versions:
+                    for gv in (v.game_versions or []):
+                        if gv not in seen:
+                            seen.append(gv)
+
+                def update():
+                    mc_ver_dd.options  = [ft.dropdown.Option(v, v) for v in seen]
+                    mc_ver_dd.value    = seen[0] if seen else None
+                    mc_ver_dd.disabled = not seen
+                    mc_ver_dd.hint_text = None
+                    try: mc_ver_dd.update()
+                    except Exception: pass
+                self.page.run_thread(update)
+            except Exception as err:
+                def _e():
+                    mc_ver_dd.hint_text = f"Error: {err}"
+                    mc_ver_dd.disabled  = False
+                    try: mc_ver_dd.update()
+                    except Exception: pass
+                self.page.run_thread(_e)
+
+        threading.Thread(target=_load_versions, daemon=True).start()
         name_field = ft.TextField(
             label="Nombre de la instancia",
             hint_text=project.title,
