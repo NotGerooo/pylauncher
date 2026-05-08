@@ -4,9 +4,10 @@ Shell principal: titlebar, sidebar izquierdo, área de contenido, sidebar derech
 """
 import json
 import threading
-from pathlib import Path
-
+import ctypes
+import sys
 import flet as ft
+from pathlib import Path
 
 from config.settings          import Settings
 from core.launcher            import LauncherEngine
@@ -75,9 +76,6 @@ class App:
         self._check_updates()
 
         log.info("Interfaz iniciada — v%s", self.version)
-
-    import ctypes
-    import sys
 
     def _fix_taskbar_icon():
         """Fuerza a Windows a usar el ícono correcto en la taskbar."""
