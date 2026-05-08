@@ -1136,10 +1136,155 @@ class DiscoverView:
         self._installed_set = build_installed_set(self._target_dir(profile))
         self._refresh_badges()
 
+    def _load_mcver_filter(self):
+        def do():
+            try:
+                versions = self.app.modrinth_service.get_minecraft_versions()
+                options  = (
+                    [ft.dropdown.Option("", "Todas")] +
+                    [ft.dropdown.Option(v, v) for v in versions[:30]]
+                )
+                def update():
+                    self._mcver_filter_dd.options = options
+                    if not self._mcver_filter_dd.value:
+                        profile = self._source_profile
+                        mc_ver  = getattr(profile, "version_id", None) if profile else None
+                        self._mcver_filter_dd.value = mc_ver or ""
+                    try: self._mcver_filter_dd.update()
+                    except Exception: pass
+                self.page.run_thread(update)
+            except Exception:
+                pass
+        threading.Thread(target=do, daemon=True).start()
+
+    def _on_mcver_filter_change(self, e):
+        self._do_search(reset=True)
+
+    def _open_modpack_install(self, project):
+        mc_ver_field = ft.TextField(
+            label="Versión de Minecraft",
+            hint_text="ej: 1.21.1",
+            value=getattr(project, "game_versions", [""])[0]
+                  if getattr(project, "game_versions", []) else "",
+            color=TEXT_PRI, bgcolor=INPUT_BG,
+            border_color=BORDER, focused_border_color=GREEN,
+            border_radius=8, height=44, text_size=12,
+        )
+        name_field = ft.TextField(
+            label="Nombre de la instancia",
+            hint_text=project.title,
+            value=project.title,
+            color=TEXT_PRI, bgcolor=INPUT_BG,
+            border_color=BORDER, focused_border_color=GREEN,
+            border_radius=8, height=44, text_size=12,
+        )
+        status_lbl = ft.Text("", color=TEXT_DIM, size=11)
+        progress   = ft.ProgressBar(width=400, visible=False, color=GREEN)
+
+        def _do_install(e):
+            name   = name_field.value.strip() or project.title
+            mc_ver = mc_ver_field.value.strip()
+            if not mc_ver:
+                status_lbl.value = "⚠  Ingresa una versión de Minecraft."
+                try: status_lbl.update()
+                except Exception: pass
+                return
+
+            btn_install.disabled = True
+            progress.visible     = True
+            status_lbl.value     = "⬇  Creando instancia…"
+            try:
+                btn_install.update()
+                progress.update()
+                status_lbl.update()
+            except Exception:
+                pass
+
+            def do():
+                try:
+                    profile = self.app.profile_manager.create_profile(
+                        name=name, version_id=mc_ver)
+                    loader  = self._detect_loader(profile)
+                    version = self.app.modrinth_service.get_latest_version(
+                        project.project_id, mc_version=mc_ver, loader=loader)
+                    if version:
+                        target = getattr(profile, "mods_dir", None)
+                        if target:
+                            os.makedirs(target, exist_ok=True)
+                            self.app.modrinth_service.download_mod_version(
+                                version, target)
+
+                    def done():
+                        status_lbl.value     = "✓  Instancia creada correctamente"
+                        progress.visible     = False
+                        btn_install.disabled = False
+                        try:
+                            status_lbl.update()
+                            progress.update()
+                            btn_install.update()
+                        except Exception: pass
+                        self.app.snack(f"Instancia '{name}' creada con {project.title} ✓")
+                        self.app._sidebar_left.refresh_instances()
+                        self.page.close(dlg)
+                    self.page.run_thread(done)
+
+                except Exception as err:
+                    def _e(err=err):
+                        status_lbl.value     = f"✗  Error: {err}"
+                        progress.visible     = False
+                        btn_install.disabled = False
+                        try:
+                            status_lbl.update()
+                            progress.update()
+                            btn_install.update()
+                        except Exception: pass
+                    self.page.run_thread(_e)
+
+            threading.Thread(target=do, daemon=True).start()
+
+        btn_install = ft.ElevatedButton(
+            "Crear instancia", bgcolor=GREEN, color=TEXT_INV,
+            icon=ft.icons.ADD_ROUNDED,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8), elevation=0),
+            on_click=_do_install,
+        )
+
+        dlg = ft.AlertDialog(
+            bgcolor=CARD_BG,
+            shape=ft.RoundedRectangleBorder(radius=14),
+            title=ft.Row([
+                ft.Icon(ft.icons.INVENTORY_2_ROUNDED, color=GREEN, size=18),
+                ft.Container(width=8),
+                ft.Text("Instalar modpack", color=TEXT_PRI, size=14,
+                        weight=ft.FontWeight.W_600),
+            ], spacing=0, tight=True),
+            content=ft.Container(
+                width=400,
+                content=ft.Column([
+                    ft.Text(project.title, color=TEXT_SEC, size=12),
+                    ft.Container(height=16),
+                    name_field,
+                    ft.Container(height=10),
+                    mc_ver_field,
+                    ft.Container(height=10),
+                    progress,
+                    status_lbl,
+                ], spacing=0, tight=True),
+            ),
+            actions=[
+                ft.TextButton("Cancelar",
+                    style=ft.ButtonStyle(color=TEXT_SEC),
+                    on_click=lambda e: self.page.close(dlg)),
+                btn_install,
+            ],
+            actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+        )
+        self.page.open(dlg)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  Stat pill helper  (keep outside class so _build can call it)
+#  Stat pill helper
 # ══════════════════════════════════════════════════════════════════════════════
 def _stat_pill(icon, value: str, tooltip: str) -> ft.Container:
     return ft.Container(
