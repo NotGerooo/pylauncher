@@ -24,16 +24,13 @@ import flet as ft
 from gui.theme import (
     CARD_BG, CARD2_BG, INPUT_BG, BORDER, BORDER_BRIGHT,
     GREEN, GREEN_DIM, TEXT_PRI, TEXT_SEC, TEXT_DIM, TEXT_INV,
+ROW_SELECTED, ROW_HOVER_INCOMPATIBLE,
 )
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 _IMG_CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "cache", "images")
 os.makedirs(_IMG_CACHE_DIR, exist_ok=True)
-
-
-except Exception:
-        return url
 
 
 def _human(n: int) -> str:
