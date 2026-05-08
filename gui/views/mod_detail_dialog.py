@@ -579,6 +579,29 @@ class ModDetailDialog:
 
     # ── Botón instalar rápido (header) ────────────────────────────────────────
     def _make_install_btn(self) -> ft.Container:
+        already = False
+        if self.target_dir:
+            from utils.install_detector import build_installed_set, is_installed_in
+            s = build_installed_set(self.target_dir)
+            already = is_installed_in(
+                getattr(self.project, "slug", ""),
+                self.project.title, s,
+            )
+
+        if already:
+            return ft.Container(
+                bgcolor="transparent",
+                border=ft.border.all(1.5, GREEN),
+                border_radius=9,
+                padding=ft.padding.symmetric(horizontal=22, vertical=11),
+                content=ft.Row([
+                    ft.Icon(ft.icons.CHECK_ROUNDED, size=16, color=GREEN),
+                    ft.Container(width=8),
+                    ft.Text("Instalado", color=GREEN, size=13,
+                            weight=ft.FontWeight.W_700),
+                ], spacing=0, tight=True),
+            )
+
         btn = ft.Container(
             bgcolor=GREEN, border_radius=9,
             padding=ft.padding.symmetric(horizontal=22, vertical=11),
@@ -601,7 +624,8 @@ class ModDetailDialog:
             or setattr(b, "shadow", [ft.BoxShadow(
                 spread_radius=0,
                 blur_radius=18 if e.data == "true" else 12,
-                color=ft.colors.with_opacity(0.5 if e.data == "true" else 0.35, GREEN),
+                color=ft.colors.with_opacity(
+                    0.5 if e.data == "true" else 0.35, GREEN),
                 offset=ft.Offset(0, 4),
             )])
             or b.update()
