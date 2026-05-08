@@ -76,6 +76,20 @@ class App:
 
         log.info("Interfaz iniciada — v%s", self.version)
 
+    import ctypes
+    import sys
+
+    def _fix_taskbar_icon():
+        """Fuerza a Windows a usar el ícono correcto en la taskbar."""
+        if sys.platform == "win32":
+            try:
+                # Necesario para ventanas frameless con Flet
+                import ctypes.wintypes
+                hwnd = ctypes.windll.user32.GetForegroundWindow()
+                ctypes.windll.user32.SendMessageW(hwnd, 0x0080, 1, 0)  # WM_SETICON
+            except Exception:
+                pass
+
     # ── Configuración de la ventana ───────────────────────────────────────
     def _setup_page(self):
         p = self.page
