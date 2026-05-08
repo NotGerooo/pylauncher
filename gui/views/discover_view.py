@@ -535,12 +535,12 @@ class DiscoverView:
         self._tab_index = idx
         self._highlight_tab(idx)
         self._search_field.hint_text = TAB_HINTS[idx]
-        # Ocultar "Install as" en modpacks, mostrar filtro MC
         is_modpack = TAB_PROJECT_TYPES[idx] == "modpack"
         self._account_selector_row.visible = not is_modpack
         self._mcver_filter_dd.visible = is_modpack
         if is_modpack:
             self._load_mcver_filter()
+        self._refresh_chips()   # <-- AÑADE ESTA LÍNEA
         try:
             self._search_field.update()
             self._account_selector_row.update()
@@ -671,6 +671,14 @@ class DiscoverView:
         excluded_cats  = sidebar_filters.get("excluded_cats", [])
         hide_installed = sidebar_filters.get("hide_installed", False)
         loader_override= sidebar_filters.get("loader")
+
+        # En modpacks usar el filtro de versión del dropdown, ignorar la del perfil
+        if project_type == "modpack":
+            filter_val = getattr(self._mcver_filter_dd, "value", None)
+            if filter_val:
+                mc_ver = filter_val
+            else:
+                mc_ver = None  # Sin filtro = todas las versiones
 
         loader = loader_override if loader_override else (
             self._detect_loader(profile)
