@@ -475,10 +475,43 @@ class SettingsView:
             pass
 
     def _set_theme(self, tid: str):
+        if self.app.settings._data.get("theme") == tid:
+            return
         self.app.settings._data["theme"] = tid
         self.app.settings._save()
         # Refrescar pestaña appearance para actualizar las tarjetas
         self._load_tab("appearance")
+        self._prompt_restart()
+
+    def _prompt_restart(self):
+        """Pide reiniciar el launcher para aplicar el nuevo tema."""
+        from utils.app_restart import restart_app
+
+        dlg = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Reiniciar para aplicar el tema", color=TEXT_PRI, size=13, weight="bold"),
+            content=ft.Text(
+                "El nuevo tema se aplica al reiniciar el launcher. ¿Querés reiniciar ahora?",
+                color=TEXT_SEC, size=12,
+            ),
+            bgcolor=CARD_BG,
+            shape=ft.RoundedRectangleBorder(radius=14),
+            actions=[
+                ft.TextButton(
+                    "Más tarde",
+                    style=ft.ButtonStyle(color=TEXT_SEC),
+                    on_click=lambda _: self.page.close(dlg),
+                ),
+                ft.ElevatedButton(
+                    "Reiniciar ahora",
+                    bgcolor=GREEN, color=TEXT_INV,
+                    style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
+                    on_click=lambda _: restart_app(),
+                ),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        self.page.open(dlg)
 
     def on_show(self):
         s = self.app.settings
