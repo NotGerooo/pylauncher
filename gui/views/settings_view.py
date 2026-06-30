@@ -7,6 +7,7 @@ import flet as ft
 
 from gui.theme import (
     BG, CARD_BG, CARD2_BG, INPUT_BG, BORDER,
+    SIDEBAR_BG, NAV_ACTIVE, NAV_HOVER, ACCENT_RED,
     GREEN, TEXT_PRI, TEXT_SEC, TEXT_DIM, TEXT_INV,
 )
 from utils.logger import get_logger
@@ -14,11 +15,13 @@ from utils.logger import get_logger
 log = get_logger()
 
 # ── Colores internos del modal ──────────────────────────────────────────────
-_MODAL_BG   = "#18181b"
-_SIDEBAR_BG = "#111113"
-_HOVER_BG   = "#27272a"
-_ACTIVE_BG  = "#1a2520"
-_CODE_BG    = "#0d0d0f"
+# Antes estos 5 estaban fijos en dark (por eso Settings no cambiaba de
+# color al elegir Light/OLED). Ahora salen del tema activo.
+_MODAL_BG   = CARD_BG
+_SIDEBAR_BG = SIDEBAR_BG
+_HOVER_BG   = NAV_HOVER
+_ACTIVE_BG  = NAV_ACTIVE
+_CODE_BG    = INPUT_BG
 
 
 class SettingsView:
@@ -506,7 +509,7 @@ class SettingsView:
                     "Reiniciar ahora",
                     bgcolor=GREEN, color=TEXT_INV,
                     style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
-                    on_click=lambda _: restart_app(),
+                    on_click=lambda _: restart_app(self.page),
                 ),
             ],
             actions_alignment=ft.MainAxisAlignment.END,
@@ -536,7 +539,7 @@ class SettingsView:
             info = self.app.java_manager.get_java_info()
             if info.get("error"):
                 self._java_status.value = f"⚠  {info['error']}"
-                self._java_status.color = "#ff6b6b"
+                self._java_status.color = ACCENT_RED
             else:
                 self._java_status.value = f"✓  {info['path']}  (Java {info['version']}, fuente: {info['source']})"
                 self._java_status.color = GREEN
@@ -545,7 +548,7 @@ class SettingsView:
                 except Exception: pass
         except Exception as err:
             self._java_status.value = f"Error: {err}"
-            self._java_status.color = "#ff6b6b"
+            self._java_status.color = ACCENT_RED
         try: self._java_status.update()
         except Exception: pass
 
