@@ -563,7 +563,11 @@ class InstanceView:
                 log.warning(f"No se pudo comprobar dependencias faltantes: {ex}")
                 missing_deps = []
 
-            if conflicts or missing_deps:
+            natives_status = self.app.version_manager.check_natives_status(
+                self.profile.version_id
+            )
+
+            if conflicts or missing_deps or not natives_status.get("ok", True):
                 def show_dialog() -> None:
                     self._set_play_status("Play", disabled=False)
                     show_pre_launch_conflict_dialog(
@@ -577,6 +581,7 @@ class InstanceView:
                         on_ignore=lambda: self._start_launch(username),
                         missing_deps=missing_deps,
                         loader=detected_loader,
+                        natives_status=natives_status,
                     )
                 self.page.run_thread(show_dialog)
                 return
