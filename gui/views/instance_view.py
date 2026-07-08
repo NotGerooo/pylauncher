@@ -552,9 +552,12 @@ class InstanceView:
                 log.warning(f"No se pudo comprobar conflictos de mods: {ex}")
                 conflicts = []
 
+            detected_loader = _read_loader(self.profile.game_dir)
             try:
                 missing_deps = self.app.modrinth_service.check_missing_required_dependencies(
-                    mods_dir, mc_version=self.profile.version_id
+                    mods_dir,
+                    mc_version=self.profile.version_id,
+                    loader=detected_loader,
                 )
             except Exception as ex:
                 log.warning(f"No se pudo comprobar dependencias faltantes: {ex}")
@@ -573,6 +576,7 @@ class InstanceView:
                         ),
                         on_ignore=lambda: self._start_launch(username),
                         missing_deps=missing_deps,
+                        loader=detected_loader,
                     )
                 self.page.run_thread(show_dialog)
                 return
