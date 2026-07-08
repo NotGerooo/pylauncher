@@ -382,56 +382,117 @@ class LauncherEngine:
 
     def _build_classpath(self, version_id: str, version_data: dict) -> str:
         separator = ";" if os.name == "nt" else ":"
-        paths = []
-        seen = set()
 
-        # Extra classpaths de Fabric/Quilt (rutas absolutas directas)
+        # ── Paso 1: juntar TODAS las libs candidatas en una sola lista ──
+        # Cada candidata guarda: clave (grupo:nombre), version, ruta_absoluta
+        candidates = []
+
+        # 1a. Extra classpaths de Fabric/Quilt (rutas absolutas directas)
         for extra_path in version_data.get("__extra_classpaths__", []):
-            if extra_path not in seen and os.path.isfile(extra_path):
-                paths.append(extra_path)
-                seen.add(extra_path)
+            if os.path.isfile(extra_path):
+                filename = os.path.basename(extra_path)
+                key, version = self._parse_lib_filename(filename)
+                candidates.append((key, version, extra_path))
 
+        # 1b. Libs normales (vanilla / loader con downloads.artifact.path)
         for lib in version_data.get("libraries", []):
-            # Libs extras inyectadas por _resolve_fabric_like (ya en __extra_classpaths__)
             if lib.get("name", "").startswith("__extra__:"):
                 continue
 
+            name = lib.get("name", "")
             artifact = lib.get("downloads", {}).get("artifact", {})
             path = artifact.get("path", "")
 
+            # Si no viene el path directo, lo reconstruimos desde el "name"
+            if not path and name:
+                parts = name.split(":")
+                if len(parts) >= 3:
+                    group, artifact_id, version = parts[0], parts[1], parts[2]
+                    group_path = group.replace(".", "/")
+                    path = f"{group_path}/{artifact_id}/{version}/{artifact_id}-{version}.jar"
+
             if not path:
-                name = lib.get("name", "")
-                if name:
-                    parts = name.split(":")
-                    if len(parts) >= 3:
-                        group       = parts[0].replace(".", "/")
-                        artifact_id = parts[1]
-                        version     = parts[2]
-                        path = (
-                            f"{group}/{artifact_id}/{version}"
-                            f"/{artifact_id}-{version}.jar"
-                        )
-
-            if not path or path in seen:
                 continue
-            seen.add(path)
 
-            lib_path = os.path.join(
-                self._settings.libraries_dir, *path.split("/")
-            )
-            if os.path.isfile(lib_path):
-                paths.append(lib_path)
-            else:
+            lib_path = os.path.join(self._settings.libraries_dir, *path.split("/"))
+            if not os.path.isfile(lib_path):
                 log.debug(f"Librería no encontrada: {lib_path}")
+                continue
 
+            # Clave = "grupo:nombre" (sin versión), para poder comparar
+            if name:
+                parts = name.split(":")
+                key = f"{parts[0]}:{parts[1]}" if len(parts) >= 2 else name
+                version = parts[2] if len(parts) >= 3 else ""
+            else:
+                key, version = self._parse_lib_filename(os.path.basename(lib_path))
+
+            candidates.append((key, version, lib_path))
+
+        # ── Paso 2: quedarnos con la versión más nueva por cada "key" ──
+        best_by_key = {}
+        for key, version, path in candidates:
+            if key not in best_by_key:
+                best_by_key[key] = (version, path)
+            else:
+                current_version, _ = best_by_key[key]
+                if self._compare_versions(version, current_version) > 0:
+                    log.debug(f"Conflicto de versiones en '{key}': "
+                            f"{current_version} -> {version} (se usa la más nueva)")
+                    best_by_key[key] = (version, path)
+
+        paths = [path for (_, path) in best_by_key.values()]
+
+        # ── Paso 3: agregar el jar del cliente al final ──
         client_jar = self._resolve_client_jar(version_id)
-        if client_jar not in seen:
+        if client_jar not in paths:
             paths.append(client_jar)
 
-        log.debug(f"Classpath con {len(paths)} entradas")
+        log.debug(f"Classpath con {len(paths)} entradas (deduplicado por librería)")
         return separator.join(paths)
 
-    # ── Ejecución del proceso ─────────────────────────────────────────────────
+    def _parse_lib_filename(self, filename: str) -> tuple[str, str]:
+        """
+        Intenta sacar (key, version) de un nombre de archivo tipo:
+        'asm-9.10.1.jar' -> ('asm', '9.10.1')
+        Si no puede parsearlo, usa el filename completo como key única
+        (así nunca choca con nada más).
+        """
+        import re
+        name = filename[:-4] if filename.endswith(".jar") else filename
+        match = re.match(r"^(.+?)-(\d+(?:\.\d+)*.*)$", name)
+        if match:
+            return match.group(1), match.group(2)
+        return filename, "0"
+
+    def _compare_versions(self, v1: str, v2: str) -> int:
+        """
+        Compara dos strings de versión tipo '9.10.1' vs '9.6'.
+        Devuelve: 1 si v1 > v2, -1 si v1 < v2, 0 si son iguales.
+        Ignora sufijos no numéricos (ej: '1.2.3-beta' se compara como '1.2.3').
+        """
+        def normalize(v):
+            parts = []
+            for chunk in v.split("."):
+                digits = ""
+                for ch in chunk:
+                    if ch.isdigit():
+                        digits += ch
+                    else:
+                        break
+                parts.append(int(digits) if digits else 0)
+            return parts
+
+        n1, n2 = normalize(v1), normalize(v2)
+        max_len = max(len(n1), len(n2))
+        n1 += [0] * (max_len - len(n1))
+        n2 += [0] * (max_len - len(n2))
+
+        if n1 > n2:
+            return 1
+        elif n1 < n2:
+            return -1
+        return 0    
 
     def _start_process(self, command, working_dir, on_output=None):
         os.makedirs(working_dir, exist_ok=True)
