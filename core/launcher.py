@@ -383,15 +383,12 @@ class LauncherEngine:
     def _build_classpath(self, version_id: str, version_data: dict) -> str:
         separator = ";" if os.name == "nt" else ":"
 
-        # ── Paso 1: juntar TODAS las libs candidatas en una sola lista ──
-        # Cada candidata guarda: clave (grupo:nombre), version, ruta_absoluta
         candidates = []
 
         # 1a. Extra classpaths de Fabric/Quilt (rutas absolutas directas)
         for extra_path in version_data.get("__extra_classpaths__", []):
             if os.path.isfile(extra_path):
-                filename = os.path.basename(extra_path)
-                key, version = self._parse_lib_filename(filename)
+                key, version = self._parse_lib_path(extra_path)
                 candidates.append((key, version, extra_path))
 
         # 1b. Libs normales (vanilla / loader con downloads.artifact.path)
@@ -403,7 +400,6 @@ class LauncherEngine:
             artifact = lib.get("downloads", {}).get("artifact", {})
             path = artifact.get("path", "")
 
-            # Si no viene el path directo, lo reconstruimos desde el "name"
             if not path and name:
                 parts = name.split(":")
                 if len(parts) >= 3:
@@ -419,17 +415,16 @@ class LauncherEngine:
                 log.debug(f"Librería no encontrada: {lib_path}")
                 continue
 
-            # Clave = "grupo:nombre" (sin versión), para poder comparar
             if name:
                 parts = name.split(":")
                 key = f"{parts[0]}:{parts[1]}" if len(parts) >= 2 else name
                 version = parts[2] if len(parts) >= 3 else ""
             else:
-                key, version = self._parse_lib_filename(os.path.basename(lib_path))
+                key, version = self._parse_lib_path(lib_path)
 
             candidates.append((key, version, lib_path))
 
-        # ── Paso 2: quedarnos con la versión más nueva por cada "key" ──
+        # Paso 2: quedarnos con la versión más nueva por cada "key"
         best_by_key = {}
         for key, version, path in candidates:
             if key not in best_by_key:
@@ -443,7 +438,6 @@ class LauncherEngine:
 
         paths = [path for (_, path) in best_by_key.values()]
 
-        # ── Paso 3: agregar el jar del cliente al final ──
         client_jar = self._resolve_client_jar(version_id)
         if client_jar not in paths:
             paths.append(client_jar)
@@ -451,14 +445,35 @@ class LauncherEngine:
         log.debug(f"Classpath con {len(paths)} entradas (deduplicado por librería)")
         return separator.join(paths)
 
-    def _parse_lib_filename(self, filename: str) -> tuple[str, str]:
+    def _parse_lib_path(self, abs_path: str) -> tuple[str, str]:
         """
-        Intenta sacar (key, version) de un nombre de archivo tipo:
-        'asm-9.10.1.jar' -> ('asm', '9.10.1')
-        Si no puede parsearlo, usa el filename completo como key única
-        (así nunca choca con nada más).
+        Saca (key, version) de una ruta de archivo usando la estructura
+        de carpetas estilo Maven: .../grupo/con/puntos/artefacto/version/archivo.jar
+
+        Ejemplo:
+        C:\\...\\libraries\\org\\ow2\\asm\\asm\\9.10.1\\asm-9.10.1.jar
+        -> key = "org.ow2.asm:asm", version = "9.10.1"
+
+        Si la ruta no tiene esa estructura (menos de 3 carpetas), usa el
+        nombre del archivo como clave única (no se compara con nada más).
         """
         import re
+
+        norm_path = abs_path.replace("\\", "/")
+        libs_dir_norm = self._settings.libraries_dir.replace("\\", "/").rstrip("/")
+
+        if norm_path.startswith(libs_dir_norm):
+            rel = norm_path[len(libs_dir_norm):].strip("/")
+            parts = rel.split("/")
+            # parts = [..grupo.., artefacto, version, archivo.jar]
+            if len(parts) >= 4:
+                group = ".".join(parts[:-3])
+                artifact_id = parts[-3]
+                version = parts[-2]
+                return f"{group}:{artifact_id}", version
+
+        # Fallback: no sigue estructura Maven, usar nombre de archivo
+        filename = os.path.basename(abs_path)
         name = filename[:-4] if filename.endswith(".jar") else filename
         match = re.match(r"^(.+?)-(\d+(?:\.\d+)*.*)$", name)
         if match:
@@ -469,7 +484,6 @@ class LauncherEngine:
         """
         Compara dos strings de versión tipo '9.10.1' vs '9.6'.
         Devuelve: 1 si v1 > v2, -1 si v1 < v2, 0 si son iguales.
-        Ignora sufijos no numéricos (ej: '1.2.3-beta' se compara como '1.2.3').
         """
         def normalize(v):
             parts = []
@@ -492,7 +506,7 @@ class LauncherEngine:
             return 1
         elif n1 < n2:
             return -1
-        return 0    
+        return 0
 
     def _start_process(self, command, working_dir, on_output=None):
         os.makedirs(working_dir, exist_ok=True)
