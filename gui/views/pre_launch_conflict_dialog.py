@@ -42,9 +42,10 @@ def show_pre_launch_conflict_dialog(
     on_ignore,
     missing_deps: list[dict] = None,
     loader: str = None,
+    natives_status: dict = None,
 ):
     missing_deps = missing_deps or []
-
+    natives_status = natives_status or {"ok": True, "missing_jars": []}
     """
     conflicts: salida de ModrinthService.check_installed_conflicts()
     on_resolved: callback llamado cuando el usuario resuelve TODOS los
