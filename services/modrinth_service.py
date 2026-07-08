@@ -343,6 +343,74 @@ class ModrinthService:
 
         return conflicts
 
+    def check_missing_required_dependencies(
+        self,
+        mods_dir: str,
+        mc_version: str = None,
+        loader: str = None,
+    ) -> list[dict]:
+        """
+        Revisa los mods instalados y busca dependencias "required" que
+        NO estén instaladas. Devuelve una lista de dicts:
+        {
+            "mod":               ModrinthProject,   # el mod que pide la dependencia
+            "missing_project_id": str,               # id de la dependencia faltante
+            "missing_project":    ModrinthProject | None,  # info de la dependencia (con icono)
+        }
+        """
+        installed = self.get_installed_projects(mods_dir)
+        if not installed:
+            return []
+
+        installed_ids = {p.project_id for p in installed}
+        id_to_project = {p.project_id: p for p in installed}
+
+        # Sacar la versión instalada de cada mod (para leer sus dependencies)
+        id_to_version: dict[str, "ModrinthVersion"] = {}
+        for filename in os.listdir(mods_dir):
+            if not filename.lower().endswith((".jar", ".jar.disabled")):
+                continue
+            full_path = os.path.join(mods_dir, filename)
+            if not os.path.isfile(full_path):
+                continue
+            try:
+                sha1 = self._sha1(full_path)
+                url = f"{self._base_url}/version_file/{sha1}"
+                vdata = self._get(url)
+                version = ModrinthVersion(vdata)
+                id_to_version[version.project_id] = version
+            except Exception:
+                continue
+
+        missing: list[dict] = []
+        seen_pairs = set()
+
+        for pid, version in id_to_version.items():
+            for dep in version.dependencies:
+                if dep.get("dependency_type") != "required":
+                    continue
+                dep_id = dep.get("project_id")
+                if not dep_id or dep_id in installed_ids:
+                    continue  # ya está instalado, todo bien
+
+                pair_key = (pid, dep_id)
+                if pair_key in seen_pairs:
+                    continue
+                seen_pairs.add(pair_key)
+
+                try:
+                    dep_project = self.get_project(dep_id)
+                except Exception:
+                    dep_project = None
+
+                missing.append({
+                    "mod":                id_to_project.get(pid),
+                    "missing_project_id": dep_id,
+                    "missing_project":    dep_project,
+                })
+
+        return missing
+
     # ── Descarga ──────────────────────────────────────────────────────────────
     def download_mod_version(
         self,
