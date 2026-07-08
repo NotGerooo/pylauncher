@@ -309,6 +309,96 @@ def show_pre_launch_conflict_dialog(
 
                 threading.Thread(target=do, daemon=True).start()
 
+            parent_wrong = item.get("parent_wrong_loader", False)
+
+            if parent_wrong:
+                # El problema real es que el mod PADRE (mod_a) no es la
+                # versión correcta para este loader — no tiene sentido
+                # ofrecer instalar la dependencia, hay que arreglar el padre.
+                def _fix_parent(e, mod_ref=mod, status=status_txt):
+                    status.value = "Buscando versión correcta…"
+                    status.color = TEXT_DIM
+                    try: status.update()
+                    except Exception: pass
+
+                    def do():
+                        try:
+                            version = app.modrinth_service.get_latest_version(
+                                mod_ref.project_id,
+                                mc_version=getattr(profile, "version_id", None),
+                                loader=loader,
+                            )
+                            if not version:
+                                def notfound():
+                                    status.value = f"✗ No hay versión de {loader} para {mod_ref.title}"
+                                    status.color = ACCENT_RED
+                                    try: status.update()
+                                    except Exception: pass
+                                page.run_thread(notfound)
+                                return
+
+                            # Borrar la versión incorrecta antes de instalar la nueva
+                            for filename in os.listdir(mods_dir):
+                                full = os.path.join(mods_dir, filename)
+                                if not os.path.isfile(full):
+                                    continue
+                                existing = app.modrinth_service.get_project_by_file_hash(full)
+                                if existing and existing.project_id == mod_ref.project_id:
+                                    os.remove(full)
+
+                            app.modrinth_service.download_mod_version(version, mods_dir)
+
+                            def done():
+                                status.value = f"✓ {mod_ref.title} corregido ({version.version_number})"
+                                status.color = GREEN
+                                try: status.update()
+                                except Exception: pass
+                            page.run_thread(done)
+                        except Exception as ex:
+                            def err(ex=ex):
+                                status.value = f"Error: {ex}"
+                                status.color = ACCENT_RED
+                                try: status.update()
+                                except Exception: pass
+                            page.run_thread(err)
+
+                    threading.Thread(target=do, daemon=True).start()
+
+                row = ft.Container(
+                    bgcolor=CARD2_BG, border_radius=10,
+                    padding=ft.padding.all(12),
+                    content=ft.Column([
+                        ft.Row([
+                            _mini_icon(mod.icon_url, mod.title),
+                            ft.Container(width=10),
+                            ft.Column([
+                                ft.Text(f"{mod.title} no es la versión de {loader}",
+                                        color=TEXT_PRI, size=12, weight=ft.FontWeight.W_600),
+                                ft.Text(
+                                    f"El {mod.title} instalado es para otro loader. "
+                                    f"Por eso arrastra dependencias incorrectas.",
+                                    color=TEXT_DIM, size=10,
+                                ),
+                            ], spacing=2, expand=True),
+                        ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                        ft.Container(height=8),
+                        ft.Row([
+                            ft.ElevatedButton(
+                                f"Corregir {mod.title}",
+                                icon=ft.icons.BUILD_ROUNDED,
+                                bgcolor=GREEN, color=TEXT_INV,
+                                style=ft.ButtonStyle(
+                                    shape=ft.RoundedRectangleBorder(radius=8)),
+                                on_click=_fix_parent,
+                            ),
+                        ]),
+                        ft.Container(height=4),
+                        status_txt,
+                    ], spacing=0),
+                )
+                missing_rows.controls.append(row)
+                continue
+
             row = ft.Container(
                 bgcolor=CARD2_BG, border_radius=10,
                 padding=ft.padding.all(12),
