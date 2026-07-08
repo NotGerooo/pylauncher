@@ -448,6 +448,14 @@ class ModrinthService:
                 except Exception:
                     dep_project = None
 
+                # ── Chequear si el MOD PADRE (el que pide la dependencia)
+                # es él mismo la versión correcta para este loader.
+                # Si no lo es, el problema real está en el padre, no en
+                # la dependencia que arrastra.
+                parent_wrong_loader = bool(
+                    loader and version.loaders and loader not in version.loaders
+                )
+
                 missing.append({
                     "mod":                  id_to_project.get(pid),
                     "missing_project_id":   dep_id,
@@ -455,6 +463,7 @@ class ModrinthService:
                     "required_version_id":  required_version_id,
                     "installed_version_id": installed_version_id,
                     "wrong_version":        wrong_version,
+                    "parent_wrong_loader":  parent_wrong_loader,
                 })
 
         return missing
