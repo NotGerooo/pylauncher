@@ -60,7 +60,7 @@ from gui.theme import (
 )
 from utils.logger import get_logger
 from gui.views.content_tab import _ContentTab
-
+from gui.views.pre_launch_conflict_dialog import show_pre_launch_conflict_dialog
 log = get_logger()
 
 # ── C3: Modrinth constants loaded once at module level ────────────────────────
