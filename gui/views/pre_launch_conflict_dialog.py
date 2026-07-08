@@ -224,7 +224,7 @@ def show_pre_launch_conflict_dialog(
 
             status_txt = ft.Text("", color=TEXT_DIM, size=10)
 
-            def _install(e, dep=dep_project, status=status_txt, btn_ref=None):
+            def _install(e, dep=dep_project, status=status_txt, entry=item):
                 status.value = "Instalando…"
                 status.color = TEXT_DIM
                 try: status.update()
@@ -232,14 +232,24 @@ def show_pre_launch_conflict_dialog(
 
                 def do():
                     try:
-                        # 1er intento: con el loader detectado de la instancia
-                        version = app.modrinth_service.get_latest_version(
-                            dep.project_id,
-                            mc_version=getattr(profile, "version_id", None),
-                            loader=loader,
-                        )
-                        # Fallback: sin filtro de loader, por si el mod no
-                        # etiqueta bien sus versiones en Modrinth
+                        required_version_id = entry.get("required_version_id")
+
+                        # 1) Si Modrinth pide un version_id EXACTO, usar ese
+                        if required_version_id:
+                            version = app.modrinth_service.get_version_by_id(
+                                required_version_id
+                            )
+                        else:
+                            version = None
+
+                        # 2) Si no hay version_id exacto (o falló), buscar
+                        #    la más reciente compatible con MC + loader
+                        if not version:
+                            version = app.modrinth_service.get_latest_version(
+                                dep.project_id,
+                                mc_version=getattr(profile, "version_id", None),
+                                loader=loader,
+                            )
                         if not version:
                             version = app.modrinth_service.get_latest_version(
                                 dep.project_id,
@@ -256,8 +266,6 @@ def show_pre_launch_conflict_dialog(
                             page.run_thread(notfound)
                             return
 
-                        # Verificar que la versión realmente sirva para
-                        # este loader (si loader es conocido)
                         if loader and version.loaders and loader not in version.loaders:
                             def wrongloader():
                                 status.value = (
@@ -269,6 +277,19 @@ def show_pre_launch_conflict_dialog(
                                 except Exception: pass
                             page.run_thread(wrongloader)
                             return
+
+                        # 3) Si YA había una versión distinta instalada de
+                        #    este mismo mod, borrarla antes de instalar la nueva
+                        try:
+                            for filename in os.listdir(mods_dir):
+                                full = os.path.join(mods_dir, filename)
+                                if not os.path.isfile(full):
+                                    continue
+                                existing_proj = app.modrinth_service.get_project_by_file_hash(full)
+                                if existing_proj and existing_proj.project_id == dep.project_id:
+                                    os.remove(full)
+                        except Exception:
+                            pass
 
                         app.modrinth_service.download_mod_version(version, mods_dir)
 
