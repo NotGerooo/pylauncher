@@ -188,6 +188,11 @@ class DiscoverView:
         self._source_profile     = None   # set by instance_view before on_show
         self._selected_account   = None   # cuenta elegida en el dropdown
 
+        # Guarda una referencia a cada card (por mod) para poder actualizar
+        # SOLO esa card cuando se instala, sin redibujar toda la lista
+        # (eso era lo que hacía "saltar" el scroll hacia arriba).
+        self._card_map: dict = {}
+
         self._build()
 
     # ── Build ──────────────────────────────────────────────────────────────────
@@ -529,8 +534,14 @@ class DiscoverView:
         )
 
     def _go_back(self):
+        """Vuelve a la vista de la instancia que está seleccionada
+        actualmente en el dropdown 'Install as' (self._source_profile)."""
         self.on_hide()
-        self.app._show_view("instance")
+        if self._source_profile is not None:
+            self.app._show_instance(self._source_profile)
+        else:
+            # Si por algún motivo no hay perfil (no debería pasar), no rompemos nada.
+            self.app._show_view("home")
 
     # ── Tabs ───────────────────────────────────────────────────────────────────
     def _switch_tab(self, idx: int):
@@ -585,6 +596,12 @@ class DiscoverView:
                 target = self._target_dir(p)
                 self._installed_set = build_installed_set(target)
                 self._refresh_chips()
+                # Actualiza el header de arriba (nombre/versión de la instancia)
+                self._update_instance_header()
+                # Avisa al sidebar derecho para que muestre la versión
+                # de la instancia recién elegida en "Install as"
+                if hasattr(self.app, "sidebar_right"):
+                    self.app.sidebar_right.update_discover_profile(p)
                 self._do_search(reset=True)
 
     def _load_account_dropdown(self):
@@ -747,15 +764,24 @@ class DiscoverView:
         finally:
             self._loading = False
 
+    # ── Helper: clave estable por proyecto ────────────────────────────────────
+    def _project_key(self, proj) -> str:
+        return (getattr(proj, "project_id", None)
+                or getattr(proj, "slug", None)
+                or proj.title)
+
     # ── Render ─────────────────────────────────────────────────────────────────
     def _render_results(self, results: list):
         self._list_col.controls.clear()
+        self._card_map.clear()
         self._empty_state.visible = False
 
         for proj in results:
             installed = is_installed_in(
                 proj.slug, proj.title, self._installed_set)
-            self._list_col.controls.append(self._make_card(proj, installed))
+            card = self._make_card(proj, installed)
+            self._card_map[self._project_key(proj)] = card
+            self._list_col.controls.append(card)
 
         start = self._page_index * self._page_size + 1
         end   = start + len(results) - 1
@@ -1090,6 +1116,24 @@ class DiscoverView:
         card.on_hover = _hover
         return card
 
+    # ── Actualiza SOLO la card de un mod puntual ──────────────────────────────
+    def _update_card_installed_state(self, proj, installed: bool):
+        """Reemplaza el contenido de la card de un mod puntual (sin tocar
+        el resto de la lista ni el contenedor padre), para que el scroll
+        no salte hacia arriba al instalar un mod."""
+        key  = self._project_key(proj)
+        card = self._card_map.get(key)
+        if card is None:
+            return
+        fresh = self._make_card(proj, installed)
+        card.content  = fresh.content
+        card.on_hover = fresh.on_hover
+        card.on_click = fresh.on_click
+        try:
+            card.update()
+        except Exception:
+            pass
+
     # ── Quick install ──────────────────────────────────────────────────────────
     def _quick_install(self, project):
         profile = self._source_profile
@@ -1128,7 +1172,9 @@ class DiscoverView:
                 self._installed_set = build_installed_set(target)
                 self.page.run_thread(lambda: self.app.snack(
                     f"{project.title} installed. \u2713"))
-                self.page.run_thread(self._refresh_badges)
+                # Solo actualizamos la card de ESTE mod, no toda la lista.
+                self.page.run_thread(
+                    lambda p=project: self._update_card_installed_state(p, True))
             except Exception as err:
                 self.page.run_thread(
                     lambda e=err: self.app.snack(f"Error: {e}", error=True))
@@ -1136,11 +1182,17 @@ class DiscoverView:
         threading.Thread(target=do, daemon=True).start()
 
     def _refresh_badges(self):
+        """Redibuja todas las cards (más lento, provoca que el scroll salte).
+        Se deja disponible por compatibilidad, pero para instalar un mod
+        puntual usá `_update_card_installed_state`."""
         new_controls = []
+        self._card_map.clear()
         for proj in self._results:
             installed = is_installed_in(
                 proj.slug, proj.title, self._installed_set)
-            new_controls.append(self._make_card(proj, installed))
+            card = self._make_card(proj, installed)
+            self._card_map[self._project_key(proj)] = card
+            new_controls.append(card)
         self._list_col.controls.clear()
         self._list_col.controls.extend(new_controls)
         try: self._list_col.update()
@@ -1160,7 +1212,8 @@ class DiscoverView:
     def _on_installed(self, project):
         profile = self._source_profile
         self._installed_set = build_installed_set(self._target_dir(profile))
-        self._refresh_badges()
+        # Solo actualizamos la card de ESTE mod, no toda la lista.
+        self._update_card_installed_state(project, True)
 
     def _load_mcver_filter(self):
         """Carga versiones MC desde los resultados actuales o la API."""
