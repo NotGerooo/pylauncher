@@ -77,6 +77,8 @@ class ModrinthVersion:
         self.date_published = data.get("date_published", "")
         # ── downloads (FALTABA → siempre era 0)
         self.downloads      = data.get("downloads", 0)
+        # ── dependencies: lista de {project_id, dependency_type, ...} (FALTABA)
+        self.dependencies   = data.get("dependencies", [])
 
     def get_primary_file(self) -> dict | None:
         for f in self.files:
