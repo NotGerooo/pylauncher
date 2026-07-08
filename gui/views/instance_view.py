@@ -542,6 +542,37 @@ class InstanceView:
             return
 
         username = acc.username
+        self._set_play_status("Comprobando mods…")
+
+        def check_conflicts_then_launch() -> None:
+            mods_dir = os.path.join(self.profile.game_dir, "mods")
+            try:
+                conflicts = self.app.modrinth_service.check_installed_conflicts(mods_dir)
+            except Exception as ex:
+                log.warning(f"No se pudo comprobar conflictos de mods: {ex}")
+                conflicts = []
+
+            if conflicts:
+                def show_dialog() -> None:
+                    self._set_play_status("Play", disabled=False)
+                    show_pre_launch_conflict_dialog(
+                        self.page, self.app, self.profile, conflicts, mods_dir,
+                        on_resolved=lambda: (
+                            self._set_play_status("Comprobando mods…"),
+                            threading.Thread(
+                                target=check_conflicts_then_launch, daemon=True
+                            ).start(),
+                        ),
+                        on_ignore=lambda: self._start_launch(username),
+                    )
+                self.page.run_thread(show_dialog)
+                return
+
+            self.page.run_thread(lambda: self._start_launch(username))
+
+        threading.Thread(target=check_conflicts_then_launch, daemon=True).start()
+
+    def _start_launch(self, username: str) -> None:
         self._set_play_status("Preparando…")
 
         try:
