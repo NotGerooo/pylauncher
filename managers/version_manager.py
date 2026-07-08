@@ -120,6 +120,22 @@ class VersionManager:
         except InstallationError as e:
             raise VersionError(str(e))
 
+    def check_natives_status(self, version_id: str) -> dict:
+        """Ver si los nativos (.dll/.so/.dylib) de esta versión están
+        correctamente extraídos. No lanza excepción — si algo falla al
+        leer, asume 'ok' para no bloquear el lanzamiento innecesariamente."""
+        try:
+            version_data = self.get_version_data(version_id)
+            return self._installer.check_natives_status(version_id, version_data)
+        except Exception as e:
+            log.warning(f"No se pudo comprobar natives de {version_id}: {e}")
+            return {"ok": True, "natives_dir": "", "expected_jars": 0, "missing_jars": []}
+
+    def repair_natives(self, version_id: str) -> int:
+        """Fuerza la re-extracción de los nativos de una versión instalada."""
+        version_data = self.get_version_data(version_id)
+        return self._installer.repair_natives(version_id, version_data)
+
     def _refresh_available_cache(self):
         log.info("Actualizando caché de versiones disponibles...")
         try:
