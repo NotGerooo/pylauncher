@@ -323,8 +323,12 @@ def show_pre_launch_conflict_dialog(
                         ft.Column([
                             ft.Text(f"{mod.title} necesita {dep_project.title}",
                                     color=TEXT_PRI, size=12, weight=ft.FontWeight.W_600),
-                            ft.Text("Esta dependencia no está instalada",
-                                    color=TEXT_DIM, size=10),
+                            ft.Text(
+                                "Versión instalada incorrecta"
+                                if item.get("wrong_version")
+                                else "Esta dependencia no está instalada",
+                                color=TEXT_DIM, size=10,
+                            ),
                         ], spacing=2, expand=True),
                     ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
                     ft.Container(height=8),
