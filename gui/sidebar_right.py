@@ -426,6 +426,55 @@ class SidebarRight:
             "loader":         loader,
         }
 
+    def update_discover_profile(self, profile):
+        """Se llama desde DiscoverView cuando el usuario cambia de instancia
+        en el dropdown 'Install as'. Actualiza SOLO el nombre/versión/loader
+        que se muestran en el panel de filtros (banner de arriba y la
+        sección 'Game Version'), sin reconstruir todo el panel."""
+        if not self._discover_mode:
+            return
+
+        self._discover_profile = profile
+        auto_loader            = self._detect_loader_from_profile(profile)
+        self._discover_loader  = auto_loader
+
+        mc_ver         = getattr(profile, "version_id", None) if profile else None
+        ver_display    = mc_ver or "—"
+        loader_display = auto_loader.capitalize() if auto_loader else "—"
+        prof_name      = getattr(profile, "name", None) if profile else None
+
+        # Banner de arriba (icono + nombre + chips versión/loader)
+        if hasattr(self, "_profile_banner"):
+            self._profile_banner.visible          = bool(prof_name)
+            self._profile_banner_name_txt.value   = prof_name or ""
+            self._profile_banner_ver_txt.value    = ver_display
+            self._profile_banner_loader_txt.value = loader_display
+            try:
+                self._profile_banner.update()
+            except Exception:
+                pass
+
+        # Sección "Game Version"
+        if hasattr(self, "_ver_text_ctrl"):
+            self._ver_text_ctrl.value = ver_display
+            try:
+                self._ver_text_ctrl.update()
+            except Exception:
+                pass
+
+        # Sección "Loader" (recalcula cuál es el "auto" para la nueva instancia)
+        if hasattr(self, "_loader_body"):
+            self._rebuild_loader_section(profile)
+            try:
+                self._loader_body.update()
+            except Exception:
+                pass
+
+        # Como cambió la instancia (y por lo tanto posiblemente el loader
+        # "auto"), disparamos una nueva búsqueda con los filtros actualizados.
+        if callable(self._on_filter_change):
+            self._on_filter_change()
+
     def _build_discover_col(self, profile, tab_type: str) -> ft.Column:
         mc_ver      = getattr(profile, "version_id", None) if profile else None
         auto_loader = self._detect_loader_from_profile(profile)
@@ -434,42 +483,50 @@ class SidebarRight:
         loader_display = auto_loader.capitalize() if auto_loader else "—"
 
         prof_name = getattr(profile, "name", None) if profile else None
-        if prof_name:
-            profile_banner = ft.Container(
-                padding=ft.padding.symmetric(horizontal=18, vertical=14),
-                bgcolor=CARD2_BG,
-                border=ft.border.only(bottom=ft.BorderSide(1, BORDER)),
-                content=ft.Row([
-                    ft.Container(
-                        width=36, height=36, border_radius=8,
-                        bgcolor=INPUT_BG, alignment=ft.alignment.center,
-                        content=ft.Icon(ft.icons.WIDGETS_ROUNDED,
-                                        size=18, color=TEXT_SEC),
-                    ),
-                    ft.Container(width=12),
-                    ft.Column([
-                        ft.Text(prof_name, color=TEXT_PRI, size=12,
-                                weight=ft.FontWeight.BOLD),
-                        ft.Row([
-                            ft.Container(
-                                bgcolor=INPUT_BG, border_radius=4,
-                                padding=ft.padding.symmetric(horizontal=6, vertical=2),
-                                content=ft.Text(ver_display, color=TEXT_SEC,
-                                                size=9, weight=ft.FontWeight.W_500),
-                            ),
-                            ft.Container(width=4),
-                            ft.Container(
-                                bgcolor=INPUT_BG, border_radius=4,
-                                padding=ft.padding.symmetric(horizontal=6, vertical=2),
-                                content=ft.Text(loader_display, color=TEXT_SEC,
-                                                size=9, weight=ft.FontWeight.W_500),
-                            ),
-                        ], spacing=0),
-                    ], spacing=4, expand=True),
-                ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
-            )
-        else:
-            profile_banner = ft.Container(height=0)
+
+        # Guardamos los Text en variables de instancia (self._profile_banner_*)
+        # para poder cambiarles el .value más adelante (cuando el usuario
+        # elige otra instancia en "Install as"), en vez de reconstruir
+        # todo el panel de filtros.
+        self._profile_banner_name_txt = ft.Text(
+            prof_name or "", color=TEXT_PRI, size=12, weight=ft.FontWeight.BOLD)
+        self._profile_banner_ver_txt = ft.Text(
+            ver_display, color=TEXT_SEC, size=9, weight=ft.FontWeight.W_500)
+        self._profile_banner_loader_txt = ft.Text(
+            loader_display, color=TEXT_SEC, size=9, weight=ft.FontWeight.W_500)
+
+        self._profile_banner = ft.Container(
+            visible=bool(prof_name),
+            padding=ft.padding.symmetric(horizontal=18, vertical=14),
+            bgcolor=CARD2_BG,
+            border=ft.border.only(bottom=ft.BorderSide(1, BORDER)),
+            content=ft.Row([
+                ft.Container(
+                    width=36, height=36, border_radius=8,
+                    bgcolor=INPUT_BG, alignment=ft.alignment.center,
+                    content=ft.Icon(ft.icons.WIDGETS_ROUNDED,
+                                    size=18, color=TEXT_SEC),
+                ),
+                ft.Container(width=12),
+                ft.Column([
+                    self._profile_banner_name_txt,
+                    ft.Row([
+                        ft.Container(
+                            bgcolor=INPUT_BG, border_radius=4,
+                            padding=ft.padding.symmetric(horizontal=6, vertical=2),
+                            content=self._profile_banner_ver_txt,
+                        ),
+                        ft.Container(width=4),
+                        ft.Container(
+                            bgcolor=INPUT_BG, border_radius=4,
+                            padding=ft.padding.symmetric(horizontal=6, vertical=2),
+                            content=self._profile_banner_loader_txt,
+                        ),
+                    ], spacing=0),
+                ], spacing=4, expand=True),
+            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+        )
+        profile_banner = self._profile_banner
 
         self._hide_toggle_dot = ft.Container(
             width=16, height=16, border_radius=8,
@@ -494,6 +551,10 @@ class SidebarRight:
             or c.update()
         )
 
+        # Guardado en self para poder actualizar el texto de la versión
+        # cuando el usuario cambia de instancia (ver update_discover_profile).
+        self._ver_text_ctrl = ft.Text(ver_display, color=TEXT_PRI, size=12,
+                                      weight=ft.FontWeight.W_500)
         self._ver_body = ft.Container(
             visible=self._ver_expanded,
             padding=ft.padding.only(left=18, right=18, bottom=14),
@@ -504,8 +565,7 @@ class SidebarRight:
                 content=ft.Row([
                     ft.Icon(ft.icons.VIDEOGAME_ASSET_ROUNDED, size=14, color=TEXT_DIM),
                     ft.Container(width=10),
-                    ft.Text(ver_display, color=TEXT_PRI, size=12,
-                            weight=ft.FontWeight.W_500),
+                    self._ver_text_ctrl,
                     ft.Container(expand=True),
                     ft.Container(
                         bgcolor=CARD2_BG, border_radius=4,
