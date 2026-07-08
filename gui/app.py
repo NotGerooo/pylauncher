@@ -312,10 +312,18 @@ class App:
         """Muestra la vista de una instancia específica."""
         from gui.views.instance_view import InstanceView
 
+        # Avisar a la vista anterior (sea vista normal o instancia) que se oculta
+        if self._current_vid and self._current_vid in self._views:
+            prev = self._views[self._current_vid]
+            if hasattr(prev, "on_hide"):
+                try: prev.on_hide()
+                except Exception: pass
+
         self._active_instance = profile
         self._sidebar_left.set_active("")
 
         key = f"instance_{profile.id}"
+        self._current_vid = key
         if key not in self._views:
             self._views[key] = InstanceView(self.page, self, profile)
 
