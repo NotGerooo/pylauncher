@@ -552,6 +552,7 @@ def show_pre_launch_conflict_dialog(
                 ft.Container(height=12),
                 ft.Column(
                     [
+                        *([natives_rows] if not natives_status.get("ok", True) else []),
                         *([missing_rows] if missing_deps else []),
                         *([conflict_rows] if conflicts else []),
                     ],
