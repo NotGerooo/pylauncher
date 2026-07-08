@@ -217,6 +217,72 @@ class ModrinthService:
         versions = self.get_project_versions(id_or_slug, mc_version, loader)
         return versions[0] if versions else None
 
+    # ── Compatibilidad con mods instalados ────────────────────────────────────
+    def get_installed_projects(self, mods_dir: str) -> list[ModrinthProject]:
+        """
+        Recorre los .jar de la carpeta de mods y devuelve el ModrinthProject
+        de cada uno (usando el hash SHA1, así es 100% exacto).
+        Los mods que no están en Modrinth (o que fallan el lookup) se ignoran.
+        """
+        installed = []
+        if not os.path.isdir(mods_dir):
+            return installed
+
+        for filename in os.listdir(mods_dir):
+            if not filename.lower().endswith((".jar", ".jar.disabled")):
+                continue
+            full_path = os.path.join(mods_dir, filename)
+            if not os.path.isfile(full_path):
+                continue
+            try:
+                project = self.get_project_by_file_hash(full_path)
+                if project:
+                    installed.append(project)
+            except Exception:
+                continue
+
+        return installed
+
+    def find_compatible_version(
+        self,
+        project_id: str,
+        installed_projects: list[ModrinthProject],
+        mc_version: str = None,
+        loader: str = None,
+    ) -> tuple[ModrinthVersion | None, list[ModrinthProject]]:
+        """
+        Busca, entre las versiones del mod 'project_id' compatibles con
+        mc_version/loader, una que NO esté marcada como "incompatible"
+        con ninguno de los mods ya instalados.
+
+        Devuelve (version_compatible, []) si encuentra una.
+        Devuelve (None, mods_en_conflicto) si NINGUNA versión sirve —
+        mods_en_conflicto es la lista de ModrinthProject que chocan.
+        """
+        installed_ids = {p.project_id for p in installed_projects}
+        id_to_project = {p.project_id: p for p in installed_projects}
+
+        versions = self.get_project_versions(project_id, mc_version, loader)
+
+        conflicts_seen: dict[str, ModrinthProject] = {}
+
+        for version in versions:
+            conflicting_ids = {
+                dep.get("project_id")
+                for dep in version.dependencies
+                if dep.get("dependency_type") == "incompatible"
+                and dep.get("project_id") in installed_ids
+            }
+
+            if not conflicting_ids:
+                return version, []
+
+            for cid in conflicting_ids:
+                if cid in id_to_project:
+                    conflicts_seen[cid] = id_to_project[cid]
+
+        return None, list(conflicts_seen.values())
+
     # ── Descarga ──────────────────────────────────────────────────────────────
     def download_mod_version(
         self,
