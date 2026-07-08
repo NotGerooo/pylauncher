@@ -217,6 +217,15 @@ class ModrinthService:
         versions = self.get_project_versions(id_or_slug, mc_version, loader)
         return versions[0] if versions else None
 
+    def get_version_by_id(self, version_id: str) -> ModrinthVersion | None:
+        """Trae una versión exacta de un mod por su version_id."""
+        try:
+            url = f"{self._base_url}/version/{version_id}"
+            data = self._get(url)
+            return ModrinthVersion(data)
+        except ModrinthError:
+            return None
+
     # ── Compatibilidad con mods instalados ────────────────────────────────────
     def get_installed_projects(self, mods_dir: str) -> list[ModrinthProject]:
         """
@@ -351,11 +360,17 @@ class ModrinthService:
     ) -> list[dict]:
         """
         Revisa los mods instalados y busca dependencias "required" que
-        NO estén instaladas. Devuelve una lista de dicts:
+        NO estén instaladas, O que estén instaladas con una versión
+        distinta a la que se pide específicamente.
+
+        Devuelve una lista de dicts:
         {
-            "mod":               ModrinthProject,   # el mod que pide la dependencia
-            "missing_project_id": str,               # id de la dependencia faltante
-            "missing_project":    ModrinthProject | None,  # info de la dependencia (con icono)
+            "mod":                ModrinthProject,        # el mod que pide la dependencia
+            "missing_project_id": str,                     # id de la dependencia
+            "missing_project":    ModrinthProject | None,  # info con icono
+            "required_version_id": str | None,   # version_id exacto pedido (si Modrinth lo da)
+            "installed_version_id": str | None,  # version_id que tenés instalado (si aplica)
+            "wrong_version": bool,               # True = está instalado pero versión incorrecta
         }
         """
         installed = self.get_installed_projects(mods_dir)
@@ -365,7 +380,8 @@ class ModrinthService:
         installed_ids = {p.project_id for p in installed}
         id_to_project = {p.project_id: p for p in installed}
 
-        # Sacar la versión instalada de cada mod (para leer sus dependencies)
+        # Sacar la versión instalada de cada mod (para leer sus dependencies
+        # Y para saber qué version_id tenemos instalado de cada uno)
         id_to_version: dict[str, "ModrinthVersion"] = {}
         for filename in os.listdir(mods_dir):
             if not filename.lower().endswith((".jar", ".jar.disabled")):
@@ -390,12 +406,41 @@ class ModrinthService:
                 if dep.get("dependency_type") != "required":
                     continue
                 dep_id = dep.get("project_id")
-                if not dep_id or dep_id in installed_ids:
-                    continue  # ya está instalado, todo bien
+                if not dep_id:
+                    continue
 
-                pair_key = (pid, dep_id)
+                required_version_id = dep.get("version_id")
+                pair_key = (pid, dep_id, required_version_id)
                 if pair_key in seen_pairs:
                     continue
+
+                is_installed = dep_id in installed_ids
+                installed_version_id = None
+                wrong_version = False
+
+                if is_installed:
+                    installed_version = id_to_version.get(dep_id)
+                    installed_version_id = (
+                        installed_version.version_id if installed_version else None
+                    )
+                    # Si Modrinth pide un version_id específico Y no coincide
+                    # con el que tenemos → versión incorrecta
+                    if required_version_id and installed_version_id != required_version_id:
+                        wrong_version = True
+                    # Si no hay version_id específico pero SÍ tenemos la
+                    # versión instalada, y esa versión no lista el loader
+                    # actual como compatible → probablemente mal instalada
+                    elif (
+                        loader
+                        and installed_version
+                        and installed_version.loaders
+                        and loader not in installed_version.loaders
+                    ):
+                        wrong_version = True
+
+                    if not wrong_version:
+                        continue  # está bien instalado, no hay problema
+
                 seen_pairs.add(pair_key)
 
                 try:
@@ -404,9 +449,12 @@ class ModrinthService:
                     dep_project = None
 
                 missing.append({
-                    "mod":                id_to_project.get(pid),
-                    "missing_project_id": dep_id,
-                    "missing_project":    dep_project,
+                    "mod":                  id_to_project.get(pid),
+                    "missing_project_id":   dep_id,
+                    "missing_project":      dep_project,
+                    "required_version_id":  required_version_id,
+                    "installed_version_id": installed_version_id,
+                    "wrong_version":        wrong_version,
                 })
 
         return missing
