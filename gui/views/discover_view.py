@@ -1097,21 +1097,34 @@ class DiscoverView:
             self.app.snack("Select a profile first.", error=True)
             return
         loader = self._detect_loader(profile)
+        target = self._target_dir(profile)
 
         def do():
             try:
-                version = self.app.modrinth_service.get_latest_version(
+                service = self.app.modrinth_service
+
+                installed_projects = service.get_installed_projects(target)
+
+                version, conflicts = service.find_compatible_version(
                     project.project_id,
+                    installed_projects,
                     mc_version=getattr(profile, "version_id", None),
                     loader=loader,
                 )
-                if not version:
-                    self.page.run_thread(lambda: self.app.snack(
-                        "No compatible version found.", error=True))
+
+                if version is None:
+                    if conflicts:
+                        def show_conflict():
+                            from gui.views.mod_conflict_dialog import show_mod_conflict_dialog
+                            show_mod_conflict_dialog(self.page, project.title, conflicts)
+                        self.page.run_thread(show_conflict)
+                    else:
+                        self.page.run_thread(lambda: self.app.snack(
+                            "No compatible version found.", error=True))
                     return
-                target = self._target_dir(profile)
+
                 os.makedirs(target, exist_ok=True)
-                self.app.modrinth_service.download_mod_version(version, target)
+                service.download_mod_version(version, target)
                 self._installed_set = build_installed_set(target)
                 self.page.run_thread(lambda: self.app.snack(
                     f"{project.title} installed. \u2713"))
