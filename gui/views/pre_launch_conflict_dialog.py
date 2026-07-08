@@ -32,7 +32,6 @@ def _mini_icon(url: str, title: str, size: int = 36) -> ft.Control:
         error_content=fallback,
     )
 
-
 def show_pre_launch_conflict_dialog(
     page: ft.Page,
     app,
@@ -42,8 +41,10 @@ def show_pre_launch_conflict_dialog(
     on_resolved,
     on_ignore,
     missing_deps: list[dict] = None,
+    loader: str = None,
 ):
     missing_deps = missing_deps or []
+
     """
     conflicts: salida de ModrinthService.check_installed_conflicts()
     on_resolved: callback llamado cuando el usuario resuelve TODOS los
@@ -223,18 +224,29 @@ def show_pre_launch_conflict_dialog(
 
             status_txt = ft.Text("", color=TEXT_DIM, size=10)
 
-            def _install(e, dep=dep_project, status=status_txt):
+            def _install(e, dep=dep_project, status=status_txt, btn_ref=None):
                 status.value = "Instalando…"
+                status.color = TEXT_DIM
                 try: status.update()
                 except Exception: pass
 
                 def do():
                     try:
+                        # 1er intento: con el loader detectado de la instancia
                         version = app.modrinth_service.get_latest_version(
                             dep.project_id,
                             mc_version=getattr(profile, "version_id", None),
-                            loader=None,
+                            loader=loader,
                         )
+                        # Fallback: sin filtro de loader, por si el mod no
+                        # etiqueta bien sus versiones en Modrinth
+                        if not version:
+                            version = app.modrinth_service.get_latest_version(
+                                dep.project_id,
+                                mc_version=getattr(profile, "version_id", None),
+                                loader=None,
+                            )
+
                         if not version:
                             def notfound():
                                 status.value = "✗ No se encontró versión compatible"
@@ -243,9 +255,25 @@ def show_pre_launch_conflict_dialog(
                                 except Exception: pass
                             page.run_thread(notfound)
                             return
+
+                        # Verificar que la versión realmente sirva para
+                        # este loader (si loader es conocido)
+                        if loader and version.loaders and loader not in version.loaders:
+                            def wrongloader():
+                                status.value = (
+                                    f"✗ La versión encontrada es para "
+                                    f"{', '.join(version.loaders)}, no {loader}"
+                                )
+                                status.color = ACCENT_RED
+                                try: status.update()
+                                except Exception: pass
+                            page.run_thread(wrongloader)
+                            return
+
                         app.modrinth_service.download_mod_version(version, mods_dir)
+
                         def done():
-                            status.value = "✓ Instalado correctamente"
+                            status.value = f"✓ Instalado ({version.version_number})"
                             status.color = GREEN
                             try: status.update()
                             except Exception: pass
