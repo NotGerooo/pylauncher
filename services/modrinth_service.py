@@ -283,6 +283,66 @@ class ModrinthService:
 
         return None, list(conflicts_seen.values())
 
+    def check_installed_conflicts(
+        self,
+        mods_dir: str,
+    ) -> list[dict]:
+        """
+        Revisa TODOS los mods instalados entre sí y devuelve una lista de
+        conflictos encontrados. Cada conflicto es un dict:
+        {
+            "mod_a": ModrinthProject,       # mod instalado
+            "mod_a_version": ModrinthVersion,  # versión instalada (si se pudo identificar)
+            "mod_b": ModrinthProject,       # el mod con el que choca
+        }
+        """
+        installed = self.get_installed_projects(mods_dir)
+        if len(installed) < 2:
+            return []
+
+        # Mapear cada mod instalado a su versión actual (por hash de archivo)
+        id_to_project = {p.project_id: p for p in installed}
+        id_to_version: dict[str, "ModrinthVersion"] = {}
+
+        for filename in os.listdir(mods_dir):
+            if not filename.lower().endswith((".jar", ".jar.disabled")):
+                continue
+            full_path = os.path.join(mods_dir, filename)
+            if not os.path.isfile(full_path):
+                continue
+            try:
+                sha1 = self._sha1(full_path)
+                url = f"{self._base_url}/version_file/{sha1}"
+                vdata = self._get(url)
+                version = ModrinthVersion(vdata)
+                id_to_version[version.project_id] = version
+            except Exception:
+                continue
+
+        conflicts = []
+        seen_pairs = set()
+
+        for pid_a, version_a in id_to_version.items():
+            for dep in version_a.dependencies:
+                if dep.get("dependency_type") != "incompatible":
+                    continue
+                pid_b = dep.get("project_id")
+                if pid_b not in id_to_project:
+                    continue
+
+                pair_key = tuple(sorted([pid_a, pid_b]))
+                if pair_key in seen_pairs:
+                    continue
+                seen_pairs.add(pair_key)
+
+                conflicts.append({
+                    "mod_a":         id_to_project.get(pid_a),
+                    "mod_a_version": version_a,
+                    "mod_b":         id_to_project.get(pid_b),
+                })
+
+        return conflicts
+
     # ── Descarga ──────────────────────────────────────────────────────────────
     def download_mod_version(
         self,
