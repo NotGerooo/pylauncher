@@ -1816,7 +1816,7 @@ class _InstanceSettingsDialog:
                     self.page.run_thread(self.on_done)
             except Exception as ex:
                 self.page.run_thread(
-                    lambda: self.app.snack(str(ex), error=True)
+                    lambda e=ex: self.app.snack(str(e), error=True)
                 )
 
         threading.Thread(target=do_dup, daemon=True).start()
