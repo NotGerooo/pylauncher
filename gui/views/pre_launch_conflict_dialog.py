@@ -444,6 +444,86 @@ def show_pre_launch_conflict_dialog(
 
     _rebuild_missing_rows()
 
+    natives_rows = ft.Column(spacing=10)
+
+    def _rebuild_natives_rows():
+        natives_rows.controls.clear()
+        if natives_status.get("ok", True):
+            return
+
+        missing_jars = natives_status.get("missing_jars", [])
+        status_txt = ft.Text("", color=TEXT_DIM, size=10)
+
+        def _repair(e, status=status_txt):
+            status.value = "Reparando…"
+            status.color = TEXT_DIM
+            try: status.update()
+            except Exception: pass
+
+            def do():
+                try:
+                    count = app.version_manager.repair_natives(profile.version_id)
+                    def done():
+                        status.value = f"✓ {count} archivo(s) nativo(s) reparados"
+                        status.color = GREEN
+                        try: status.update()
+                        except Exception: pass
+                    page.run_thread(done)
+                except Exception as ex:
+                    def err(ex=ex):
+                        status.value = f"Error: {ex}"
+                        status.color = ACCENT_RED
+                        try: status.update()
+                        except Exception: pass
+                    page.run_thread(err)
+
+            threading.Thread(target=do, daemon=True).start()
+
+        row = ft.Container(
+            bgcolor=CARD2_BG, border_radius=10,
+            padding=ft.padding.all(12),
+            content=ft.Column([
+                ft.Row([
+                    ft.Container(
+                        width=36, height=36, border_radius=8,
+                        bgcolor="#2d1a1a", alignment=ft.alignment.center,
+                        content=ft.Icon(ft.icons.MEMORY_ROUNDED, size=18, color=ACCENT_RED),
+                    ),
+                    ft.Container(width=10),
+                    ft.Column([
+                        ft.Text("Archivos nativos incompletos",
+                                color=TEXT_PRI, size=12, weight=ft.FontWeight.W_600),
+                        ft.Text(
+                            f"Faltan {len(missing_jars)} librería(s) nativa(s) sin "
+                            f"extraer: {', '.join(missing_jars[:3])}"
+                            + ("…" if len(missing_jars) > 3 else "")
+                            + ". Esto puede hacer que mods como Sodium crasheen al iniciar.",
+                            color=TEXT_DIM, size=10,
+                        ),
+                    ], spacing=2, expand=True),
+                ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                ft.Container(height=8),
+                ft.Row([
+                    ft.ElevatedButton(
+                        "Reparar instalación",
+                        icon=ft.icons.BUILD_ROUNDED,
+                        bgcolor=GREEN, color=TEXT_INV,
+                        style=ft.ButtonStyle(
+                            shape=ft.RoundedRectangleBorder(radius=8)),
+                        on_click=_repair,
+                    ),
+                ]),
+                ft.Container(height=4),
+                status_txt,
+            ], spacing=0),
+        )
+        natives_rows.controls.append(row)
+
+        try: natives_rows.update()
+        except Exception: pass
+
+    _rebuild_natives_rows()
+
     def _retry(e):
         page.close(dlg)
         on_resolved()
