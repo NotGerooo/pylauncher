@@ -418,6 +418,8 @@ class MinecraftInstaller:
         else:
             log.debug(f"No se encontraron archivos nativos para extraer en {os_name} para {version_id}")
 
+        return extracted_count
+
     def _is_library_compatible(self, lib: dict, current_os: str) -> bool:
         rules = lib.get("rules", [])
         if not rules:
