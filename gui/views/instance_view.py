@@ -486,6 +486,11 @@ class InstanceView:
     def on_show(self) -> None:
         self._render_tab()
 
+    def on_hide(self) -> None:
+        """Se llama cuando el usuario sale de esta instancia. Detiene hilos en segundo plano."""
+        if hasattr(self, "_logs_tab_obj"):
+            self._logs_tab_obj.destroy()
+
     def _render_tab(self) -> None:
         if self._active_tab == "content":
             if not hasattr(self, "_content_tab_obj"):
