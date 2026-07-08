@@ -312,10 +312,38 @@ class MinecraftInstaller:
                 import time
                 time.sleep(1)
 
+    # Sufijos de nombre de archivo que indican "esta librería trae natives
+    # de tal SO" en el formato MODERNO (MC 1.19+). Mojang y LWJGL nombran
+    # estos JARs con "natives-<os>" en vez de usar el campo viejo "natives".
+    _MODERN_NATIVES_SUFFIX = {
+        "windows": "natives-windows",
+        "linux":   "natives-linux",
+        "osx":     "natives-macos",
+    }
+
     def _extract_natives_for_version(self, version_id: str, version_data: dict):
         """
-        Extrae los archivos nativos de los JARs de librerías para una versión específica.
-        Crea el directorio de natives si no existe y maneja errores de extracción.
+        Extrae los archivos nativos (.dll / .so / .dylib) de los JARs de
+        librerías para una versión específica.
+
+        Soporta DOS formatos, porque Mojang cambió el esquema en algún
+        punto entre 1.18 y 1.19:
+
+          • FORMATO VIEJO (<=1.18): cada lib tiene lib["natives"][os] con
+            un classifier, y el jar real está en
+            lib["downloads"]["classifiers"][classifier].
+
+          • FORMATO NUEVO (1.19+): el native viene como una librería más,
+            con su artifact normal, pero el "path" incluye
+            "natives-windows" / "natives-linux" / "natives-macos" en el
+            nombre del archivo. No hay campo "natives" ni "classifiers".
+
+        Antes solo se soportaba el formato viejo, por lo que en versiones
+        modernas (como 1.21.8) nunca se extraían los .dll de LWJGL —
+        Minecraft vanilla lo toleraba porque LWJGL se auto-extrae desde
+        el classpath en tiempo de ejecución, pero mods como Sodium hacen
+        su propia detección de GPU y necesitan el .dll ya extraído en
+        natives_dir, por lo que crasheaban con UnsatisfiedLinkError.
         """
         natives_dir = os.path.join(
             self._settings.versions_dir,
@@ -326,39 +354,65 @@ class MinecraftInstaller:
 
         os_name = get_os()
         extracted_count = 0
+        extracted_files: set[str] = set()
 
-        for lib in version_data.get("libraries", []):
-            natives_info = lib.get("natives", {})
-            if os_name not in natives_info:
-                continue
-
-            classifier = natives_info[os_name].replace("${arch}", "64") # Asume 64-bit
-            downloads = lib.get("downloads", {})
-            native_info = downloads.get("classifiers", {}).get(classifier, {})
-
-            if not native_info or not native_info.get("path"):
-                continue
-
-            native_path_parts = native_info["path"].split("/")
-            native_jar_path = os.path.join(self._settings.libraries_dir, *native_path_parts)
-
-            if not os.path.isfile(native_jar_path):
-                log.debug(f"JAR de natives no encontrado: {os.path.basename(native_jar_path)}")
-                continue
-
+        def _extract_dlls_from_jar(jar_path: str) -> int:
+            if not os.path.isfile(jar_path):
+                log.debug(f"JAR de natives no encontrado: {os.path.basename(jar_path)}")
+                return 0
+            count = 0
             try:
-                with zipfile.ZipFile(native_jar_path, 'r') as jar:
+                with zipfile.ZipFile(jar_path, 'r') as jar:
                     for file_info in jar.infolist():
                         if file_info.filename.endswith((".dll", ".so", ".dylib", ".jnilib")):
+                            # Evitar re-extraer el mismo archivo dos veces
+                            # (puede aparecer en varias libs con el mismo nombre)
+                            base = os.path.basename(file_info.filename)
+                            if base in extracted_files:
+                                continue
                             jar.extract(file_info, natives_dir)
-                            extracted_count += 1
+                            extracted_files.add(base)
+                            count += 1
                             log.debug(f"Extraído: {file_info.filename}")
-
             except zipfile.BadZipFile:
-                log.warning(f"Archivo JAR corrupto: {os.path.basename(native_jar_path)}")
+                log.warning(f"Archivo JAR corrupto: {os.path.basename(jar_path)}")
             except Exception as e:
-                log.warning(f"Error extrayendo natives de {os.path.basename(native_jar_path)}: {e}")
-        
+                log.warning(f"Error extrayendo natives de {os.path.basename(jar_path)}: {e}")
+            return count
+
+        modern_suffix = self._MODERN_NATIVES_SUFFIX.get(os_name)
+
+        for lib in version_data.get("libraries", []):
+            downloads = lib.get("downloads", {})
+
+            # ── FORMATO VIEJO ────────────────────────────────────────────
+            natives_info = lib.get("natives", {})
+            if os_name in natives_info:
+                classifier = natives_info[os_name].replace("${arch}", "64")
+                native_info = downloads.get("classifiers", {}).get(classifier, {})
+                if native_info and native_info.get("path"):
+                    native_jar_path = os.path.join(
+                        self._settings.libraries_dir, *native_info["path"].split("/")
+                    )
+                    extracted_count += _extract_dlls_from_jar(native_jar_path)
+                continue  # esta lib ya se procesó, no revisar formato nuevo
+
+            # ── FORMATO NUEVO (1.19+) ────────────────────────────────────
+            if not modern_suffix:
+                continue
+            artifact = downloads.get("artifact", {})
+            path = artifact.get("path", "")
+            if not path:
+                continue
+            filename = os.path.basename(path)
+            if modern_suffix not in filename:
+                continue
+
+            native_jar_path = os.path.join(
+                self._settings.libraries_dir, *path.split("/")
+            )
+            extracted_count += _extract_dlls_from_jar(native_jar_path)
+
         if extracted_count > 0:
             log.info(f"Se extrajeron {extracted_count} archivos nativos para {os_name} en {version_id}")
         else:
