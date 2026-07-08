@@ -321,12 +321,18 @@ def show_pre_launch_conflict_dialog(
             width=460,
             content=ft.Column([
                 ft.Text(
-                    "Se encontraron mods instalados que no son compatibles "
-                    "entre sí. El juego podría fallar al iniciar.",
+                    "Se encontraron problemas con tus mods instalados que "
+                    "podrían impedir que el juego inicie.",
                     color=TEXT_SEC, size=12,
                 ),
                 ft.Container(height=12),
-                ft.Column([conflict_rows], scroll=ft.ScrollMode.AUTO, height=280),
+                ft.Column(
+                    [
+                        *([missing_rows] if missing_deps else []),
+                        *([conflict_rows] if conflicts else []),
+                    ],
+                    scroll=ft.ScrollMode.AUTO, height=320, spacing=14,
+                ),
             ], spacing=0, tight=True),
         ),
         actions=[

@@ -552,7 +552,15 @@ class InstanceView:
                 log.warning(f"No se pudo comprobar conflictos de mods: {ex}")
                 conflicts = []
 
-            if conflicts:
+            try:
+                missing_deps = self.app.modrinth_service.check_missing_required_dependencies(
+                    mods_dir, mc_version=self.profile.version_id
+                )
+            except Exception as ex:
+                log.warning(f"No se pudo comprobar dependencias faltantes: {ex}")
+                missing_deps = []
+
+            if conflicts or missing_deps:
                 def show_dialog() -> None:
                     self._set_play_status("Play", disabled=False)
                     show_pre_launch_conflict_dialog(
@@ -564,6 +572,7 @@ class InstanceView:
                             ).start(),
                         ),
                         on_ignore=lambda: self._start_launch(username),
+                        missing_deps=missing_deps,
                     )
                 self.page.run_thread(show_dialog)
                 return
