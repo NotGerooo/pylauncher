@@ -41,7 +41,9 @@ def show_pre_launch_conflict_dialog(
     mods_dir: str,
     on_resolved,
     on_ignore,
+    missing_deps: list[dict] = None,
 ):
+    missing_deps = missing_deps or []
     """
     conflicts: salida de ModrinthService.check_installed_conflicts()
     on_resolved: callback llamado cuando el usuario resuelve TODOS los
@@ -208,6 +210,95 @@ def show_pre_launch_conflict_dialog(
         except Exception: pass
 
     _rebuild_conflict_rows()
+
+    missing_rows = ft.Column(spacing=10)
+
+    def _rebuild_missing_rows():
+        missing_rows.controls.clear()
+        for item in missing_deps:
+            mod = item["mod"]
+            dep_project = item["missing_project"]
+            if not mod or not dep_project:
+                continue
+
+            status_txt = ft.Text("", color=TEXT_DIM, size=10)
+
+            def _install(e, dep=dep_project, status=status_txt):
+                status.value = "Instalando…"
+                try: status.update()
+                except Exception: pass
+
+                def do():
+                    try:
+                        version = app.modrinth_service.get_latest_version(
+                            dep.project_id,
+                            mc_version=getattr(profile, "version_id", None),
+                            loader=None,
+                        )
+                        if not version:
+                            def notfound():
+                                status.value = "✗ No se encontró versión compatible"
+                                status.color = ACCENT_RED
+                                try: status.update()
+                                except Exception: pass
+                            page.run_thread(notfound)
+                            return
+                        app.modrinth_service.download_mod_version(version, mods_dir)
+                        def done():
+                            status.value = "✓ Instalado correctamente"
+                            status.color = GREEN
+                            try: status.update()
+                            except Exception: pass
+                        page.run_thread(done)
+                    except Exception as ex:
+                        def err(ex=ex):
+                            status.value = f"Error: {ex}"
+                            status.color = ACCENT_RED
+                            try: status.update()
+                            except Exception: pass
+                        page.run_thread(err)
+
+                threading.Thread(target=do, daemon=True).start()
+
+            row = ft.Container(
+                bgcolor=CARD2_BG, border_radius=10,
+                padding=ft.padding.all(12),
+                content=ft.Column([
+                    ft.Row([
+                        _mini_icon(mod.icon_url, mod.title),
+                        ft.Container(width=8),
+                        ft.Icon(ft.icons.ARROW_FORWARD_ROUNDED, size=14, color=TEXT_DIM),
+                        ft.Container(width=8),
+                        _mini_icon(dep_project.icon_url, dep_project.title),
+                        ft.Container(width=10),
+                        ft.Column([
+                            ft.Text(f"{mod.title} necesita {dep_project.title}",
+                                    color=TEXT_PRI, size=12, weight=ft.FontWeight.W_600),
+                            ft.Text("Esta dependencia no está instalada",
+                                    color=TEXT_DIM, size=10),
+                        ], spacing=2, expand=True),
+                    ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                    ft.Container(height=8),
+                    ft.Row([
+                        ft.ElevatedButton(
+                            f"Instalar {dep_project.title}",
+                            icon=ft.icons.DOWNLOAD_ROUNDED,
+                            bgcolor=GREEN, color=TEXT_INV,
+                            style=ft.ButtonStyle(
+                                shape=ft.RoundedRectangleBorder(radius=8)),
+                            on_click=_install,
+                        ),
+                    ]),
+                    ft.Container(height=4),
+                    status_txt,
+                ], spacing=0),
+            )
+            missing_rows.controls.append(row)
+
+        try: missing_rows.update()
+        except Exception: pass
+
+    _rebuild_missing_rows()
 
     def _retry(e):
         page.close(dlg)
