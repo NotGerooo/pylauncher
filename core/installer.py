@@ -420,6 +420,89 @@ class MinecraftInstaller:
 
         return extracted_count
 
+    def check_natives_status(self, version_id: str, version_data: dict) -> dict:
+        """
+        Verifica (sin extraer nada) si los .dll/.so/.dylib que necesitan
+        las librerías nativas de esta versión ya están presentes en su
+        carpeta natives/. Sirve para detectar instalaciones dañadas
+        como la que causaba el UnsatisfiedLinkError con Sodium.
+
+        Devuelve:
+        {
+            "ok": bool,                 # True si no falta nada
+            "natives_dir": str,
+            "expected_jars": int,       # cuántos JARs de natives se esperaban
+            "missing_jars": list[str],  # nombres de JAR cuyos .dll no están extraídos
+        }
+        """
+        natives_dir = os.path.join(self._settings.versions_dir, version_id, "natives")
+        os_name = get_os()
+        modern_suffix = self._MODERN_NATIVES_SUFFIX.get(os_name)
+
+        existing_dlls = set()
+        if os.path.isdir(natives_dir):
+            for fn in os.listdir(natives_dir):
+                if fn.endswith((".dll", ".so", ".dylib", ".jnilib")):
+                    existing_dlls.add(fn)
+
+        expected_jar_paths: list[str] = []
+
+        for lib in version_data.get("libraries", []):
+            downloads = lib.get("downloads", {})
+
+            natives_info = lib.get("natives", {})
+            if os_name in natives_info:
+                classifier = natives_info[os_name].replace("${arch}", "64")
+                native_info = downloads.get("classifiers", {}).get(classifier, {})
+                path = native_info.get("path", "")
+                if path:
+                    expected_jar_paths.append(path)
+                continue
+
+            if not modern_suffix:
+                continue
+            artifact = downloads.get("artifact", {})
+            path = artifact.get("path", "")
+            if path and modern_suffix in os.path.basename(path):
+                expected_jar_paths.append(path)
+
+        missing_jars: list[str] = []
+        for path in expected_jar_paths:
+            jar_full_path = os.path.join(self._settings.libraries_dir, *path.split("/"))
+            if not os.path.isfile(jar_full_path):
+                # No está ni la librería descargada — eso lo arregla la
+                # reinstalación normal, no es un problema de extracción.
+                continue
+
+            try:
+                with zipfile.ZipFile(jar_full_path, "r") as jar:
+                    dll_names_in_jar = {
+                        os.path.basename(n) for n in jar.namelist()
+                        if n.endswith((".dll", ".so", ".dylib", ".jnilib"))
+                    }
+            except (zipfile.BadZipFile, OSError):
+                continue
+
+            if dll_names_in_jar and not dll_names_in_jar.issubset(existing_dlls):
+                missing_jars.append(os.path.basename(path))
+
+        return {
+            "ok": len(missing_jars) == 0,
+            "natives_dir": natives_dir,
+            "expected_jars": len(expected_jar_paths),
+            "missing_jars": missing_jars,
+        }
+
+    def repair_natives(self, version_id: str, version_data: dict) -> int:
+        """
+        Fuerza la re-extracción de los nativos de una versión ya
+        instalada. No borra la carpeta natives/ existente — solo
+        sobrescribe/agrega lo que falte. Devuelve cuántos archivos
+        se extrajeron.
+        """
+        log.info(f"Reparando natives de {version_id}...")
+        return self._extract_natives_for_version(version_id, version_data)
+
     def _is_library_compatible(self, lib: dict, current_os: str) -> bool:
         rules = lib.get("rules", [])
         if not rules:
