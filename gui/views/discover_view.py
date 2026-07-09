@@ -371,7 +371,6 @@ class DiscoverView:
                     expand=True,
                     content=ft.ListView(
                         key="main_scroll",
-                        on_scroll_interval=10,
                         controls=[
                             ft.Container(
                                 padding=ft.padding.only(
