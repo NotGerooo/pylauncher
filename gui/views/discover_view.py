@@ -963,10 +963,10 @@ class DiscoverView:
                 bgcolor=GREEN, border_radius=8,
                 padding=ft.padding.symmetric(horizontal=14, vertical=7),
                 animate=ft.animation.Animation(120, ft.AnimationCurve.EASE_OUT),
-                on_click=lambda e, p=proj, b=install_btn: (
+                on_click=lambda e, p=proj: (
                     self._open_modpack_install(p)
                     if TAB_PROJECT_TYPES[self._tab_index] == "modpack"
-                    else self._quick_install(p, b)
+                    else self._quick_install(p, install_btn)
                 ),
                 content=ft.Row([
                     ft.Icon(ft.icons.DOWNLOAD_ROUNDED, size=14, color=TEXT_INV),
