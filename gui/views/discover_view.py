@@ -963,10 +963,10 @@ class DiscoverView:
                 bgcolor=GREEN, border_radius=8,
                 padding=ft.padding.symmetric(horizontal=14, vertical=7),
                 animate=ft.animation.Animation(120, ft.AnimationCurve.EASE_OUT),
-                on_click=lambda e, p=proj: (
+                on_click=lambda e, p=proj, b=install_btn: (
                     self._open_modpack_install(p)
                     if TAB_PROJECT_TYPES[self._tab_index] == "modpack"
-                    else self._quick_install(p)
+                    else self._quick_install(p, b)
                 ),
                 content=ft.Row([
                     ft.Icon(ft.icons.DOWNLOAD_ROUNDED, size=14, color=TEXT_INV),
@@ -1133,14 +1133,42 @@ class DiscoverView:
         except Exception:
             pass
 
+    # ── Botón: estado "instalando" / reset ────────────────────────────────────
+    def _set_install_btn_loading(self, btn: ft.Container):
+        btn.disabled = True
+        btn.bgcolor  = GREEN_DIM
+        btn.content  = ft.Row([
+            ft.ProgressRing(width=13, height=13, stroke_width=2, color=TEXT_INV),
+            ft.Container(width=6),
+            ft.Text("Installing...", color=TEXT_INV, size=11, weight=ft.FontWeight.W_600),
+        ], spacing=0, tight=True)
+        try: btn.update()
+        except Exception: pass
+
+    def _reset_install_btn(self, btn: ft.Container | None):
+        if btn is None:
+            return
+        btn.disabled = False
+        btn.bgcolor  = GREEN
+        btn.content  = ft.Row([
+            ft.Icon(ft.icons.DOWNLOAD_ROUNDED, size=14, color=TEXT_INV),
+            ft.Container(width=6),
+            ft.Text("Install", color=TEXT_INV, size=11, weight=ft.FontWeight.W_600),
+        ], spacing=0, tight=True)
+        try: btn.update()
+        except Exception: pass
+
     # ── Quick install ──────────────────────────────────────────────────────────
-    def _quick_install(self, project):
+    def _quick_install(self, project, btn: ft.Container | None = None):
         profile = self._source_profile
         if not profile:
             self.app.snack("Select a profile first.", error=True)
             return
         loader = self._detect_loader(profile)
         target = self._target_dir(profile)
+
+        if btn is not None:
+            self._set_install_btn_loading(btn)
 
         def do():
             try:
@@ -1164,6 +1192,7 @@ class DiscoverView:
                     else:
                         self.page.run_thread(lambda: self.app.snack(
                             "No compatible version found.", error=True))
+                    self.page.run_thread(lambda b=btn: self._reset_install_btn(b))
                     return
 
                 os.makedirs(target, exist_ok=True)
@@ -1172,11 +1201,14 @@ class DiscoverView:
                 self.page.run_thread(lambda: self.app.snack(
                     f"{project.title} installed. \u2713"))
                 # Solo actualizamos la card de ESTE mod, no toda la lista.
+                # Esto reemplaza el botón por el badge "Installed", así que
+                # no hace falta resetearlo manualmente.
                 self.page.run_thread(
                     lambda p=project: self._update_card_installed_state(p, True))
             except Exception as err:
                 self.page.run_thread(
                     lambda e=err: self.app.snack(f"Error: {e}", error=True))
+                self.page.run_thread(lambda b=btn: self._reset_install_btn(b))
 
         threading.Thread(target=do, daemon=True).start()
 
